@@ -1,3 +1,15 @@
 spring:
   application:
     name: shopflow-backend
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+shopflow:
+  openapi:
+    version: 0.0.1-SNAPSHOT
