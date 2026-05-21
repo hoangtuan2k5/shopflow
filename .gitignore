@@ -1,0 +1,90 @@
+# ===========================
+# Spring Boot / Maven
+# ===========================
+target/
+*.jar
+*.war
+*.ear
+*.class
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# ===========================
+# VueJS / Node
+# ===========================
+node_modules/
+dist/
+.output/
+.nuxt/
+.cache/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# ===========================
+# Environment & Secrets
+# ===========================
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.jks
+
+# ===========================
+# IntelliJ IDEA
+# ===========================
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# ===========================
+# VS Code
+# ===========================
+.vscode/
+
+# ===========================
+# Eclipse / STS
+# ===========================
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# ===========================
+# NetBeans
+# ===========================
+/nbproject/private/
+/nbbuild/
+/nbdist/
+/.nb-gradle/
+build/
+
+# ===========================
+# OS
+# ===========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===========================
+# Logs
+# ===========================
+*.log
+logs/
+
+# ===========================
+# Misc
+# ===========================
+HELP.md
