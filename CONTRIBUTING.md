@@ -1,0 +1,265 @@
+# Contributing Conventions — ShopFlow
+
+Tài liệu này mô tả quy ước Git/Jira cho dự án ShopFlow để cả team làm việc nhất quán.
+
+## Branching strategy
+
+Dự án dùng mô hình **Git Flow rút gọn** với 4 nhóm branch chính:
+
+| Branch | Vai trò |
+|---|---|
+| `main` | Branch production. Chỉ nhận merge từ `develop` (hoặc `hotfix/*`) sau khi đã review và pass CI. Không commit trực tiếp. |
+| `develop` | Branch tích hợp. Tất cả `feature/*` và `bugfix/*` merge vào đây trước khi promote lên `main`. |
+| `feature/*` | Branch cho feature mới hoặc task. Tách ra từ `develop`, merge ngược về `develop` qua Pull Request. |
+| `bugfix/*` | Branch cho việc sửa bug đã phát hiện. Tách ra từ `develop`, merge ngược về `develop` qua Pull Request. |
+
+### Naming convention
+
+Tên branch luôn bắt đầu bằng prefix, theo sau là **Jira issue key**, rồi mô tả ngắn dạng kebab-case:
+
+```
+<prefix>/<JIRA-KEY>-<short-description>
+```
+
+Ví dụ:
+
+| Loại | Ví dụ |
+|---|---|
+| Feature | `feature/SF-3-create-customer-order` |
+| Feature | `feature/SF-24-configure-openapi` |
+| Bugfix | `bugfix/SF-42-stock-validation-error` |
+| Bugfix | `bugfix/SF-58-fix-payment-status-update` |
+
+Quy tắc:
+
+- Tên branch viết **lowercase**, không dấu, dùng dấu gạch ngang.
+- Issue key phải đúng format `SF-<number>`.
+- Phần mô tả ngắn (3–6 từ) đủ để hình dung nội dung.
+- Mỗi branch chỉ phục vụ **một issue chính** trong Jira.
+
+### Workflow chuẩn
+
+1. Đảm bảo `develop` mới nhất:
+
+   ```bash
+   git checkout develop
+   git pull origin develop
+   ```
+
+2. Tạo branch mới từ `develop`:
+
+   ```bash
+   git checkout -b feature/SF-3-create-customer-order
+   ```
+
+3. Commit theo convention (xem phần dưới).
+4. Push và mở Pull Request về `develop`:
+
+   ```bash
+   git push -u origin feature/SF-3-create-customer-order
+   ```
+
+5. Sau review và CI pass, **squash merge** hoặc **merge** về `develop`.
+6. Khi `develop` đủ ổn định để release, merge `develop` vào `main`.
+
+### Branch protection
+
+| Branch | Direct push | PR review | CI pass |
+|---|---|---|---|
+| `main` | Cấm | Bắt buộc 1 reviewer | Bắt buộc |
+| `develop` | Cấm | Bắt buộc 1 reviewer | Bắt buộc |
+| `feature/*`, `bugfix/*` | Cho phép | (không) | (không) |
+
+## Commit convention
+
+ShopFlow áp dụng **Conventional Commits** kết hợp **Jira issue key**.
+
+### Cấu trúc
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+| Phần | Mô tả |
+|---|---|
+| `type` | Loại thay đổi. Bắt buộc. |
+| `scope` | Phạm vi thay đổi (module, package). Tùy chọn nhưng khuyến khích. |
+| `subject` | Tóm tắt ngắn ở thì hiện tại, lowercase, không dấu chấm cuối. ≤ 72 ký tự. |
+| `body` | Mô tả chi tiết WHY/HOW khi cần. Cách subject 1 dòng trống. |
+| `footer` | Tham chiếu Jira hoặc breaking change. |
+
+### Allowed types
+
+| Type | Khi nào dùng |
+|---|---|
+| `feat` | Tính năng mới |
+| `fix` | Sửa bug |
+| `docs` | Thay đổi tài liệu |
+| `style` | Format code, không đổi logic |
+| `refactor` | Refactor không thêm tính năng, không sửa bug |
+| `perf` | Cải thiện performance |
+| `test` | Thêm hoặc cập nhật test |
+| `build` | Thay đổi build system, dependencies |
+| `ci` | Thay đổi CI/CD configuration |
+| `chore` | Việc bảo trì lặt vặt, không thuộc các nhóm trên |
+| `revert` | Revert một commit trước đó |
+
+### Scope khuyến nghị
+
+Theo cấu trúc package backend hoặc module frontend:
+
+- Backend: `catalog`, `order`, `payment`, `delivery`, `inventory`, `receiving`, `customerreturn`, `dashboard`, `access`, `common`, `config`
+- Frontend: `ui`, `routing`, `state`, `api-client`, `layout`
+- Cross-cutting: `backend`, `frontend`, `monorepo`, `ci`, `docs`
+
+### Tham chiếu Jira và Smart Commit
+
+Mỗi commit nên link tới ít nhất một Jira issue ở dòng riêng cuối commit message.
+Nếu muốn Jira tự chuyển status, đặt Smart Commit command ngay sau issue key trên cùng dòng đó:
+
+```
+SF-24 #in-progress
+```
+
+Khi commit liên quan nhiều issue:
+
+```
+SF-3 #in-progress
+SF-11 #in-progress
+```
+
+Không dùng prefix `Refs:` cho Smart Commit command. `Refs: SF-24 #in-progress` vẫn có thể parse được,
+nhưng `Refs:` là chữ thừa và làm commit message khó đọc hơn.
+
+### Ví dụ commit message hợp lệ
+
+Commit đơn giản:
+
+```
+feat(catalog): add product list endpoint
+
+SF-2 #in-progress
+```
+
+Commit có body chi tiết:
+
+```
+feat(order): implement stock validation for order creation
+
+Validate available stock before creating order, reserve inventory on success,
+release on payment failure.
+
+SF-3 #in-progress
+SF-11 #in-progress
+```
+
+Commit fix bug:
+
+```
+fix(inventory): prevent negative stock after manual adjustment
+
+SF-42 #in-progress
+```
+
+Breaking change:
+
+```
+refactor(order)!: rename OrderStatus.PENDING to PENDING_PAYMENT
+
+BREAKING CHANGE: API consumers cần cập nhật theo enum mới.
+
+SF-50 #in-progress
+```
+
+### Smart Commits với Jira (tùy chọn)
+
+Có thể kích hoạt **Smart Commits** để tự động chuyển status Jira ngay khi push. Dạng clean nhất là đặt Smart Commit trên dòng riêng ở cuối:
+
+```
+SF-24 #in-progress
+```
+
+Khuyến nghị cho team:
+
+| Khi nào | Cách dùng |
+|---|---|
+| Commit đầu tiên trên branch | Có thể dùng `#in-progress` để mark ticket bắt đầu |
+| Commit giữa | Chỉ ghi issue key ở dòng riêng, hoặc bỏ Smart Commit nếu không cần trigger transition |
+| Hoàn thành | Dùng PR + Jira Automation rule, **không** dùng `#done` trong commit |
+
+Lý do: `#done` trong commit có thể chuyển ticket sang Done trước khi review xong. Để PR merge mới đổi status là an toàn hơn.
+
+### Anti-patterns cần tránh
+
+| Sai | Đúng |
+|---|---|
+| `update code` | `fix(order): handle null assignee in order creation` |
+| `Fix bug` | `fix(payment): release reserved stock when payment fails` |
+| `WIP` | Tách thành commit có ý nghĩa hoặc dùng draft PR |
+| `feat: ABC.` (có dấu chấm) | `feat: ABC` |
+| Subject tiếng Việt | Luôn viết English cho subject |
+| Subject dài hơn 72 ký tự | Cắt gọn, đẩy phần dài xuống body |
+
+## Pull Request convention
+
+### Title PR
+
+Format:
+
+```
+[<JIRA-KEY>] <subject>
+```
+
+Hoặc theo Conventional Commits:
+
+```
+<type>(<scope>): <subject> (<JIRA-KEY>)
+```
+
+Ví dụ:
+
+```
+[SF-24] Configure OpenAPI and base package structure
+feat(order): create customer order (SF-3)
+```
+
+### Description PR
+
+Đề xuất template:
+
+```markdown
+## Summary
+Tóm tắt thay đổi chính.
+
+## What changed
+- Bullet 1
+- Bullet 2
+
+## How to test
+1. Bước 1
+2. Bước 2
+
+## Related issues
+SF-XX
+```
+
+### Quy trình review
+
+1. Tác giả mở PR từ `feature/*` hoặc `bugfix/*` về `develop`.
+2. CI tự chạy build và test.
+3. Tối thiểu 1 reviewer approve.
+4. Resolve mọi comment.
+5. Squash & Merge hoặc Merge tùy quy ước team.
+6. Xóa branch sau khi merge.
+
+## Tóm tắt nhanh
+
+- Branch: `feature/SF-XX-...` hoặc `bugfix/SF-XX-...`, tách từ `develop`.
+- Commit subject: `<type>(<scope>): <subject>`, lowercase, không dấu chấm cuối, ≤ 72 ký tự.
+- Footer: `SF-XX #in-progress` khi cần transition, hoặc `SF-XX` khi chỉ cần link issue.
+- PR title chứa Jira key. Merge về `develop`.
+- Chỉ release manager merge `develop` vào `main`.
