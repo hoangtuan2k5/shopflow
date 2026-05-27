@@ -1,6 +1,17 @@
 spring:
   application:
     name: shopflow-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/shopflow}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    schemas: shopflow
+    default-schema: shopflow
 
 springdoc:
   api-docs:
