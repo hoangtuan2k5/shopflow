@@ -1,0 +1,35 @@
+# =====================================================================
+# ShopFlow — Local development services
+# Run:    docker-compose up -d
+# Stop:   docker-compose down
+# Reset:  docker-compose down -v   (also removes data volume)
+# Logs:   docker-compose logs -f postgres
+#
+# Note: Port 5433 is used (not 5432) to avoid conflict with a
+#       locally-installed PostgreSQL. When using this container,
+#       set DB_URL=jdbc:postgresql://localhost:5433/shopflow
+# =====================================================================
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: shopflow-postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: shopflow
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      TZ: Asia/Ho_Chi_Minh
+    volumes:
+      - shopflow_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d shopflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  shopflow_pgdata:
+    name: shopflow_pgdata
