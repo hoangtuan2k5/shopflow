@@ -8,6 +8,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: shopflow
   flyway:
     enabled: true
     schemas: shopflow
