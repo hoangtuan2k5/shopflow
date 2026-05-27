@@ -15,8 +15,8 @@ CREATE TABLE products (
     price                NUMERIC(12,2) NOT NULL CHECK (price >= 0),
     active               BOOLEAN      NOT NULL DEFAULT TRUE,
     low_stock_threshold  INT          CHECK (low_stock_threshold >= 0),
-    created_at           TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at           TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at           TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at           TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_products_active ON products (active);
@@ -30,7 +30,7 @@ CREATE TABLE customers (
     name        VARCHAR(255) NOT NULL,
     phone       VARCHAR(20),
     email       VARCHAR(255),
-    created_at  TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at  TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_customers_email ON customers (email);
@@ -45,7 +45,7 @@ CREATE TABLE inventory_items (
     product_id      BIGINT       NOT NULL UNIQUE,
     on_hand_stock   INT          NOT NULL DEFAULT 0 CHECK (on_hand_stock >= 0),
     reserved_stock  INT          NOT NULL DEFAULT 0 CHECK (reserved_stock >= 0),
-    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_inventory_product
         FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
@@ -74,8 +74,8 @@ CREATE TABLE orders (
     delivery_status   VARCHAR(30)  NOT NULL DEFAULT 'NONE',
     payment_method    VARCHAR(20)  NOT NULL,
     total_amount      NUMERIC(12,2) NOT NULL CHECK (total_amount >= 0),
-    created_at        TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at        TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at        TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_orders_customer
         FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
@@ -123,9 +123,9 @@ CREATE TABLE payments (
     method         VARCHAR(20)  NOT NULL,
     status         VARCHAR(20)  NOT NULL DEFAULT 'PENDING',
     amount         NUMERIC(12,2) NOT NULL CHECK (amount >= 0),
-    paid_at        TIMESTAMPTZ,
+    paid_at        TIMESTAMP WITH TIME ZONE,
     failed_reason  VARCHAR(500),
-    created_at     TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at     TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_payments_order
         FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
@@ -150,7 +150,7 @@ CREATE TABLE stock_movements (
     reference_type  VARCHAR(30),
     reference_id    BIGINT,
     note            VARCHAR(500),
-    created_at      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at      TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_by      VARCHAR(100),
 
     CONSTRAINT fk_stock_movements_product
@@ -185,7 +185,7 @@ CREATE TABLE receiving_records (
     quantity       INT          NOT NULL CHECK (quantity > 0),
     supplier_name  VARCHAR(255),
     note           VARCHAR(500),
-    created_at     TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at     TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_by     VARCHAR(100),
 
     CONSTRAINT fk_receiving_records_product
@@ -205,8 +205,8 @@ CREATE TABLE return_requests (
     status       VARCHAR(20)  NOT NULL DEFAULT 'REQUESTED',
     reason       VARCHAR(500),
     restockable  BOOLEAN      NOT NULL DEFAULT FALSE,
-    created_at   TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at   TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at   TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_return_requests_order
         FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE RESTRICT,
@@ -246,7 +246,7 @@ CREATE TABLE delivery_status_history (
     from_status  VARCHAR(30),
     to_status    VARCHAR(30)  NOT NULL,
     changed_by   VARCHAR(100),
-    changed_at   TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    changed_at   TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     note         VARCHAR(500),
 
     CONSTRAINT fk_delivery_history_order
