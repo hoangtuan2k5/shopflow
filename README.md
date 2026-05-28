@@ -16,14 +16,17 @@ ShopFlow Team gồm 3 thành viên:
 
 ```
 shopflow/
-├── backend/    # shopflow-backend (Spring Boot)
-├── frontend/   # shopflow-frontend (Vue 3 + Vite)
+├── backend/             # shopflow-backend (Spring Boot)
+├── docs/                # database schema and technical documentation
+├── frontend/            # shopflow-frontend (Vue 3 + Vite, planned)
+├── docker-compose.yml   # local development services
 ├── README.md
 └── LICENSE
 ```
 
 - `backend/`: Spring Boot service, Java 21, Maven, PostgreSQL, Flyway, OpenAPI.
-- `frontend/`: Vue 3 + Vite + TypeScript, Tailwind CSS, shadcn-vue, Vue Router, Pinia, TanStack Query.
+- `frontend/`: Vue 3 + Vite + TypeScript, Tailwind CSS, shadcn-vue, Vue Router, Pinia, TanStack Query. Folder này sẽ được khởi tạo trong phần frontend.
+- `docs/`: tài liệu database schema và các ghi chú kỹ thuật.
 
 ## Tech stack
 
@@ -36,7 +39,7 @@ shopflow/
 ### Backend
 
 - Java 21 LTS
-- Spring Boot 3.3.x
+- Spring Boot 4.0.x
 - Maven
 - Spring Web, Spring Data JPA, Validation
 - Lombok, MapStruct
@@ -70,6 +73,20 @@ Chi tiết backlog quản lý trên Jira project `SF` (Shopflow).
 
 ## Cách chạy local
 
+### PostgreSQL local
+
+Backend mặc định trỏ tới PostgreSQL tại `localhost:5432`. Nếu dùng container đi kèm repo, chạy:
+
+```bash
+docker-compose up -d
+```
+
+Container PostgreSQL expose ra port `5433` để tránh đụng PostgreSQL cài local. Khi chạy backend với container này, set `DB_URL`:
+
+```bash
+DB_URL=jdbc:postgresql://localhost:5433/shopflow
+```
+
 ### Backend
 
 ```bash
@@ -81,6 +98,8 @@ Mặc định ứng dụng chạy ở `http://localhost:8080`. Swagger UI tại 
 
 ### Frontend
 
+Frontend folder chưa được khởi tạo trong repository hiện tại. Khi frontend được tạo bằng Vue 3 + Vite, luồng chạy local dự kiến là:
+
 ```bash
 cd frontend
 npm install
@@ -88,6 +107,54 @@ npm run dev
 ```
 
 Mặc định FE chạy ở `http://localhost:5173` và gọi tới backend qua biến môi trường `VITE_API_BASE_URL` trong `frontend/.env.local`.
+
+## Biến môi trường
+
+### Backend
+
+| Biến | Mặc định | Mô tả |
+|---|---|---|
+| `DB_URL` | `jdbc:postgresql://localhost:5432/shopflow` | JDBC URL tới PostgreSQL. Dùng `jdbc:postgresql://localhost:5433/shopflow` nếu chạy PostgreSQL bằng `docker-compose.yml`. |
+| `DB_USERNAME` | `postgres` | Username kết nối database. |
+| `DB_PASSWORD` | `postgres` | Password kết nối database. |
+
+Test profile dùng H2 in-memory và tự chạy Flyway migration trong schema `shopflow`.
+
+### Frontend
+
+| Biến | Mặc định | Mô tả |
+|---|---|---|
+| `VITE_API_BASE_URL` | `http://localhost:8080` | Base URL của backend API cho frontend local. |
+
+## Build và test
+
+### Backend
+
+```bash
+cd backend
+./mvnw test
+./mvnw package
+```
+
+### Frontend
+
+Frontend chưa được khởi tạo. Khi có `frontend/package.json`, các lệnh CI/local dự kiến là:
+
+```bash
+cd frontend
+npm install
+npm run lint
+npm run build
+```
+
+## CI pipeline
+
+CI dự kiến chạy trên GitHub Actions với các job độc lập:
+
+- `backend`: chạy Maven build và test trong `backend/`.
+- `frontend`: chạy lint và build trong `frontend/` sau khi frontend được khởi tạo.
+
+Branch `main` và `develop` nên yêu cầu Pull Request và CI pass trước khi merge.
 
 ## License
 
