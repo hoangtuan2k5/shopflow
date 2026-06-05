@@ -18,14 +18,14 @@ ShopFlow Team gồm 3 thành viên:
 shopflow/
 ├── backend/             # shopflow-backend (Spring Boot)
 ├── docs/                # database schema and technical documentation
-├── frontend/            # shopflow-frontend (Vue 3 + Vite, planned)
+├── frontend/            # shopflow-frontend (Vue 3 + Vite)
 ├── docker-compose.yml   # local development services
 ├── README.md
 └── LICENSE
 ```
 
 - `backend/`: Spring Boot service, Java 21, Maven, PostgreSQL, Flyway, OpenAPI.
-- `frontend/`: Vue 3 + Vite + TypeScript, Tailwind CSS, shadcn-vue, Vue Router, Pinia, TanStack Query. Folder này sẽ được khởi tạo trong phần frontend.
+- `frontend/`: Vue 3 + Vite + TypeScript, Vue Router, Pinia, ESLint, Oxlint, Prettier.
 - `docs/`: tài liệu database schema và các ghi chú kỹ thuật.
 
 ## Tech stack
@@ -51,11 +51,8 @@ shopflow/
 ### Frontend
 
 - Vue 3 + Vite + TypeScript
-- Tailwind CSS + shadcn-vue
 - Vue Router, Pinia
-- TanStack Query
-- VeeValidate + Zod
-- ESLint + Prettier
+- ESLint, Oxlint, Prettier
 
 ## Stakeholder
 
@@ -91,14 +88,14 @@ DB_URL=jdbc:postgresql://localhost:5433/shopflow
 
 ```bash
 cd backend
-./mvnw spring-boot:run
+bash ./mvnw spring-boot:run
 ```
 
 Mặc định ứng dụng chạy ở `http://localhost:8080`. Swagger UI tại `http://localhost:8080/swagger-ui.html`.
 
 ### Frontend
 
-Frontend folder chưa được khởi tạo trong repository hiện tại. Khi frontend được tạo bằng Vue 3 + Vite, luồng chạy local dự kiến là:
+Frontend dùng Vue 3 + Vite. Chạy local:
 
 ```bash
 cd frontend
@@ -128,31 +125,45 @@ Test profile dùng H2 in-memory và tự chạy Flyway migration trong schema `s
 
 ## Build và test
 
+Các lệnh dưới đây là cùng bộ lệnh CI dùng để kiểm tra monorepo.
+
 ### Backend
 
 ```bash
 cd backend
-./mvnw test
-./mvnw package
+bash ./mvnw test
+bash ./mvnw package
 ```
 
 ### Frontend
 
-Frontend chưa được khởi tạo. Khi có `frontend/package.json`, các lệnh CI/local dự kiến là:
-
 ```bash
 cd frontend
-npm install
-npm run lint
+npm ci
+npm run lint:ci
+npm run build
+```
+
+### Full monorepo check
+
+Chạy từ root repository:
+
+```bash
+cd backend
+bash ./mvnw -B clean verify
+
+cd ../frontend
+npm ci
+npm run lint:ci
 npm run build
 ```
 
 ## CI pipeline
 
-CI dự kiến chạy trên GitHub Actions với các job độc lập:
+CI chạy trên GitHub Actions tại `.github/workflows/ci.yml` với 2 job độc lập, chạy song song:
 
-- `backend`: chạy Maven build và test trong `backend/`.
-- `frontend`: chạy lint và build trong `frontend/` sau khi frontend được khởi tạo.
+- `backend`: chạy Maven build và test trong `backend/` bằng `bash ./mvnw -B clean verify`.
+- `frontend`: chạy `npm ci`, `npm run lint:ci`, `npm run build` trong `frontend/`.
 
 Branch `main` và `develop` nên yêu cầu Pull Request và CI pass trước khi merge.
 
