@@ -11,20 +11,27 @@
 	<groupId>dev.hoangtuan</groupId>
 	<artifactId>shopflow-backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
-	<url/>
+	<name>ShopFlow Backend</name>
+	<description>Backend service for the ShopFlow sales and inventory management system.</description>
+	<url>https://github.com/hoangtuan2k5/shopflow</url>
 	<licenses>
-		<license/>
+		<license>
+			<name>MIT License</name>
+			<url>https://opensource.org/licenses/MIT</url>
+		</license>
 	</licenses>
 	<developers>
-		<developer/>
+		<developer>
+			<id>hoangtuan2k5</id>
+			<name>Hoang Chieu Nguyen Tuan</name>
+			<email>tuan@hoangtuan.dev</email>
+		</developer>
 	</developers>
 	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
+		<connection>scm:git:https://github.com/hoangtuan2k5/shopflow.git</connection>
+		<developerConnection>scm:git:https://github.com/hoangtuan2k5/shopflow.git</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://github.com/hoangtuan2k5/shopflow</url>
 	</scm>
 	<properties>
 		<java.version>21</java.version>
