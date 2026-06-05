@@ -131,6 +131,8 @@ Các lệnh dưới đây là cùng bộ lệnh CI dùng để kiểm tra monore
 
 ```bash
 cd backend
+bash ./mvnw spotless:apply
+bash ./mvnw spotless:check
 bash ./mvnw test
 bash ./mvnw package
 ```
@@ -150,6 +152,7 @@ Chạy từ root repository:
 
 ```bash
 cd backend
+bash ./mvnw -B spotless:check
 bash ./mvnw -B clean verify
 
 cd ../frontend
@@ -162,8 +165,16 @@ npm run build
 
 CI chạy trên GitHub Actions tại `.github/workflows/ci.yml` với 2 job độc lập, chạy song song:
 
-- `backend`: chạy Maven build và test trong `backend/` bằng `bash ./mvnw -B clean verify`.
+- `backend`: chạy Java format check bằng Spotless, rồi Maven build và test trong `backend/`.
 - `frontend`: chạy `npm ci`, `npm run lint:ci`, `npm run build` trong `frontend/`.
+
+Backend dùng Spotless Maven Plugin để kiểm tra format Java. Spotless chạy
+`google-java-format` với Google style và `removeUnusedImports`; khi cần tự format:
+
+```bash
+cd backend
+bash ./mvnw spotless:apply
+```
 
 Branch `main` và `develop` nên yêu cầu Pull Request và CI pass trước khi merge.
 
