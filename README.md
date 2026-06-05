@@ -91,7 +91,16 @@ cd backend
 bash ./mvnw spring-boot:run
 ```
 
-Mặc định ứng dụng chạy ở `http://localhost:8080`. Swagger UI tại `http://localhost:8080/swagger-ui.html`.
+Mặc định backend dùng profile `dev`, kết nối PostgreSQL qua các biến `DB_URL`,
+`DB_USERNAME`, `DB_PASSWORD`. Ứng dụng chạy ở `http://localhost:8080`. Swagger UI
+tại `http://localhost:8080/swagger-ui.html`.
+
+Chạy staging profile:
+
+```bash
+cd backend
+SPRING_PROFILES_ACTIVE=staging DB_URL=jdbc:postgresql://<host>:5432/shopflow DB_USERNAME=<user> DB_PASSWORD=<password> bash ./mvnw spring-boot:run
+```
 
 ### Frontend
 
@@ -115,7 +124,8 @@ Mặc định FE chạy ở `http://localhost:5173` và gọi tới backend qua 
 | `DB_USERNAME` | `postgres` | Username kết nối database. |
 | `DB_PASSWORD` | `postgres` | Password kết nối database. |
 
-Test profile dùng H2 in-memory và tự chạy Flyway migration trong schema `shopflow`.
+Profile `staging` bắt buộc truyền đủ 3 biến database qua môi trường. Test profile
+dùng H2 in-memory và tự chạy Flyway migration trong schema `shopflow`.
 
 ### Frontend
 

@@ -1,10 +1,8 @@
 spring:
   application:
     name: shopflow-backend
-  datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/shopflow}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+  profiles:
+    default: dev
   jpa:
     hibernate:
       ddl-auto: validate
@@ -27,3 +25,16 @@ springdoc:
 shopflow:
   openapi:
     version: 0.0.1-SNAPSHOT
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: true
