@@ -10,6 +10,13 @@ These rules are mandatory for any AI agent working in this repository.
    - inspect relevant commits with `git show` when touching related areas.
 3. Check current branch and dirty workspace:
    - `git status --short --branch`
+4. Check whether `develop` moved before doing work:
+   - run `git fetch origin`;
+   - compare with `git log --oneline --left-right HEAD...origin/develop`;
+   - if `origin/develop` has new commits not in the current branch, stop and tell
+     the repository owner before editing. Offer clear options such as stash local
+     work, rebase onto `origin/develop`, merge `origin/develop`, or continue
+     intentionally without integrating.
 
 ## Commit rules
 
