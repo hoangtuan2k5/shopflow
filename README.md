@@ -176,6 +176,13 @@ cd backend
 bash ./mvnw spotless:apply
 ```
 
+Repo có sẵn Git pre-commit hook tại `.githooks/pre-commit` để chạy `spotless:apply`
+trước mỗi commit. Bật hook một lần sau khi clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 Branch `main` và `develop` nên yêu cầu Pull Request và CI pass trước khi merge.
 
 ## License
