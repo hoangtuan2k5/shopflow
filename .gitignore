@@ -88,3 +88,6 @@ logs/
 # Misc
 # ===========================
 HELP.md
+.sisyphus/
+.claude/
+.codex/
