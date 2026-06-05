@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+set -eu
+
+repo_root="$(git rev-parse --show-toplevel)"
+
+echo "Running backend Java formatter: Spotless apply"
+(
+  cd "$repo_root/backend"
+  bash ./mvnw -B spotless:apply
+)
+
+if ! git diff --quiet -- backend/src/main/java backend/src/test/java; then
+  cat <<'MSG'
+
+Spotless formatted Java files.
+Review and stage the formatting changes, then run git commit again.
+
+MSG
+  git diff --stat -- backend/src/main/java backend/src/test/java
+  exit 1
+fi
+
+exit 0
