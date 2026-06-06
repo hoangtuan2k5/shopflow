@@ -25,7 +25,8 @@ shopflow/
 ```
 
 - `backend/`: Spring Boot service, Java 21, Maven, PostgreSQL, Flyway, OpenAPI.
-- `frontend/`: Vue 3 + Vite + TypeScript, Vue Router, Pinia, ESLint, Oxlint, Prettier.
+- `frontend/`: Vue 3 + Vite + TypeScript, Vue Router, Pinia, TanStack Query,
+  VeeValidate, Zod, ESLint, Oxlint, Prettier.
 - `docs/`: tài liệu database schema và các ghi chú kỹ thuật.
 
 ## Tech stack
@@ -52,6 +53,7 @@ shopflow/
 
 - Vue 3 + Vite + TypeScript
 - Vue Router, Pinia
+- TanStack Query, VeeValidate, Zod
 - ESLint, Oxlint, Prettier
 
 ## Stakeholder
@@ -108,6 +110,7 @@ Frontend dùng Vue 3 + Vite. Chạy local:
 
 ```bash
 cd frontend
+cp .env.example .env.local
 npm install
 npm run dev
 ```
