@@ -6,7 +6,7 @@ import {
   type DialogContentProps,
   useForwardPropsEmits,
 } from 'reka-ui'
-import { type HTMLAttributes } from 'vue'
+import { type HTMLAttributes, computed } from 'vue'
 import { cn } from '@/lib/utils'
 
 const props = defineProps<
@@ -23,7 +23,13 @@ const emits = defineEmits<{
   openAutoFocus: [event: Event]
 }>()
 
-const forwarded = useForwardPropsEmits(props, emits)
+const delegatedProps = computed(() => {
+  const delegated = { ...props }
+  delete delegated.class
+  return delegated
+})
+
+const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>

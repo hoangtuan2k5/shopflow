@@ -40,7 +40,10 @@ import { Input } from '@/components/ui/input'
           </CardDescription>
         </CardHeader>
         <CardContent class="grid gap-4 sm:grid-cols-[1fr_auto]">
-          <Input placeholder="Search orders, products, or customers" />
+          <Input
+            aria-label="Search orders, products, or customers"
+            placeholder="Search orders, products, or customers"
+          />
           <Button>Search</Button>
         </CardContent>
         <CardFooter>
