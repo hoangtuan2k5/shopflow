@@ -17,7 +17,7 @@ export default defineConfigWithVueTs(
       'vue/multi-word-component-names': [
         'error',
         {
-          ignores: ['Button', 'Input', 'Card'],
+          ignores: ['App', 'Button', 'Input', 'Card'],
         },
       ],
     },
