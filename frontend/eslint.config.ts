@@ -13,6 +13,14 @@ export default defineConfigWithVueTs(
   {
     name: 'app/files-to-lint',
     files: ['**/*.{vue,ts,mts,tsx}'],
+    rules: {
+      'vue/multi-word-component-names': [
+        'error',
+        {
+          ignores: ['App', 'Button', 'Input', 'Card'],
+        },
+      ],
+    },
   },
 
   globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
