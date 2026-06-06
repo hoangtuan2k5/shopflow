@@ -27,7 +27,7 @@ const delegatedProps = computed(() => {
   <Primitive
     data-slot="button"
     v-bind="delegatedProps"
-    :class="cn(buttonVariants({ variant, size }), props.class)"
+    :class="cn(buttonVariants({ variant: props.variant, size: props.size }), props.class)"
   >
     <slot />
   </Primitive>
