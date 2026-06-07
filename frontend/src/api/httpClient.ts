@@ -4,6 +4,7 @@ export interface ApiClientProblem {
   message: string
   status?: number
   details?: unknown
+  cause?: unknown
 }
 
 export class ApiClientError extends Error {
@@ -11,14 +12,14 @@ export class ApiClientError extends Error {
   readonly details?: unknown
 
   constructor(problem: ApiClientProblem) {
-    super(problem.message)
+    super(problem.message, { cause: problem.cause })
     this.name = 'ApiClientError'
     this.status = problem.status
     this.details = problem.details
   }
 }
 
-export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
 
 export const httpClient = axios.create({
   baseURL: apiBaseUrl,
@@ -44,6 +45,7 @@ export async function request<TData>(config: AxiosRequestConfig): Promise<TData>
 function toApiClientError(error: AxiosError<unknown>) {
   if (error.response) {
     return new ApiClientError({
+      cause: error,
       details: error.response.data,
       message: `API request failed with status ${error.response.status}.`,
       status: error.response.status,
@@ -51,6 +53,7 @@ function toApiClientError(error: AxiosError<unknown>) {
   }
 
   return new ApiClientError({
+    cause: error,
     message: error.message || 'API request failed before receiving a response.',
   })
 }
