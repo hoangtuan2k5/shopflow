@@ -12,6 +12,12 @@ npm run dev
 
 The local app runs at `http://localhost:5173`.
 
+## API Client
+
+The temporary API client lives in `src/api`. It uses Axios and typed interfaces
+against the backend OpenAPI document at `/v3/api-docs` until domain endpoints are
+ready for generated clients.
+
 ## Environment Variables
 
 | Variable | Default | Description |

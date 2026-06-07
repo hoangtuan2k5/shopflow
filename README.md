@@ -54,6 +54,7 @@ shopflow/
 - Vue 3 + Vite + TypeScript
 - Vue Router, Pinia
 - TanStack Query, VeeValidate, Zod
+- Axios API client wired to the backend OpenAPI document
 - ESLint, Oxlint, Prettier
 
 ## Stakeholder
@@ -135,6 +136,11 @@ dùng H2 in-memory và tự chạy Flyway migration trong schema `shopflow`.
 | Biến | Mặc định | Mô tả |
 |---|---|---|
 | `VITE_API_BASE_URL` | `http://localhost:8080` | Base URL của backend API cho frontend local. |
+
+Frontend API client nằm tại `frontend/src/api`. Trong Sprint 1, backend chưa có
+domain REST endpoint nên client tạm thời dùng Axios và TypeScript interfaces để
+gọi OpenAPI document tại `/v3/api-docs`; khi backend có endpoint nghiệp vụ, có
+thể thay bằng generated client từ OpenAPI spec.
 
 ## Build và test
 
