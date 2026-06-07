@@ -4,14 +4,16 @@ Tài liệu này mô tả quy ước Git/Jira cho dự án ShopFlow để cả t
 
 ## Branching strategy
 
-Dự án dùng mô hình **Git Flow rút gọn** với 4 nhóm branch chính:
+Dự án dùng mô hình **Git Flow rút gọn** với 6 nhóm branch chính:
 
 | Branch | Vai trò |
 |---|---|
 | `main` | Branch production. Chỉ nhận merge từ `develop` (hoặc `hotfix/*`) sau khi đã review và pass CI. Không commit trực tiếp. |
-| `develop` | Branch tích hợp. Tất cả `feature/*` và `bugfix/*` merge vào đây trước khi promote lên `main`. |
+| `develop` | Branch tích hợp. Tất cả `feature/*`, `bugfix/*`, `docs/*` và `chore/*` merge vào đây trước khi promote lên `main`. |
 | `feature/*` | Branch cho feature mới hoặc task. Tách ra từ `develop`, merge ngược về `develop` qua Pull Request. |
 | `bugfix/*` | Branch cho việc sửa bug đã phát hiện. Tách ra từ `develop`, merge ngược về `develop` qua Pull Request. |
+| `docs/*` | Branch cho thay đổi tài liệu (README, CONTRIBUTING, API docs, v.v.). Tách từ `develop`, merge về `develop` qua Pull Request. |
+| `chore/*` | Branch cho việc bảo trì (cập nhật dependency, config, CI, tooling). Tách từ `develop`, merge về `develop` qua Pull Request. |
 
 ### Naming convention
 
@@ -21,6 +23,8 @@ Tên branch luôn bắt đầu bằng prefix, theo sau là **Jira issue key**, r
 <prefix>/<JIRA-KEY>-<short-description>
 ```
 
+Với `docs/*` và `chore/*`, Jira key không bắt buộc nếu thay đổi không gắn với issue cụ thể.
+
 Ví dụ:
 
 | Loại | Ví dụ |
@@ -29,6 +33,10 @@ Ví dụ:
 | Feature | `feature/SF-24-configure-openapi` |
 | Bugfix | `bugfix/SF-42-stock-validation-error` |
 | Bugfix | `bugfix/SF-58-fix-payment-status-update` |
+| Docs | `docs/SF-60-update-api-reference` |
+| Docs | `docs/update-merge-strategy-convention` |
+| Chore | `chore/SF-61-upgrade-spring-boot-3` |
+| Chore | `chore/remove-unused-dependencies` |
 
 Quy tắc:
 
@@ -59,16 +67,21 @@ Quy tắc:
    git push -u origin feature/SF-3-create-customer-order
    ```
 
-5. Sau review và CI pass, **squash merge** hoặc **merge** về `develop`.
-6. Khi `develop` đủ ổn định để release, merge `develop` vào `main`.
+5. Sau review và CI pass, **Squash & Merge** về `develop`.
+6. Khi `develop` đủ ổn định để release, **Squash & Merge** `develop` vào `main`, sau đó tag version:
+
+   ```bash
+   git tag v<major>.<minor>.<patch>
+   git push origin v<major>.<minor>.<patch>
+   ```
 
 ### Branch protection
 
-| Branch | Direct push | PR review | CI pass |
-|---|---|---|---|
-| `main` | Cấm | Bắt buộc 1 reviewer | Bắt buộc |
-| `develop` | Cấm | Bắt buộc 1 reviewer | Bắt buộc |
-| `feature/*`, `bugfix/*` | Cho phép | (không) | (không) |
+| Branch | Direct push | PR review | CI pass | Merge strategy |
+|---|---|---|---|---|
+| `main` | Cấm | Bắt buộc 1 reviewer | Bắt buộc | Squash & Merge |
+| `develop` | Cấm | Bắt buộc 1 reviewer | Bắt buộc | Squash & Merge |
+| `feature/*`, `bugfix/*`, `docs/*`, `chore/*` | Cho phép | (không) | (không) | — |
 
 ## Commit convention
 
@@ -253,13 +266,13 @@ SF-XX
 2. CI tự chạy build và test.
 3. Tối thiểu 1 reviewer approve.
 4. Resolve mọi comment.
-5. Squash & Merge hoặc Merge tùy quy ước team.
+5. **Squash & Merge only**. Không dùng merge commit hoặc rebase merge.
 6. Xóa branch sau khi merge.
 
 ## Tóm tắt nhanh
 
-- Branch: `feature/SF-XX-...` hoặc `bugfix/SF-XX-...`, tách từ `develop`.
+- Branch: `feature/SF-XX-...`, `bugfix/SF-XX-...`, `docs/SF-XX-...` hoặc `chore/SF-XX-...`, tách từ `develop`.
 - Commit subject: `<type>(<scope>): <subject>`, lowercase, không dấu chấm cuối, ≤ 72 ký tự.
 - Footer: `SF-XX #in-progress` khi cần transition, hoặc `SF-XX` khi chỉ cần link issue.
-- PR title chứa Jira key. Merge về `develop`.
+- PR title chứa Jira key. Merge về `develop` bằng **Squash & Merge**, kèm tag version khi promote lên `main`.
 - Chỉ release manager merge `develop` vào `main`.
