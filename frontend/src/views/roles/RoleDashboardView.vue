@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
 import { useRoute } from 'vue-router'
+import { apiBaseUrl, getOpenApiDocument } from '@/api'
 import RoleValidationForm from '@/components/forms/RoleValidationForm.vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAppShellStore } from '@/stores/appShell'
@@ -12,7 +14,25 @@ const pageTitle = computed(() => String(route.meta.title ?? appShell.activeRole?
 const pageDescription = computed(() =>
   String(route.meta.description ?? 'Role workflow placeholder.'),
 )
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+const openApiQuery = useQuery({
+  queryKey: ['openapi-document'],
+  queryFn: getOpenApiDocument,
+  retry: 1,
+})
+
+const apiClientStatus = computed(() => {
+  if (openApiQuery.isLoading.value) {
+    return 'Checking backend'
+  }
+
+  if (openApiQuery.isError.value) {
+    return 'Backend unavailable'
+  }
+
+  return openApiQuery.data.value?.info.title ?? 'Connected'
+})
+
+const apiSpecVersion = computed(() => openApiQuery.data.value?.info.version ?? 'Not loaded')
 </script>
 
 <template>
@@ -39,6 +59,14 @@ const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
           <div class="flex items-center justify-between gap-4 rounded-md bg-muted px-3 py-2">
             <span class="text-muted-foreground">API base URL</span>
             <span class="font-medium">{{ apiBaseUrl }}</span>
+          </div>
+          <div class="flex items-center justify-between gap-4 rounded-md bg-muted px-3 py-2">
+            <span class="text-muted-foreground">API client</span>
+            <span class="font-medium">{{ apiClientStatus }}</span>
+          </div>
+          <div class="flex items-center justify-between gap-4 rounded-md bg-muted px-3 py-2">
+            <span class="text-muted-foreground">OpenAPI version</span>
+            <span class="font-medium">{{ apiSpecVersion }}</span>
           </div>
         </CardContent>
       </Card>
