@@ -68,18 +68,26 @@ Quy tắc:
    ```
 
 5. Sau review và CI pass, **Squash & Merge** về `develop`.
-6. Khi `develop` đủ ổn định để release, **Squash & Merge** `develop` vào `main`, sau đó tag version:
+6. Khi `develop` đủ ổn định để release, dùng **Merge commit** (`--no-ff`) để promote `develop` vào `main`, sau đó tag version:
 
    ```bash
    git tag v<major>.<minor>.<patch>
    git push origin v<major>.<minor>.<patch>
    ```
 
+> **Vì sao release `develop → main` dùng merge commit, không squash?**
+> `develop` và `main` đều là branch sống song song và tồn tại lâu dài. Squash sẽ tạo một commit mới
+> có SHA khác toàn bộ commit gốc, khiến hai branch diverge vĩnh viễn: `git log main...develop` báo
+> lệch sai, dễ phát sinh conflict giả và mất truy vết feature ở lần release sau. Merge commit
+> (`--no-ff`) giữ nguyên lịch sử commit gốc nên `main` thực sự chứa toàn bộ `develop`. Ngược lại,
+> branch `feature/*`, `bugfix/*`, `docs/*`, `chore/*` bị xoá ngay sau khi merge nên squash là phù
+> hợp ở tầng đó.
+
 ### Branch protection
 
 | Branch | Direct push | PR review | CI pass | Merge strategy |
 |---|---|---|---|---|
-| `main` | Cấm | Bắt buộc 1 reviewer | Bắt buộc | Squash & Merge |
+| `main` | Cấm | Bắt buộc 1 reviewer | Bắt buộc | Merge commit (`--no-ff`) từ `develop` |
 | `develop` | Cấm | Bắt buộc 1 reviewer | Bắt buộc | Squash & Merge |
 | `feature/*`, `bugfix/*`, `docs/*`, `chore/*` | Cho phép | (không) | (không) | — |
 
@@ -266,13 +274,13 @@ SF-XX
 2. CI tự chạy build và test.
 3. Tối thiểu 1 reviewer approve.
 4. Resolve mọi comment.
-5. **Squash & Merge only**. Không dùng merge commit hoặc rebase merge.
-6. Xóa branch sau khi merge.
+5. **Squash & Merge only** cho PR về `develop`. Không dùng merge commit hoặc rebase merge ở tầng này. Riêng release `develop → main` dùng **Merge commit** (`--no-ff`).
+6. Xóa branch sau khi merge (không áp dụng cho `develop` và `main`).
 
 ## Tóm tắt nhanh
 
 - Branch: `feature/SF-XX-...`, `bugfix/SF-XX-...`, `docs/SF-XX-...` hoặc `chore/SF-XX-...`, tách từ `develop`.
 - Commit subject: `<type>(<scope>): <subject>`, lowercase, không dấu chấm cuối, ≤ 72 ký tự.
 - Footer: `SF-XX #in-progress` khi cần transition, hoặc `SF-XX` khi chỉ cần link issue.
-- PR title chứa Jira key. Merge về `develop` bằng **Squash & Merge**, kèm tag version khi promote lên `main`.
+- PR title chứa Jira key. Merge về `develop` bằng **Squash & Merge**; promote `develop → main` bằng **Merge commit** (`--no-ff`) kèm tag version.
 - Chỉ release manager merge `develop` vào `main`.
