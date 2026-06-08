@@ -196,6 +196,35 @@ BREAKING CHANGE: API consumers cần cập nhật theo enum mới.
 SF-50 #in-progress
 ```
 
+### Squash merge subject cho PR vào `develop`
+
+Khi **Squash & Merge** một PR vào `develop`, subject của commit squash **bắt buộc** kết thúc bằng
+suffix ` (#<số-PR>)`:
+
+```
+docs(monorepo): clarify merge strategy for develop to main release (#17)
+```
+
+Lý do: mỗi commit squash trên `develop` đại diện cho cả một PR đã review. Suffix `(#<số-PR>)` cho
+phép từ `git log` nhảy thẳng sang PR để xem review discussion, review comments và lịch sử CI — đặc
+biệt hữu ích khi điều tra regression, vì subject squash là điểm vào duy nhất dẫn về toàn bộ ngữ cảnh
+của thay đổi đó.
+
+Suffix này phải được **thêm thủ công** khi merge, không dựa vào GitHub tự sinh. Repo đang đặt
+`squash_merge_commit_title = COMMIT_OR_PR_TITLE`, nên GitHub **không** đảm bảo chèn `(#<số-PR>)` vào
+subject. Người merge tự gõ suffix vào ô subject trong GitHub UI, hoặc truyền qua CLI:
+
+```bash
+gh pr merge <số-PR> --squash --subject "docs(monorepo): clarify merge strategy ... (#<số-PR>)"
+```
+
+> Không bật `squash_merge_commit_title = PR_TITLE` để GitHub tự thêm, vì khi đó subject commit sẽ
+> lấy nguyên PR title dạng `[SF-XX] ...` — phá vỡ format Conventional Commits `type(scope): subject`
+> của commit. Giữ PR title và commit subject ở hai format riêng, thêm suffix bằng tay.
+
+Quy tắc này **chỉ áp dụng cho squash merge vào `develop`**. Release `develop → main` dùng merge
+commit giữ nguyên các commit gốc nên không thêm suffix.
+
 ### Smart Commits với Jira (tùy chọn)
 
 Có thể kích hoạt **Smart Commits** để tự động chuyển status Jira ngay khi push. Dạng clean nhất là đặt Smart Commit trên dòng riêng ở cuối:
@@ -274,7 +303,7 @@ SF-XX
 2. CI tự chạy build và test.
 3. Tối thiểu 1 reviewer approve.
 4. Resolve mọi comment.
-5. **Squash & Merge only** cho PR về `develop`. Không dùng merge commit hoặc rebase merge ở tầng này. Riêng release `develop → main` dùng **Merge commit** (`--no-ff`).
+5. **Squash & Merge only** cho PR về `develop`. Không dùng merge commit hoặc rebase merge ở tầng này. Subject của commit squash phải kết thúc bằng suffix ` (#<số-PR>)` (xem mục Squash merge subject). Riêng release `develop → main` dùng **Merge commit** (`--no-ff`).
 6. Xóa branch sau khi merge (không áp dụng cho `develop` và `main`).
 
 ## Tóm tắt nhanh
