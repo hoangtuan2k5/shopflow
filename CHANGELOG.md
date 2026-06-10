@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-06-10
+
+### Added
+- **Frontend**:
+  - Set up Tailwind CSS and shadcn-vue component library (SF-27).
+  - Added role-based layout, routing, and Pinia state skeleton (SF-28).
+  - Added a temporary frontend API client (SF-21).
+
+### Changed
+- **Documentation & Process**:
+  - Enforced squash merge strategy, release tagging, and added `docs/*` and `chore/*` branch types (SF-31).
+  - Added agent coding workflow and PR history review rules (SF-32).
+  - Clarified `develop` to `main` release merge strategy uses a merge commit (SF-33).
+  - Required PR number suffix in squash merge subject (SF-34).
+- **Chore**:
+  - Ignore `.omo` directory.
+
 ## [0.1.0] - 2026-06-05
 
 ### Added
