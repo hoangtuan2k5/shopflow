@@ -225,6 +225,26 @@ gh pr merge <số-PR> --squash --subject "docs(monorepo): clarify merge strategy
 Quy tắc này **chỉ áp dụng cho squash merge vào `develop`**. Release `develop → main` dùng merge
 commit giữ nguyên các commit gốc nên không thêm suffix.
 
+### Squash merge body — Jira key
+
+Nếu PR có gắn Jira issue, **bắt buộc** đặt Jira key vào body của commit squash:
+
+```
+docs(monorepo): clarify merge strategy for develop to main release (#17)
+
+SF-33
+```
+
+Không dùng `#in-progress`, `#done`, hay bất kỳ Smart Commit command nào trong squash
+merge body — ticket đã được transition từ feature branch commit trước đó.
+Body chỉ chứa Jira key thuần:
+
+```bash
+gh pr merge <số-PR> --squash \
+  --subject "docs(catalog): add product catalog API specification (#22)" \
+  --body "SF-36"
+```
+
 ### Smart Commits với Jira (tùy chọn)
 
 Có thể kích hoạt **Smart Commits** để tự động chuyển status Jira ngay khi push. Dạng clean nhất là đặt Smart Commit trên dòng riêng ở cuối:
