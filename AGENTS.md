@@ -78,9 +78,16 @@ Weak criteria like "make it work" are not enough.
 ## Repository workflow before changing code
 
 1. Read `CONTRIBUTING.md` completely.
-2. Read recent Git history for context:
-   - `git log --oneline --decorate -n 20`
-   - inspect relevant commits with `git show` when touching related areas.
+2. Read AND analyze recent Git history to extract the conventions actually in use:
+   - run `git log -n 10 --format="%H%n%an <%ae>%n%s%n%n%b"` to see full
+     subjects and bodies, not just one-line subjects;
+   - inspect relevant commits with `git show` when touching related areas;
+   - extract the recurring pattern from these commits: subject `type(scope)`
+     style, body presence/length, Jira footer format, Smart Commit usage,
+     and `(#<PR>)` suffix conventions;
+   - state the observed pattern back before drafting your own commit, and
+     match it. Do not assume the convention from memory — derive it from the
+     last 10 commits each time.
 3. Check current branch and dirty workspace:
    - `git status --short --branch`
 4. Check whether `develop` moved before doing work:
@@ -99,8 +106,11 @@ Before creating a Pull Request:
    - run `gh pr list --state all --limit 10`;
    - inspect 3-5 recent or relevant PRs with
      `gh pr view <number> --comments --review`.
-2. Match the existing project style for PR title, description, test notes,
-   review handling, squash message, and branch cleanup.
+2. Analyze those PRs to extract the recurring pattern, then state it back
+   before drafting your own: PR title format (`[SF-XX]` vs Conventional
+   Commits), description section layout, test notes, review handling, squash
+   subject/body format, and branch cleanup. Derive the convention from the
+   inspected PRs each time — do not assume it from memory.
 3. Confirm the PR targets `develop`, except release PRs from `develop` to
    `main`.
 4. Include the Jira key in the PR title and description.
