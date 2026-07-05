@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-05
+
+### Added
+- **Documentation**:
+  - Added the ShopFlow MVP Software Requirements Specification with scope, business rules, lifecycles, acceptance criteria, and Jira traceability.
+  - Added the Product Catalog API specification for backend, frontend, and verification work (SF-36).
+  - Traced the core domain model requirement to the SRS glossary, lifecycle, and data model sections (SF-10).
+
+### Changed
+- **Documentation & Process**:
+  - Aligned the README sprint plan with the Jira board.
+  - Required agents to derive commit and PR conventions from recent repository history.
+  - Required Jira keys in squash merge commit bodies.
+
 ## [0.2.0] - 2026-06-10
 
 ### Added
