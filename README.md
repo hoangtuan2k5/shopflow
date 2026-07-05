@@ -65,9 +65,8 @@ shopflow/
 
 ## Sprint plan
 
-- **Sprint 1 (18/05/2026 → 31/05/2026):** Foundation MVP. Domain model, product catalog, order creation, payment simulation, inventory baseline, bootstrap monorepo + CI.
-- **Sprint 2 (01/06/2026 → 14/06/2026):** Operational flows. Delivery status, supplier receiving, customer return, low stock alert.
-- **Sprint 3:** Shop operations and admin experience. Dashboard, inventory movement history, product management, role-based access (mocked), end-to-end demo.
+- **Sprint 1 (18/05/2026 → 13/06/2026):** Foundation MVP. Domain model, product catalog, order creation, payment simulation, inventory baseline, bootstrap monorepo + CI.
+- **Sprint 2 (15/06/2026 → 29/06/2026):** Operational flows. Delivery status, supplier receiving, customer return, low stock alert.
 
 Chi tiết backlog quản lý trên Jira project `SF` (Shopflow).
 

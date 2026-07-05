@@ -4,8 +4,7 @@
 **Ngày lập:** 26/05/2026
 **Liên quan:**
 - [`database-schema.sql`](./database-schema.sql) — DDL PostgreSQL
-- [`database-schema.drawio`](./database-schema.drawio) — ER diagram
-- [`../SRS.md`](../SRS.md) — Software Requirements Specification
+- [`SRS.md`](./SRS.md) — Software Requirements Specification
 
 ---
 
