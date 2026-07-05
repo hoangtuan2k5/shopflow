@@ -111,6 +111,7 @@ với role không được hiểu là đã có cơ chế authorization productio
 | Thuật ngữ | Định nghĩa |
 | --- | --- |
 | Product | Sản phẩm shop đang hoặc đã từng kinh doanh |
+| Customer | Khách hàng đặt mua sản phẩm; có thể là profile lưu trong hệ thống hoặc guest snapshot trên order |
 | Order | Giao dịch đặt hàng gồm thông tin khách, địa chỉ giao và một hoặc nhiều item |
 | OrderItem | Snapshot sản phẩm, đơn giá và số lượng tại thời điểm tạo order |
 | Payment | Một lần thử thanh toán mô phỏng cho order |
@@ -536,6 +537,7 @@ và phép đo riêng.
 | Jira | Requirement | Nội dung |
 | --- | --- | --- |
 | SF-1 | Toàn bộ SRS | Epic Online Shop Sales and Inventory MVP |
+| SF-10 | §4, §7, §8 | Core Domain Model |
 | SF-2, SF-36, SF-37, SF-38, SF-39 | FR-01 | Product Catalog |
 | SF-3, SF-11, SF-12, SF-13, SF-35, SF-43 | FR-02, BR-01 đến BR-04, BR-15 | Create Customer Order |
 | SF-4, SF-40, SF-41, SF-42 | FR-03, BR-05 | Payment Simulation |
