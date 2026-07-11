@@ -22,7 +22,7 @@ ready for generated clients.
 
 | Variable | Default | Description |
 |---|---|---|
-| `VITE_API_BASE_URL` | `http://localhost:8080` | Backend API base URL for local development. |
+| `VITE_API_BASE_URL` | `/api` | Backend API base URL. Vite proxies `/api` to `http://localhost:8080` in development. |
 
 ## Checks
 

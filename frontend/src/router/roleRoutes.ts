@@ -13,11 +13,11 @@ export const roleRoutes: RoleRoute[] = [
   {
     path: 'customer',
     name: 'customer',
-    component: () => import('@/views/roles/RoleDashboardView.vue'),
+    component: () => import('@/views/catalog/CatalogView.vue'),
     meta: {
       role: 'customer',
-      title: 'Customer',
-      description: 'Browse storefront and customer-facing order workflows.',
+      title: 'Product catalog',
+      description: 'Browse products currently available from ShopFlow.',
     },
   },
   {
