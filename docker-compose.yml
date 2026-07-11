@@ -6,8 +6,8 @@
 # Logs:   docker-compose logs -f postgres
 #
 # Note: Port 5433 is used (not 5432) to avoid conflict with a
-#       locally-installed PostgreSQL. When using this container,
-#       set DB_URL=jdbc:postgresql://localhost:5433/shopflow
+#       locally-installed PostgreSQL. The default dev profile connects
+#       to jdbc:postgresql://localhost:5433/shopflow_dev.
 # =====================================================================
 
 services:
@@ -18,14 +18,14 @@ services:
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_DB: shopflow
+      POSTGRES_DB: shopflow_dev
       POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       TZ: Asia/Ho_Chi_Minh
     volumes:
       - shopflow_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d shopflow"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d shopflow_dev"]
       interval: 10s
       timeout: 5s
       retries: 5
