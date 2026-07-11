@@ -41,6 +41,8 @@ class CatalogControllerTests {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(2))
         .andExpect(jsonPath("$[0].id").value(inStockId))
+        .andExpect(jsonPath("$[0].name").value("In stock"))
+        .andExpect(jsonPath("$[0].price").value(10.00))
         .andExpect(jsonPath("$[0].stockStatus").value("IN_STOCK"))
         .andExpect(jsonPath("$[1].id").value(outOfStockId))
         .andExpect(jsonPath("$[1].stockStatus").value("OUT_OF_STOCK"));
@@ -59,6 +61,7 @@ class CatalogControllerTests {
   @Test
   void returnsProductDetail() throws Exception {
     long productId = insertProduct("Product", "Description", "99.99", true);
+    insertInventory(productId, 2, 1);
 
     mockMvc
         .perform(get("/products/{id}", productId))
@@ -66,7 +69,8 @@ class CatalogControllerTests {
         .andExpect(jsonPath("$.id").value(productId))
         .andExpect(jsonPath("$.name").value("Product"))
         .andExpect(jsonPath("$.description").value("Description"))
-        .andExpect(jsonPath("$.price").value(99.99));
+        .andExpect(jsonPath("$.price").value(99.99))
+        .andExpect(jsonPath("$.stockStatus").value("IN_STOCK"));
   }
 
   @Test
