@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-07-12
+
+### Added
+- **Product Catalog**:
+  - Added backend endpoints for listing active products and viewing product details with inventory-based stock status (SF-37).
+  - Added development sample data for testing the catalog locally (SF-37).
+  - Added a branded customer catalog with product list, stock indicators, detail view, and responsive states (SF-38).
+  - Added integration coverage and QA evidence for Product Catalog API and UI scenarios (SF-39).
+
 ## [0.3.0] - 2026-07-05
 
 ### Added
