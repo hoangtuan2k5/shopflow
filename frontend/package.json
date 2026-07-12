@@ -18,6 +18,7 @@
         "format": "prettier --write --experimental-cli src/"
     },
     "dependencies": {
+        "@tabler/icons-vue": "^3.44.0",
         "@tanstack/vue-query": "^5.101.0",
         "@vee-validate/zod": "^4.15.1",
         "axios": "^1.17.0",

@@ -1,5 +1,7 @@
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/shopflow}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/shopflow_dev}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
+  flyway:
+    locations: classpath:db/migration,classpath:db/dev

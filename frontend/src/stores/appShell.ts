@@ -33,7 +33,7 @@ const roles: NavigationRole[] = [
 
 export const useAppShellStore = defineStore('appShell', () => {
   const activeRoleKey = ref<RoleKey>('customer')
-  const sidebarOpen = ref(true)
+  const sidebarOpen = ref(false)
 
   const activeRole = computed(
     () => roles.find((role) => role.key === activeRoleKey.value) ?? roles[0],
