@@ -14,6 +14,7 @@
 - [`database-schema.md`](./database-schema.md) - mô hình dữ liệu và ràng buộc vật lý.
 - [`database-schema.sql`](./database-schema.sql) - DDL PostgreSQL tham chiếu.
 - [`api-product-catalog-spec.md`](./api-product-catalog-spec.md) - API contract của Product Catalog.
+- [`api-customer-order-spec.md`](./api-customer-order-spec.md) - API contract tạo Customer Order.
 
 ---
 
@@ -153,7 +154,8 @@ Nguồn: [SF-3](https://tuanwork.atlassian.net/browse/SF-3),
 [SF-11](https://tuanwork.atlassian.net/browse/SF-11),
 [SF-12](https://tuanwork.atlassian.net/browse/SF-12),
 [SF-35](https://tuanwork.atlassian.net/browse/SF-35),
-[SF-43](https://tuanwork.atlassian.net/browse/SF-43).
+[SF-43](https://tuanwork.atlassian.net/browse/SF-43),
+[SF-44](https://tuanwork.atlassian.net/browse/SF-44).
 
 - **FR-02.1:** Khách hàng BẮT BUỘC cung cấp tên khách hàng, tên và số điện thoại
   người nhận, địa chỉ, thành phố và ít nhất một item có quantity lớn hơn 0.
@@ -173,6 +175,9 @@ Nguồn: [SF-3](https://tuanwork.atlassian.net/browse/SF-3),
   status để tiếp tục payment.
 - **FR-02.8:** Thông báo thiếu stock BẮT BUỘC cho biết product nào không đáp ứng
   quantity yêu cầu.
+
+API contract chuẩn cho yêu cầu này nằm trong
+[`api-customer-order-spec.md`](./api-customer-order-spec.md).
 
 ### 5.3 FR-03 - Payment mô phỏng
 
@@ -539,7 +544,7 @@ và phép đo riêng.
 | SF-1 | Toàn bộ SRS | Epic Online Shop Sales and Inventory MVP |
 | SF-10 | §4, §7, §8 | Core Domain Model |
 | SF-2, SF-36, SF-37, SF-38, SF-39 | FR-01 | Product Catalog |
-| SF-3, SF-11, SF-12, SF-13, SF-35, SF-43 | FR-02, BR-01 đến BR-04, BR-15 | Create Customer Order |
+| SF-3, SF-11, SF-12, SF-13, SF-35, SF-43, SF-44 | FR-02, BR-01 đến BR-04, BR-15 | Create Customer Order |
 | SF-4, SF-40, SF-41, SF-42 | FR-03, BR-05 | Payment Simulation |
 | SF-5 | FR-04, BR-06, BR-07 | Delivery Status |
 | SF-6, SF-14, SF-15, SF-16 | FR-05, BR-01, BR-02, BR-12, BR-13 | Inventory Management |
