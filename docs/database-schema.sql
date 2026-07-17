@@ -120,7 +120,7 @@ CREATE INDEX idx_order_items_product_id ON order_items (product_id);
 
 
 -- ---------------------------------------------------------------------
--- 6. PAYMENTS  (1-N với orders để hỗ trợ retry)
+-- 6. PAYMENTS  (1-N vật lý; MVP tối đa một attempt, retry để mở rộng)
 -- ---------------------------------------------------------------------
 CREATE TABLE payments (
     id             BIGSERIAL    PRIMARY KEY,
@@ -269,12 +269,12 @@ CREATE INDEX idx_delivery_history_order_changed
 -- =====================================================================
 -- COMMENTS (tài liệu hóa, dbdiagram.io sẽ hiển thị)
 -- =====================================================================
-COMMENT ON TABLE  products              IS 'Sản phẩm shop bán. Inactive product không hiển thị catalog.';
+COMMENT ON TABLE  products              IS 'Sản phẩm shop bán; giá MVP theo VND nguyên. Inactive product không hiển thị catalog.';
 COMMENT ON TABLE  customers             IS 'Optional - orders đã có customer snapshot fields.';
 COMMENT ON TABLE  inventory_items       IS '1-1 với products. available = on_hand - reserved (tính runtime).';
-COMMENT ON TABLE  orders                IS 'Đơn hàng. Snapshot customer + shipping address để bảo toàn dữ liệu lịch sử.';
-COMMENT ON TABLE  order_items           IS 'Dòng sản phẩm trong order. product_name + unit_price là snapshot tại lúc đặt.';
-COMMENT ON TABLE  payments              IS '1-N với orders để hỗ trợ retry payment.';
+COMMENT ON TABLE  orders                IS 'Đơn hàng theo VND nguyên. Snapshot customer + shipping address để bảo toàn dữ liệu lịch sử.';
+COMMENT ON TABLE  order_items           IS 'Dòng sản phẩm theo VND nguyên; product_name + unit_price là snapshot tại lúc đặt.';
+COMMENT ON TABLE  payments              IS 'Payment amount theo VND nguyên; quan hệ vật lý 1-N với orders; MVP chỉ tạo tối đa một attempt, retry là khả năng tương lai.';
 COMMENT ON TABLE  stock_movements       IS 'Audit trail trung tâm. Mọi thay đổi stock đều ghi vào đây (BR-13).';
 COMMENT ON TABLE  receiving_records     IS 'Nhập hàng từ supplier (FR-06).';
 COMMENT ON TABLE  return_requests       IS 'Yêu cầu hoàn hàng. Chỉ tạo cho order Delivered (BR-08).';
