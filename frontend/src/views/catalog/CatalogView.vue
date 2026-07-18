@@ -57,9 +57,9 @@ const stockStatus = {
   },
 } satisfies Record<StockStatus, { label: string; classes: string; icon: Component }>
 
-const currency = new Intl.NumberFormat('en-US', {
+const currency = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'VND',
 })
 
 function closeProduct() {
