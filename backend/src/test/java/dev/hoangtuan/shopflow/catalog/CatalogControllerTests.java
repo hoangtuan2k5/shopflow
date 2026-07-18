@@ -30,9 +30,9 @@ class CatalogControllerTests {
 
   @Test
   void listsOnlyActiveProductsWithComputedStockStatus() throws Exception {
-    long inStockId = insertProduct("In stock", "Available product", "10.00", true);
-    long outOfStockId = insertProduct("Out of stock", null, "20.00", true);
-    insertProduct("Inactive", null, "30.00", false);
+    long inStockId = insertProduct("In stock", "Available product", "699000", true);
+    long outOfStockId = insertProduct("Out of stock", null, "2190000", true);
+    insertProduct("Inactive", null, "899000", false);
     insertInventory(inStockId, 5, 2);
     insertInventory(outOfStockId, 3, 3);
 
@@ -42,7 +42,7 @@ class CatalogControllerTests {
         .andExpect(jsonPath("$.length()").value(2))
         .andExpect(jsonPath("$[0].id").value(inStockId))
         .andExpect(jsonPath("$[0].name").value("In stock"))
-        .andExpect(jsonPath("$[0].price").value(10.00))
+        .andExpect(jsonPath("$[0].price").value(699000.0))
         .andExpect(jsonPath("$[0].stockStatus").value("IN_STOCK"))
         .andExpect(jsonPath("$[1].id").value(outOfStockId))
         .andExpect(jsonPath("$[1].stockStatus").value("OUT_OF_STOCK"));
@@ -50,7 +50,7 @@ class CatalogControllerTests {
 
   @Test
   void treatsMissingInventoryAsOutOfStock() throws Exception {
-    long productId = insertProduct("No inventory", null, "10.00", true);
+    long productId = insertProduct("No inventory", null, "1290000", true);
 
     mockMvc
         .perform(get("/products/{id}", productId))
@@ -60,7 +60,7 @@ class CatalogControllerTests {
 
   @Test
   void returnsProductDetail() throws Exception {
-    long productId = insertProduct("Product", "Description", "99.99", true);
+    long productId = insertProduct("Product", "Description", "2190000", true);
     insertInventory(productId, 2, 1);
 
     mockMvc
@@ -69,13 +69,13 @@ class CatalogControllerTests {
         .andExpect(jsonPath("$.id").value(productId))
         .andExpect(jsonPath("$.name").value("Product"))
         .andExpect(jsonPath("$.description").value("Description"))
-        .andExpect(jsonPath("$.price").value(99.99))
+        .andExpect(jsonPath("$.price").value(2190000.0))
         .andExpect(jsonPath("$.stockStatus").value("IN_STOCK"));
   }
 
   @Test
   void returnsEmptyListWhenNoActiveProductsExist() throws Exception {
-    insertProduct("Inactive", null, "10.00", false);
+    insertProduct("Inactive", null, "899000", false);
 
     mockMvc
         .perform(get("/products"))
@@ -85,7 +85,7 @@ class CatalogControllerTests {
 
   @Test
   void returnsNotFoundForMissingOrInactiveProduct() throws Exception {
-    long inactiveId = insertProduct("Inactive", null, "10.00", false);
+    long inactiveId = insertProduct("Inactive", null, "899000", false);
 
     mockMvc
         .perform(get("/products/{id}", inactiveId))

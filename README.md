@@ -79,8 +79,6 @@ Chi tiết backlog và board trên Jira project [`SF`](https://tuanwork.atlassia
 
 Cập nhật theo Jira board và repo (2026-07-17). Release mới nhất: **v0.4.0**.
 
-Runtime formatter và dữ liệu seed sẽ được cập nhật ở branch implementation tiếp theo.
-
 | Hạng mục | Jira | Trạng thái | Ghi chú |
 |---|---|---|---|
 | Monorepo / CI / BE+FE bootstrap | SF-20…SF-28 | Done | Foundation sẵn sàng phát triển feature |
