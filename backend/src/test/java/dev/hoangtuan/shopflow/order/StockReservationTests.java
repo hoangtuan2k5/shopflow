@@ -63,10 +63,11 @@ class StockReservationTests {
                         new StockRequest(missingInventoryId, 1),
                         new StockRequest(Long.MAX_VALUE, 1))));
 
-    assertThat(result.unavailableProductIds())
-        .containsExactly(inactiveId, missingInventoryId, Long.MAX_VALUE);
+    assertThat(result.unavailableProductIds()).containsExactly(inactiveId, Long.MAX_VALUE);
     assertThat(result.insufficientItems())
-        .containsExactly(new InsufficientStock(insufficientId, 4, 3));
+        .containsExactly(
+            new InsufficientStock(insufficientId, 4, 3),
+            new InsufficientStock(missingInventoryId, 1, 0));
     assertThat(result.isValid()).isFalse();
     assertThat(reservedStock(insufficientId)).isEqualTo(2);
   }
