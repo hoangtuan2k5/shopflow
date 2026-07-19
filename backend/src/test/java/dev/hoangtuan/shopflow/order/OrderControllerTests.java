@@ -191,6 +191,84 @@ class OrderControllerTests {
         .andExpect(jsonPath("$.status").value(400));
   }
 
+  @Test
+  void rejectsEmptyItemsAndNonPositiveQuantities() throws Exception {
+    String emptyItemsBody =
+        """
+        {
+          "customer": {"fullName": "Guest"},
+          "shippingAddress": {"receiverName": "Guest", "phone": "0900000000", "addressLine": "1 Main", "city": "Hanoi"},
+          "paymentMethod": "CARD",
+          "items": []
+        }
+        """;
+
+    mockMvc
+        .perform(post("/orders").contentType(MediaType.APPLICATION_JSON).content(emptyItemsBody))
+        .andExpect(status().isBadRequest());
+
+    String invalidQuantityBody =
+        emptyItemsBody.replace("\"items\": []", "\"items\": [{\"productId\": 1, \"quantity\": 0}]");
+
+    mockMvc
+        .perform(
+            post("/orders").contentType(MediaType.APPLICATION_JSON).content(invalidQuantityBody))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void rejectsMissingProductAndMissingInventory() throws Exception {
+    String missingProductBody =
+        """
+        {
+          "customer": {"fullName": "Guest"},
+          "shippingAddress": {"receiverName": "Guest", "phone": "0900000000", "addressLine": "1 Main", "city": "Hanoi"},
+          "paymentMethod": "CARD",
+          "items": [{"productId": 9223372036854775807, "quantity": 1}]
+        }
+        """;
+
+    mockMvc
+        .perform(
+            post("/orders").contentType(MediaType.APPLICATION_JSON).content(missingProductBody))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.message").value("Product not available"))
+        .andExpect(jsonPath("$.unavailableProductIds[0]").value(9223372036854775807L));
+
+    long productId = insertProduct("No inventory", "100000", true);
+    String noInventoryBody =
+        missingProductBody.replace("9223372036854775807", Long.toString(productId));
+
+    mockMvc
+        .perform(post("/orders").contentType(MediaType.APPLICATION_JSON).content(noInventoryBody))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.message").value("Insufficient stock"))
+        .andExpect(jsonPath("$.insufficientItems[0].availableStock").value(0));
+  }
+
+  @Test
+  void ignoresClientUnitPriceAndUsesServerSnapshot() throws Exception {
+    long productId = insertProduct("Server price", "123000", true);
+    insertInventory(productId, 2, 0);
+    String body =
+        """
+        {
+          "customer": {"fullName": "Guest"},
+          "shippingAddress": {"receiverName": "Guest", "phone": "0900000000", "addressLine": "1 Main", "city": "Hanoi"},
+          "paymentMethod": "CARD",
+          "items": [{"productId": %d, "quantity": 1, "unitPrice": 1}]
+        }
+        """
+            .formatted(productId);
+
+    mockMvc
+        .perform(post("/orders").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.totalAmount").value(123000))
+        .andExpect(jsonPath("$.items[0].unitPrice").value(123000))
+        .andExpect(jsonPath("$.items[0].lineTotal").value(123000));
+  }
+
   private long insertProduct(String name, String price, boolean active) {
     jdbcTemplate.update(
         "INSERT INTO shopflow.products (name, price, active) VALUES (?, ?, ?)",
