@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, type Component } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
+import { computed, nextTick, ref, type Component } from 'vue'
+import { useMutation, useQuery } from '@tanstack/vue-query'
 import {
   IconAlertCircle,
   IconArrowRight,
@@ -10,11 +10,21 @@ import {
   IconPackage,
   IconRefresh,
   IconShoppingBag,
+  IconShoppingCart,
   IconX,
 } from '@tabler/icons-vue'
-import { getProductById, getProducts, type StockStatus } from '@/api'
+import {
+  ApiClientError,
+  createOrder,
+  getProductById,
+  getProducts,
+  type CreateOrderRequest,
+  type OrderErrorDetails,
+  type StockStatus,
+} from '@/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import CheckoutForm from '@/components/forms/CheckoutForm.vue'
 import {
   Dialog,
   DialogClose,
@@ -25,6 +35,7 @@ import {
 } from '@/components/ui/dialog'
 
 const selectedProductId = ref<number | null>(null)
+const selectedQuantities = ref<Record<number, number>>({})
 
 const productsQuery = useQuery({
   queryKey: ['products'],
@@ -62,6 +73,106 @@ const currency = new Intl.NumberFormat('vi-VN', {
   currency: 'VND',
 })
 
+const checkoutLines = computed(() =>
+  products.value.flatMap((product) => {
+    const quantity = selectedQuantities.value[product.id]
+    return quantity ? [{ product, quantity }] : []
+  }),
+)
+
+const selectedItemCount = computed(() =>
+  checkoutLines.value.reduce((total, line) => total + line.quantity, 0),
+)
+
+const orderMutation = useMutation({ mutationFn: createOrder })
+
+const orderError = computed<OrderErrorDetails | null>(() => {
+  const error = orderMutation.error.value
+  if (!error) {
+    return null
+  }
+  if (error instanceof ApiClientError && isOrderErrorDetails(error.details)) {
+    return error.details
+  }
+  return { message: 'We could not create the order. Please try again.' }
+})
+
+const createdOrder = computed(() => orderMutation.data.value ?? null)
+
+function isOrderErrorDetails(value: unknown): value is OrderErrorDetails {
+  return typeof value === 'object' && value !== null && 'message' in value
+}
+
+function scrollToCheckout() {
+  void nextTick(() => document.getElementById('checkout')?.scrollIntoView({ behavior: 'smooth' }))
+}
+
+function addToCheckout(product: { id: number; stockStatus: StockStatus }) {
+  if (product.stockStatus === 'OUT_OF_STOCK') {
+    return
+  }
+  selectedQuantities.value = {
+    ...selectedQuantities.value,
+    [product.id]: (selectedQuantities.value[product.id] ?? 0) + 1,
+  }
+  closeProduct()
+  scrollToCheckout()
+}
+
+function updateQuantity(productId: number, quantity: number) {
+  if (quantity <= 0) {
+    removeFromCheckout(productId)
+    return
+  }
+  selectedQuantities.value = { ...selectedQuantities.value, [productId]: quantity }
+}
+
+function removeFromCheckout(productId: number) {
+  const next = { ...selectedQuantities.value }
+  delete next[productId]
+  selectedQuantities.value = next
+}
+
+type CheckoutFormValues = {
+  fullName: string
+  email: string
+  customerPhone: string
+  receiverName: string
+  receiverPhone: string
+  addressLine: string
+  district: string
+  city: string
+}
+
+function submitOrder(values: CheckoutFormValues) {
+  const body: CreateOrderRequest = {
+    customer: {
+      fullName: values.fullName,
+      email: values.email || null,
+      phone: values.customerPhone || null,
+    },
+    shippingAddress: {
+      receiverName: values.receiverName,
+      phone: values.receiverPhone,
+      addressLine: values.addressLine,
+      district: values.district || null,
+      city: values.city,
+    },
+    paymentMethod: 'CARD',
+    items: checkoutLines.value.map((line) => ({
+      productId: line.product.id,
+      quantity: line.quantity,
+    })),
+  }
+  orderMutation.reset()
+  orderMutation.mutate(body, { onError: () => void productsQuery.refetch() })
+}
+
+function startOver() {
+  selectedQuantities.value = {}
+  orderMutation.reset()
+}
+
 function closeProduct() {
   selectedProductId.value = null
 }
@@ -83,12 +194,23 @@ function closeProduct() {
 
       <div
         v-if="!productsQuery.isPending.value && !productsQuery.isError.value"
-        class="flex items-center gap-3 text-sm"
+        class="flex flex-wrap items-center gap-3 text-sm"
         aria-label="Catalog summary"
       >
         <span class="font-medium text-foreground">{{ products.length }} products</span>
         <span class="h-4 w-px bg-border" aria-hidden="true" />
         <span class="font-medium text-success">{{ inStockCount }} available</span>
+        <Button
+          v-if="selectedItemCount > 0"
+          class="ml-auto"
+          size="sm"
+          variant="secondary"
+          type="button"
+          @click="scrollToCheckout"
+        >
+          <IconShoppingCart :size="16" :stroke-width="1.8" aria-hidden="true" />
+          Review order ({{ selectedItemCount }})
+        </Button>
       </div>
     </header>
 
@@ -185,13 +307,27 @@ function closeProduct() {
             {{ currency.format(product.price) }}
           </p>
         </CardContent>
-        <CardFooter class="border-t border-border bg-secondary/30 px-6 py-4">
+        <CardFooter
+          class="grid gap-2 border-t border-border bg-secondary/30 px-6 py-4 sm:grid-cols-[1fr_auto]"
+        >
+          <Button
+            class="w-full justify-between"
+            type="button"
+            :disabled="product.stockStatus === 'OUT_OF_STOCK'"
+            @click="addToCheckout(product)"
+          >
+            <span>{{
+              product.stockStatus === 'OUT_OF_STOCK' ? 'Unavailable' : 'Add to order'
+            }}</span>
+            <IconShoppingCart :size="17" :stroke-width="1.8" aria-hidden="true" />
+          </Button>
           <Button
             class="w-full justify-between"
             variant="outline"
+            type="button"
             @click="selectedProductId = product.id"
           >
-            View details
+            Details
             <IconArrowRight :size="18" :stroke-width="1.8" aria-hidden="true" />
           </Button>
         </CardFooter>
@@ -269,9 +405,31 @@ function closeProduct() {
             <p class="border-t border-border pt-5 text-2xl font-semibold tabular-nums">
               {{ currency.format(productQuery.data.value.price) }}
             </p>
+            <div class="flex justify-end border-t border-border pt-5">
+              <Button
+                type="button"
+                :disabled="productQuery.data.value.stockStatus === 'OUT_OF_STOCK'"
+                @click="addToCheckout(productQuery.data.value)"
+              >
+                <IconShoppingCart :size="17" :stroke-width="1.8" aria-hidden="true" />
+                Add to order
+              </Button>
+            </div>
           </div>
         </template>
       </DialogContent>
     </Dialog>
+
+    <CheckoutForm
+      v-if="checkoutLines.length > 0"
+      :lines="checkoutLines"
+      :submitting="orderMutation.isPending.value"
+      :error="orderError"
+      :success-order="createdOrder"
+      @submit="submitOrder"
+      @update-quantity="updateQuantity"
+      @remove="removeFromCheckout"
+      @start-over="startOver"
+    />
   </section>
 </template>
