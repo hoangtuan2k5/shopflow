@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,8 @@ class StockReservationTests {
 
   @Autowired private TransactionTemplate transactionTemplate;
 
+  private final List<Long> fixtureProductIds = new ArrayList<>();
+
   @BeforeEach
   void cleanDatabase() {
     jdbcTemplate.update("DELETE FROM shopflow.stock_movements");
@@ -30,6 +34,16 @@ class StockReservationTests {
     jdbcTemplate.update("DELETE FROM shopflow.orders");
     jdbcTemplate.update("DELETE FROM shopflow.inventory_items");
     jdbcTemplate.update("DELETE FROM shopflow.products");
+  }
+
+  @AfterEach
+  void removeFixtures() {
+    for (Long productId : fixtureProductIds) {
+      jdbcTemplate.update("DELETE FROM shopflow.stock_movements WHERE product_id = ?", productId);
+      jdbcTemplate.update("DELETE FROM shopflow.inventory_items WHERE product_id = ?", productId);
+      jdbcTemplate.update("DELETE FROM shopflow.products WHERE id = ?", productId);
+    }
+    fixtureProductIds.clear();
   }
 
   @Test
@@ -133,7 +147,10 @@ class StockReservationTests {
         name,
         new BigDecimal("1000"),
         active);
-    return jdbcTemplate.queryForObject("SELECT MAX(id) FROM shopflow.products", Long.class);
+    long productId =
+        jdbcTemplate.queryForObject("SELECT MAX(id) FROM shopflow.products", Long.class);
+    fixtureProductIds.add(productId);
+    return productId;
   }
 
   private void insertInventory(long productId, int onHandStock, int reservedStock) {
