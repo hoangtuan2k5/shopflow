@@ -33,8 +33,14 @@ class StockReservationService {
         .forEach(
             request -> {
               StockRow row = findAndLock(request.productId());
-              if (row == null || !row.active() || row.onHandStock() == null) {
+              if (row == null || !row.active()) {
                 unavailableProductIds.add(request.productId());
+                return;
+              }
+
+              if (row.onHandStock() == null) {
+                insufficientItems.add(
+                    new InsufficientStock(request.productId(), request.quantity(), 0));
                 return;
               }
 

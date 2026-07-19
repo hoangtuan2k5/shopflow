@@ -117,6 +117,10 @@ class Order {
     return totalAmount;
   }
 
+  void setTotalAmount(BigDecimal totalAmount) {
+    this.totalAmount = totalAmount;
+  }
+
   Instant getCreatedAt() {
     return createdAt;
   }
