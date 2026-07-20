@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
 import { z } from 'zod'
@@ -85,6 +85,29 @@ const [receiverPhone, receiverPhoneAttrs] = defineField('receiverPhone')
 const [addressLine, addressLineAttrs] = defineField('addressLine')
 const [district, districtAttrs] = defineField('district')
 const [city, cityAttrs] = defineField('city')
+const paymentSimulation = ref<HTMLElement | null>(null)
+
+const displayedErrors = computed(() => ({
+  fullName: errors.value.fullName ?? props.error?.fieldErrors?.['customer.fullName'],
+  email: errors.value.email ?? props.error?.fieldErrors?.['customer.email'],
+  customerPhone: errors.value.customerPhone ?? props.error?.fieldErrors?.['customer.phone'],
+  receiverName:
+    errors.value.receiverName ?? props.error?.fieldErrors?.['shippingAddress.receiverName'],
+  receiverPhone: errors.value.receiverPhone ?? props.error?.fieldErrors?.['shippingAddress.phone'],
+  addressLine:
+    errors.value.addressLine ?? props.error?.fieldErrors?.['shippingAddress.addressLine'],
+  district: errors.value.district ?? props.error?.fieldErrors?.['shippingAddress.district'],
+  city: errors.value.city ?? props.error?.fieldErrors?.['shippingAddress.city'],
+}))
+
+watch(
+  () => props.successOrder,
+  async (order) => {
+    if (!order) return
+    await nextTick()
+    paymentSimulation.value?.focus()
+  },
+)
 
 const currency = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
@@ -168,28 +191,59 @@ const submit = handleSubmit((values) => emit('submit', values))
           {{ props.error.message || 'Order could not be created.' }}
         </p>
         <p class="mt-1 text-sm text-muted-foreground">
-          Review the highlighted item and try again. The server is the source of truth for stock.
+          Review the highlighted field or item and try again. The server is the source of truth for
+          stock.
         </p>
       </div>
     </div>
 
-    <div v-if="props.successOrder" class="grid gap-5 p-5 sm:p-7" aria-live="polite">
+    <div
+      v-if="props.successOrder"
+      id="payment-simulation"
+      ref="paymentSimulation"
+      class="grid gap-5 p-5 sm:p-7"
+      tabindex="-1"
+      aria-labelledby="payment-simulation-title"
+      aria-live="polite"
+    >
       <div class="flex items-start gap-4 rounded-lg border border-success/25 bg-success-muted p-5">
         <div class="grid size-10 shrink-0 place-items-center rounded-full bg-success text-white">
           <IconReceipt :size="21" :stroke-width="1.8" aria-hidden="true" />
         </div>
         <div>
-          <p class="text-sm font-bold uppercase tracking-wider text-success">Order received</p>
-          <h3 class="mt-1 text-xl font-bold">Order #{{ props.successOrder.id }} is ready</h3>
+          <p class="text-sm font-bold uppercase tracking-wider text-success">03 / Payment</p>
+          <h3 id="payment-simulation-title" class="mt-1 text-xl font-bold">Payment simulation</h3>
           <p class="mt-1 text-sm text-muted-foreground">
-            Status:
-            <span class="font-semibold text-foreground">{{ props.successOrder.status }}</span
-            >. Payment is the next step.
+            Order #{{ props.successOrder.id }} is created and ready for the card-payment step.
           </p>
         </div>
       </div>
+      <dl class="grid gap-3 rounded-lg border border-border bg-background/70 p-4 sm:grid-cols-3">
+        <div>
+          <dt class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Order
+          </dt>
+          <dd class="mt-1 font-bold">#{{ props.successOrder.id }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Status
+          </dt>
+          <dd class="mt-1 font-bold">{{ props.successOrder.status }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Total
+          </dt>
+          <dd class="mt-1 font-bold tabular-nums">
+            {{ formatCurrency(props.successOrder.totalAmount) }}
+          </dd>
+        </div>
+      </dl>
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <p class="text-sm text-muted-foreground">Your reservation is recorded safely.</p>
+        <p class="text-sm text-muted-foreground">
+          Inventory is reserved. No payment has been captured yet.
+        </p>
         <Button type="button" variant="outline" @click="emit('start-over')">
           Continue shopping
           <IconArrowUpRight :size="17" :stroke-width="1.8" aria-hidden="true" />
@@ -295,11 +349,12 @@ const submit = handleSubmit((values) => emit('submit', values))
               v-model="fullName"
               v-bind="fullNameAttrs"
               autocomplete="name"
-              :aria-invalid="Boolean(errors.fullName)"
+              maxlength="255"
+              :aria-invalid="Boolean(displayedErrors.fullName)"
               placeholder="Nguyen Van A"
             />
-            <span v-if="errors.fullName" class="text-xs text-destructive">{{
-              errors.fullName
+            <span v-if="displayedErrors.fullName" class="text-xs text-destructive">{{
+              displayedErrors.fullName
             }}</span>
           </label>
           <label class="grid gap-1.5">
@@ -312,10 +367,13 @@ const submit = handleSubmit((values) => emit('submit', values))
               v-bind="emailAttrs"
               type="email"
               autocomplete="email"
-              :aria-invalid="Boolean(errors.email)"
+              maxlength="255"
+              :aria-invalid="Boolean(displayedErrors.email)"
               placeholder="you@example.com"
             />
-            <span v-if="errors.email" class="text-xs text-destructive">{{ errors.email }}</span>
+            <span v-if="displayedErrors.email" class="text-xs text-destructive">{{
+              displayedErrors.email
+            }}</span>
           </label>
           <label class="grid gap-1.5">
             <span class="text-sm font-semibold"
@@ -327,8 +385,13 @@ const submit = handleSubmit((values) => emit('submit', values))
               v-model="customerPhone"
               v-bind="customerPhoneAttrs"
               autocomplete="tel"
+              maxlength="20"
+              :aria-invalid="Boolean(displayedErrors.customerPhone)"
               placeholder="0901234567"
             />
+            <span v-if="displayedErrors.customerPhone" class="text-xs text-destructive">{{
+              displayedErrors.customerPhone
+            }}</span>
           </label>
           <label class="grid gap-1.5 sm:col-span-2">
             <span class="text-sm font-semibold"
@@ -339,11 +402,12 @@ const submit = handleSubmit((values) => emit('submit', values))
               v-model="receiverName"
               v-bind="receiverNameAttrs"
               autocomplete="shipping name"
-              :aria-invalid="Boolean(errors.receiverName)"
+              maxlength="255"
+              :aria-invalid="Boolean(displayedErrors.receiverName)"
               placeholder="Nguyen Van A"
             />
-            <span v-if="errors.receiverName" class="text-xs text-destructive">{{
-              errors.receiverName
+            <span v-if="displayedErrors.receiverName" class="text-xs text-destructive">{{
+              displayedErrors.receiverName
             }}</span>
           </label>
           <label class="grid gap-1.5">
@@ -355,11 +419,12 @@ const submit = handleSubmit((values) => emit('submit', values))
               v-model="receiverPhone"
               v-bind="receiverPhoneAttrs"
               autocomplete="shipping tel"
-              :aria-invalid="Boolean(errors.receiverPhone)"
+              maxlength="20"
+              :aria-invalid="Boolean(displayedErrors.receiverPhone)"
               placeholder="0901234567"
             />
-            <span v-if="errors.receiverPhone" class="text-xs text-destructive">{{
-              errors.receiverPhone
+            <span v-if="displayedErrors.receiverPhone" class="text-xs text-destructive">{{
+              displayedErrors.receiverPhone
             }}</span>
           </label>
           <label class="grid gap-1.5">
@@ -369,10 +434,13 @@ const submit = handleSubmit((values) => emit('submit', values))
               v-model="city"
               v-bind="cityAttrs"
               autocomplete="shipping address-level1"
-              :aria-invalid="Boolean(errors.city)"
+              maxlength="100"
+              :aria-invalid="Boolean(displayedErrors.city)"
               placeholder="Ho Chi Minh"
             />
-            <span v-if="errors.city" class="text-xs text-destructive">{{ errors.city }}</span>
+            <span v-if="displayedErrors.city" class="text-xs text-destructive">{{
+              displayedErrors.city
+            }}</span>
           </label>
           <label class="grid gap-1.5 sm:col-span-2">
             <span class="text-sm font-semibold"
@@ -383,11 +451,12 @@ const submit = handleSubmit((values) => emit('submit', values))
               v-model="addressLine"
               v-bind="addressLineAttrs"
               autocomplete="shipping street-address"
-              :aria-invalid="Boolean(errors.addressLine)"
+              maxlength="500"
+              :aria-invalid="Boolean(displayedErrors.addressLine)"
               placeholder="123 Nguyen Hue"
             />
-            <span v-if="errors.addressLine" class="text-xs text-destructive">{{
-              errors.addressLine
+            <span v-if="displayedErrors.addressLine" class="text-xs text-destructive">{{
+              displayedErrors.addressLine
             }}</span>
           </label>
           <label class="grid gap-1.5 sm:col-span-2">
@@ -399,8 +468,13 @@ const submit = handleSubmit((values) => emit('submit', values))
               v-model="district"
               v-bind="districtAttrs"
               autocomplete="shipping address-level2"
+              maxlength="100"
+              :aria-invalid="Boolean(displayedErrors.district)"
               placeholder="District 1"
             />
+            <span v-if="displayedErrors.district" class="text-xs text-destructive">{{
+              displayedErrors.district
+            }}</span>
           </label>
         </div>
 

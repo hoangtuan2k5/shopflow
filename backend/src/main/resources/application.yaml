@@ -3,6 +3,11 @@ spring:
     name: shopflow-backend
   profiles:
     default: dev
+  jackson:
+    deserialization:
+      accept-float-as-int: false
+    mapper:
+      allow-coercion-of-scalars: false
   jpa:
     hibernate:
       ddl-auto: validate

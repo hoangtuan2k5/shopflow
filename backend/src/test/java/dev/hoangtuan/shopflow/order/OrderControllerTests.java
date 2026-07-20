@@ -106,7 +106,8 @@ class OrderControllerTests {
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(jsonPath("$.insufficientItems[0].productId").value(insufficientProductId))
         .andExpect(jsonPath("$.insufficientItems[0].requestedQuantity").value(2))
-        .andExpect(jsonPath("$.insufficientItems[0].availableStock").value(1));
+        .andExpect(jsonPath("$.insufficientItems[0].availableStock").value(1))
+        .andExpect(jsonPath("$.fieldErrors").isEmpty());
 
     assertThatReservedStock(insufficientProductId, 2);
     assertThatReservedStock(availableProductId, 0);
@@ -178,7 +179,7 @@ class OrderControllerTests {
         """
         {
           "customer": {"fullName": ""},
-          "shippingAddress": {"receiverName": "Guest", "phone": "0900000000", "addressLine": "1 Main", "city": "Hanoi"},
+          "shippingAddress": {"receiverName": "Guest", "phone": "", "addressLine": "1 Main", "city": "Hanoi"},
           "paymentMethod": "CARD",
           "items": [{"productId": 1, "quantity": 1}]
         }
@@ -188,7 +189,97 @@ class OrderControllerTests {
         .perform(post("/orders").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.message").value("Invalid order request"))
-        .andExpect(jsonPath("$.status").value(400));
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$['fieldErrors']['customer.fullName']").isNotEmpty())
+        .andExpect(jsonPath("$['fieldErrors']['shippingAddress.phone']").isNotEmpty());
+  }
+
+  @Test
+  void rejectsCoercedItemNumbersWithoutSideEffects() throws Exception {
+    long productId = insertProduct("Strict item", "100000", true);
+    insertInventory(productId, 3, 0);
+
+    String requestTemplate =
+        """
+        {
+          "customer": {"fullName": "Guest"},
+          "shippingAddress": {"receiverName": "Guest", "phone": "0900000000", "addressLine": "1 Main", "city": "Hanoi"},
+          "paymentMethod": "CARD",
+          "items": [{"productId": %s, "quantity": %s}]
+        }
+        """;
+
+    for (String[] item :
+        new String[][] {
+          {productId + ".9", "1"},
+          {Long.toString(productId), "1.5"},
+          {"\"" + productId + "\"", "1"},
+          {Long.toString(productId), "\"1\""}
+        }) {
+      mockMvc
+          .perform(
+              post("/orders")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(requestTemplate.formatted(item[0], item[1])))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.message").value("Malformed request body"));
+    }
+
+    assertThatReservedStock(productId, 0);
+    org.assertj.core.api.Assertions.assertThat(countRows("shopflow.orders")).isZero();
+    org.assertj.core.api.Assertions.assertThat(countRows("shopflow.order_items")).isZero();
+    org.assertj.core.api.Assertions.assertThat(countRows("shopflow.stock_movements")).isZero();
+  }
+
+  @Test
+  void rejectsOrderTotalOutsideDatabaseRangeWithoutSideEffects() throws Exception {
+    long productId = insertProduct("Expensive pair", "6000000000", true);
+    insertInventory(productId, 2, 0);
+
+    String body =
+        """
+        {
+          "customer": {"fullName": "Guest"},
+          "shippingAddress": {"receiverName": "Guest", "phone": "0900000000", "addressLine": "1 Main", "city": "Hanoi"},
+          "paymentMethod": "CARD",
+          "items": [{"productId": %d, "quantity": 2}]
+        }
+        """
+            .formatted(productId);
+
+    mockMvc
+        .perform(post("/orders").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.message").value("Order total exceeds supported maximum"));
+
+    assertThatReservedStock(productId, 0);
+    org.assertj.core.api.Assertions.assertThat(countRows("shopflow.orders")).isZero();
+    org.assertj.core.api.Assertions.assertThat(countRows("shopflow.order_items")).isZero();
+    org.assertj.core.api.Assertions.assertThat(countRows("shopflow.stock_movements")).isZero();
+  }
+
+  @Test
+  void acceptsLargestWholeVndOrderTotalSupportedByDatabase() throws Exception {
+    long productId = insertProduct("Boundary item", "9999999999", true);
+    insertInventory(productId, 1, 0);
+
+    String body =
+        """
+        {
+          "customer": {"fullName": "Guest"},
+          "shippingAddress": {"receiverName": "Guest", "phone": "0900000000", "addressLine": "1 Main", "city": "Hanoi"},
+          "paymentMethod": "CARD",
+          "items": [{"productId": %d, "quantity": 1}]
+        }
+        """
+            .formatted(productId);
+
+    mockMvc
+        .perform(post("/orders").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.totalAmount").value(9_999_999_999L));
+
+    assertThatReservedStock(productId, 1);
   }
 
   @Test
