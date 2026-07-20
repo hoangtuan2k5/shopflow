@@ -41,14 +41,14 @@ const emit = defineEmits<{
 
 const formSchema = toTypedSchema(
   z.object({
-    fullName: z.string().trim().min(1, 'Enter the customer name.'),
-    email: z.string().trim().email('Enter a valid email.').or(z.literal('')),
+    fullName: z.string().trim().min(1, 'Nhập tên khách hàng.'),
+    email: z.string().trim().email('Nhập email hợp lệ.').or(z.literal('')),
     customerPhone: z.string().trim(),
-    receiverName: z.string().trim().min(1, 'Enter the receiver name.'),
-    receiverPhone: z.string().trim().min(1, 'Enter a receiver phone number.'),
-    addressLine: z.string().trim().min(1, 'Enter the delivery address.'),
+    receiverName: z.string().trim().min(1, 'Nhập tên người nhận.'),
+    receiverPhone: z.string().trim().min(1, 'Nhập số điện thoại người nhận.'),
+    addressLine: z.string().trim().min(1, 'Nhập địa chỉ giao hàng.'),
     district: z.string().trim(),
-    city: z.string().trim().min(1, 'Enter the delivery city.'),
+    city: z.string().trim().min(1, 'Nhập tỉnh hoặc thành phố giao hàng.'),
   }),
 )
 
@@ -135,10 +135,10 @@ function formatCurrency(value: number) {
 function lineError(productId: number) {
   const insufficient = insufficientByProduct.value.get(productId)
   if (insufficient) {
-    return `Only ${insufficient.availableStock} available right now.`
+    return `Hiện chỉ còn ${insufficient.availableStock} sản phẩm.`
   }
   if (unavailableProductIds.value.has(productId)) {
-    return 'This product is no longer available.'
+    return 'Sản phẩm này không còn khả dụng.'
   }
   return null
 }
@@ -160,16 +160,18 @@ const submit = handleSubmit((values) => emit('submit', values))
           class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-success"
         >
           <IconReceipt :size="16" :stroke-width="1.8" aria-hidden="true" />
-          Checkout desk
+          Đặt hàng
         </p>
-        <h2 id="checkout-title" class="mt-2 text-2xl font-bold tracking-tight">Build your order</h2>
+        <h2 id="checkout-title" class="mt-2 text-2xl font-bold tracking-tight">
+          Hoàn tất đơn hàng
+        </h2>
         <p class="mt-1 max-w-xl text-sm text-muted-foreground">
-          We lock the current price and stock only when you submit.
+          Giá và tồn kho được kiểm tra lại khi bạn gửi đơn hàng.
         </p>
       </div>
       <div class="rounded-md border border-border bg-card/80 px-3 py-2 text-right">
         <p class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {{ props.lines.length }} {{ props.lines.length === 1 ? 'item' : 'items' }}
+          {{ props.lines.length }} sản phẩm
         </p>
         <p class="mt-0.5 text-lg font-bold tabular-nums">{{ formatCurrency(totalAmount) }}</p>
       </div>
@@ -188,11 +190,11 @@ const submit = handleSubmit((values) => emit('submit', values))
       />
       <div>
         <p class="font-semibold text-foreground">
-          {{ props.error.message || 'Order could not be created.' }}
+          {{ props.error.message || 'Không thể tạo đơn hàng.' }}
         </p>
         <p class="mt-1 text-sm text-muted-foreground">
-          Review the highlighted field or item and try again. The server is the source of truth for
-          stock.
+          Kiểm tra trường hoặc sản phẩm được đánh dấu rồi thử lại. Tồn kho trên hệ thống là dữ liệu
+          quyết định.
         </p>
       </div>
     </div>
@@ -211,29 +213,29 @@ const submit = handleSubmit((values) => emit('submit', values))
           <IconReceipt :size="21" :stroke-width="1.8" aria-hidden="true" />
         </div>
         <div>
-          <p class="text-sm font-bold uppercase tracking-wider text-success">03 / Payment</p>
-          <h3 id="payment-simulation-title" class="mt-1 text-xl font-bold">Payment simulation</h3>
+          <p class="text-sm font-bold uppercase tracking-wider text-success">03 / Thanh toán</p>
+          <h3 id="payment-simulation-title" class="mt-1 text-xl font-bold">Mô phỏng thanh toán</h3>
           <p class="mt-1 text-sm text-muted-foreground">
-            Order #{{ props.successOrder.id }} is created and ready for the card-payment step.
+            Đơn hàng #{{ props.successOrder.id }} đã được tạo và sẵn sàng cho bước thanh toán thẻ.
           </p>
         </div>
       </div>
       <dl class="grid gap-3 rounded-lg border border-border bg-background/70 p-4 sm:grid-cols-3">
         <div>
           <dt class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Order
+            Đơn hàng
           </dt>
           <dd class="mt-1 font-bold">#{{ props.successOrder.id }}</dd>
         </div>
         <div>
           <dt class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Status
+            Trạng thái
           </dt>
           <dd class="mt-1 font-bold">{{ props.successOrder.status }}</dd>
         </div>
         <div>
           <dt class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Total
+            Tổng tiền
           </dt>
           <dd class="mt-1 font-bold tabular-nums">
             {{ formatCurrency(props.successOrder.totalAmount) }}
@@ -242,10 +244,10 @@ const submit = handleSubmit((values) => emit('submit', values))
       </dl>
       <div class="flex flex-wrap items-center justify-between gap-3">
         <p class="text-sm text-muted-foreground">
-          Inventory is reserved. No payment has been captured yet.
+          Tồn kho đã được giữ. Hệ thống chưa ghi nhận thanh toán.
         </p>
         <Button type="button" variant="outline" @click="emit('start-over')">
-          Continue shopping
+          Tiếp tục mua sắm
           <IconArrowUpRight :size="17" :stroke-width="1.8" aria-hidden="true" />
         </Button>
       </div>
@@ -259,9 +261,9 @@ const submit = handleSubmit((values) => emit('submit', values))
       <div class="grid content-start gap-4">
         <div>
           <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            01 / Review
+            01 / Kiểm tra
           </p>
-          <h3 class="mt-1 text-lg font-bold">Selected products</h3>
+          <h3 class="mt-1 text-lg font-bold">Sản phẩm đã chọn</h3>
         </div>
 
         <div class="grid gap-3">
@@ -277,13 +279,13 @@ const submit = handleSubmit((values) => emit('submit', values))
               <div class="min-w-0">
                 <p class="truncate font-semibold">{{ line.product.name }}</p>
                 <p class="mt-1 text-sm tabular-nums text-muted-foreground">
-                  {{ formatCurrency(line.product.price) }} each
+                  {{ formatCurrency(line.product.price) }} mỗi sản phẩm
                 </p>
               </div>
               <button
                 type="button"
                 class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive-muted hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                :aria-label="`Remove ${line.product.name}`"
+                :aria-label="`Xóa ${line.product.name}`"
                 @click="emit('remove', line.product.id)"
               >
                 <IconTrash :size="17" :stroke-width="1.8" aria-hidden="true" />
@@ -295,7 +297,7 @@ const submit = handleSubmit((values) => emit('submit', values))
                   type="button"
                   class="grid size-8 place-items-center text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-40"
                   :disabled="line.quantity <= 1"
-                  :aria-label="`Decrease ${line.product.name} quantity`"
+                  :aria-label="`Giảm số lượng ${line.product.name}`"
                   @click="emit('update-quantity', line.product.id, line.quantity - 1)"
                 >
                   <IconMinus :size="15" :stroke-width="2" aria-hidden="true" />
@@ -306,7 +308,7 @@ const submit = handleSubmit((values) => emit('submit', values))
                 <button
                   type="button"
                   class="grid size-8 place-items-center text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                  :aria-label="`Increase ${line.product.name} quantity`"
+                  :aria-label="`Tăng số lượng ${line.product.name}`"
                   @click="emit('update-quantity', line.product.id, line.quantity + 1)"
                 >
                   <IconPlus :size="15" :stroke-width="2" aria-hidden="true" />
@@ -326,7 +328,7 @@ const submit = handleSubmit((values) => emit('submit', values))
         </div>
 
         <div class="flex items-center justify-between border-t border-border pt-4">
-          <span class="text-sm text-muted-foreground">Order total</span>
+          <span class="text-sm text-muted-foreground">Tổng đơn hàng</span>
           <span class="text-xl font-bold tabular-nums">{{ formatCurrency(totalAmount) }}</span>
         </div>
       </div>
@@ -334,15 +336,15 @@ const submit = handleSubmit((values) => emit('submit', values))
       <div class="grid content-start gap-5 lg:border-l lg:border-border lg:pl-7">
         <div>
           <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            02 / Details
+            02 / Giao hàng
           </p>
-          <h3 class="mt-1 text-lg font-bold">Where should we send it?</h3>
+          <h3 class="mt-1 text-lg font-bold">Bạn muốn nhận hàng ở đâu?</h3>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="grid gap-1.5 sm:col-span-2">
             <span class="text-sm font-semibold"
-              >Customer name <span class="text-destructive">*</span></span
+              >Tên khách hàng <span class="text-destructive">*</span></span
             >
             <Input
               id="checkout-full-name"
@@ -351,7 +353,7 @@ const submit = handleSubmit((values) => emit('submit', values))
               autocomplete="name"
               maxlength="255"
               :aria-invalid="Boolean(displayedErrors.fullName)"
-              placeholder="Nguyen Van A"
+              placeholder="Nguyễn Văn A"
             />
             <span v-if="displayedErrors.fullName" class="text-xs text-destructive">{{
               displayedErrors.fullName
@@ -359,7 +361,7 @@ const submit = handleSubmit((values) => emit('submit', values))
           </label>
           <label class="grid gap-1.5">
             <span class="text-sm font-semibold"
-              >Email <span class="font-normal text-muted-foreground">(optional)</span></span
+              >Email <span class="font-normal text-muted-foreground">(không bắt buộc)</span></span
             >
             <Input
               id="checkout-email"
@@ -377,8 +379,8 @@ const submit = handleSubmit((values) => emit('submit', values))
           </label>
           <label class="grid gap-1.5">
             <span class="text-sm font-semibold"
-              >Customer phone
-              <span class="font-normal text-muted-foreground">(optional)</span></span
+              >Số điện thoại khách hàng
+              <span class="font-normal text-muted-foreground">(không bắt buộc)</span></span
             >
             <Input
               id="checkout-customer-phone"
@@ -395,7 +397,7 @@ const submit = handleSubmit((values) => emit('submit', values))
           </label>
           <label class="grid gap-1.5 sm:col-span-2">
             <span class="text-sm font-semibold"
-              >Receiver name <span class="text-destructive">*</span></span
+              >Tên người nhận <span class="text-destructive">*</span></span
             >
             <Input
               id="checkout-receiver-name"
@@ -404,7 +406,7 @@ const submit = handleSubmit((values) => emit('submit', values))
               autocomplete="shipping name"
               maxlength="255"
               :aria-invalid="Boolean(displayedErrors.receiverName)"
-              placeholder="Nguyen Van A"
+              placeholder="Nguyễn Văn A"
             />
             <span v-if="displayedErrors.receiverName" class="text-xs text-destructive">{{
               displayedErrors.receiverName
@@ -412,7 +414,7 @@ const submit = handleSubmit((values) => emit('submit', values))
           </label>
           <label class="grid gap-1.5">
             <span class="text-sm font-semibold"
-              >Receiver phone <span class="text-destructive">*</span></span
+              >Số điện thoại người nhận <span class="text-destructive">*</span></span
             >
             <Input
               id="checkout-receiver-phone"
@@ -428,7 +430,9 @@ const submit = handleSubmit((values) => emit('submit', values))
             }}</span>
           </label>
           <label class="grid gap-1.5">
-            <span class="text-sm font-semibold">City <span class="text-destructive">*</span></span>
+            <span class="text-sm font-semibold"
+              >Tỉnh/Thành phố <span class="text-destructive">*</span></span
+            >
             <Input
               id="checkout-city"
               v-model="city"
@@ -436,7 +440,7 @@ const submit = handleSubmit((values) => emit('submit', values))
               autocomplete="shipping address-level1"
               maxlength="100"
               :aria-invalid="Boolean(displayedErrors.city)"
-              placeholder="Ho Chi Minh"
+              placeholder="Thành phố Hồ Chí Minh"
             />
             <span v-if="displayedErrors.city" class="text-xs text-destructive">{{
               displayedErrors.city
@@ -444,7 +448,7 @@ const submit = handleSubmit((values) => emit('submit', values))
           </label>
           <label class="grid gap-1.5 sm:col-span-2">
             <span class="text-sm font-semibold"
-              >Address line <span class="text-destructive">*</span></span
+              >Địa chỉ <span class="text-destructive">*</span></span
             >
             <Input
               id="checkout-address"
@@ -453,7 +457,7 @@ const submit = handleSubmit((values) => emit('submit', values))
               autocomplete="shipping street-address"
               maxlength="500"
               :aria-invalid="Boolean(displayedErrors.addressLine)"
-              placeholder="123 Nguyen Hue"
+              placeholder="123 Nguyễn Huệ"
             />
             <span v-if="displayedErrors.addressLine" class="text-xs text-destructive">{{
               displayedErrors.addressLine
@@ -461,7 +465,8 @@ const submit = handleSubmit((values) => emit('submit', values))
           </label>
           <label class="grid gap-1.5 sm:col-span-2">
             <span class="text-sm font-semibold"
-              >District <span class="font-normal text-muted-foreground">(optional)</span></span
+              >Quận/Huyện
+              <span class="font-normal text-muted-foreground">(không bắt buộc)</span></span
             >
             <Input
               id="checkout-district"
@@ -470,7 +475,7 @@ const submit = handleSubmit((values) => emit('submit', values))
               autocomplete="shipping address-level2"
               maxlength="100"
               :aria-invalid="Boolean(displayedErrors.district)"
-              placeholder="District 1"
+              placeholder="Quận 1"
             />
             <span v-if="displayedErrors.district" class="text-xs text-destructive">{{
               displayedErrors.district
@@ -480,15 +485,15 @@ const submit = handleSubmit((values) => emit('submit', values))
 
         <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
           <p class="max-w-xs text-xs leading-relaxed text-muted-foreground">
-            Payment is simulated in the next step. This checkout accepts CARD only.
+            Thanh toán được mô phỏng ở bước tiếp theo. Đơn hàng hiện chỉ hỗ trợ thẻ.
           </p>
           <Button
             type="submit"
             size="lg"
             :disabled="props.submitting || hasUnavailableLine || props.lines.length === 0"
           >
-            <span v-if="props.submitting">Creating order…</span>
-            <span v-else>Place order</span>
+            <span v-if="props.submitting">Đang tạo đơn hàng…</span>
+            <span v-else>Đặt hàng</span>
             <IconArrowUpRight
               v-if="!props.submitting"
               :size="18"
