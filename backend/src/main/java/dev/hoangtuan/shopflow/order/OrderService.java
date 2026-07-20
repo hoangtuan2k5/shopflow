@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 class OrderService {
 
+  private static final BigDecimal MAX_TOTAL_AMOUNT = new BigDecimal("9999999999");
+
   private final OrderRepository orderRepository;
   private final StockReservationService stockReservationService;
 
@@ -62,6 +64,9 @@ class OrderService {
       BigDecimal lineTotal =
           product.unitPrice().multiply(BigDecimal.valueOf(requestItem.quantity()));
       totalAmount = totalAmount.add(lineTotal);
+      if (totalAmount.compareTo(MAX_TOTAL_AMOUNT) > 0) {
+        throw new OrderValidationException("Order total exceeds supported maximum");
+      }
       order.addItem(
           new OrderItem(
               product.productId(),

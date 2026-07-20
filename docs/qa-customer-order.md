@@ -1,8 +1,8 @@
 # Customer Order QA Checklist
 
-- Jira: SF-13
+- Jira: SF-13, SF-46
 - Parent: SF-3
-- Verified: 2026-07-19
+- Verified: 2026-07-20
 - Scope: `POST /orders`, stock reservation, and the customer checkout UI
 
 ## Contract scenarios
@@ -24,6 +24,9 @@
 | 13 | `paymentMethod=COD` or another invalid value | `OrderControllerTests.rejectsUnavailableProductAndInvalidPaymentMethod` | Pass |
 | 14 | Client sends a `unitPrice` field | `OrderControllerTests.ignoresClientUnitPriceAndUsesServerSnapshot` | Pass; DB price wins |
 | 15 | Two concurrent orders compete for the last unit | `OrderConcurrencyTests.onlyOneConcurrentOrderCanReserveTheLastUnit` using PostgreSQL Testcontainers | Pass; exactly one successful order |
+| 16 | Fractional or quoted product ID/quantity | `OrderControllerTests.rejectsCoercedItemNumbersWithoutSideEffects` | Pass; 400 with no writes |
+| 17 | Customer and shipping field errors identify their paths | `OrderControllerTests.rejectsMissingRequiredFields` | Pass |
+| 18 | Order total exceeds `NUMERIC(12,2)` while the whole-VND boundary remains valid | `OrderControllerTests.rejectsOrderTotalOutsideDatabaseRangeWithoutSideEffects` and `acceptsLargestWholeVndOrderTotalSupportedByDatabase` | Pass |
 
 The concurrency test uses a real PostgreSQL container and two independent
 transactional service calls. It asserts one successful order, one insufficient
@@ -45,6 +48,12 @@ inventory; the success and insufficient-stock payloads matched the API contract.
 | Mobile layout at 390 × 844 | No horizontal overflow; fields and actions remain usable | Pass |
 | Browser console | No unexpected errors; expected 400 resource response excluded | Pass |
 
+The SF-46 component regression check uses Vite SSR and the existing Node test
+runner. It verifies that the payment handoff renders the exact order ID, status,
+and VND total, and that a selected item plus field-specific server error remain
+visible. Browser focus behavior was not rerun because this environment has no
+Playwright/Chromium dependency.
+
 ## Verification commands
 
 ```sh
@@ -54,16 +63,18 @@ bash mvnw -q -Dtest=OrderConcurrencyTests test
 bash mvnw -q spotless:check verify
 
 cd ../frontend
+node --experimental-strip-types --test src/api/__tests__/validateProductPrice.test.ts src/components/forms/__tests__/CheckoutForm.test.ts
 npm run type-check
 npm run lint:ci
 npm run build
 git diff --check
 ```
 
-Results on 2026-07-19:
+Results on 2026-07-20:
 
-- Order controller tests: 8 passed.
+- Order controller tests: 11 passed.
 - PostgreSQL concurrency test: 1 passed.
+- Frontend native Node tests: 2 passed.
 - Frontend type-check, lint, and production build: passed.
 - Spotless and whitespace checks: passed.
 

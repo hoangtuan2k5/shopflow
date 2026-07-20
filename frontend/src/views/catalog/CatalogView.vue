@@ -165,7 +165,7 @@ function submitOrder(values: CheckoutFormValues) {
     })),
   }
   orderMutation.reset()
-  orderMutation.mutate(body, { onError: () => void productsQuery.refetch() })
+  orderMutation.mutate(body)
 }
 
 function startOver() {

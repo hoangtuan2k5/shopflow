@@ -50,6 +50,7 @@ export interface OrderResponse {
 export interface OrderErrorDetails {
   message?: string
   status?: number
+  fieldErrors?: Record<string, string>
   unavailableProductIds?: number[]
   insufficientItems?: Array<{
     productId: number
