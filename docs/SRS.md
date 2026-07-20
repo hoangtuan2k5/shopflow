@@ -128,7 +128,8 @@ authentication hoặc authorization production.
 ### 5.1 FR-01 - Product Catalog
 
 Nguồn: [SF-2](https://tuanwork.atlassian.net/browse/SF-2),
-[SF-36](https://tuanwork.atlassian.net/browse/SF-36).
+[SF-36](https://tuanwork.atlassian.net/browse/SF-36),
+[SF-47](https://tuanwork.atlassian.net/browse/SF-47).
 
 - **FR-01.1:** Hệ thống BẮT BUỘC chỉ cung cấp product đang active trên catalog
   công khai.
@@ -141,6 +142,8 @@ Nguồn: [SF-2](https://tuanwork.atlassian.net/browse/SF-2),
   OUT_OF_STOCK.
 - **FR-01.6:** Product không tồn tại hoặc inactive KHÔNG được cung cấp qua
   catalog công khai.
+- **FR-01.7:** Hệ thống BẮT BUỘC cho phép customer lọc catalog đã tải theo tên
+  product. Thao tác lọc KHÔNG được làm thay đổi product hoặc các item đã chọn.
 
 API contract chuẩn cho yêu cầu này nằm trong
 [api-product-catalog-spec.md](./api-product-catalog-spec.md).
@@ -454,6 +457,9 @@ Chi tiết cột, index, constraint và DDL nằm trong
   chối và giữ lại dữ liệu hợp lệ để người dùng sửa rồi gửi lại.
 - **IR-02:** Product out-of-stock và low-stock BẮT BUỘC có nhãn trạng thái bằng
   text; không chỉ dùng màu hoặc icon.
+- **IR-04:** Giao diện customer KHÔNG được hiển thị điều hướng workflow của
+  Warehouse hoặc Shop owner và BẮT BUỘC hiển thị số lượng item đã chọn trước
+  checkout.
 
 ### 9.2 API
 
@@ -540,6 +546,7 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 | AC-21 | Adjustment dương cho product chưa có dữ liệu tồn kho                            | Tạo inventory từ 0/0, áp dụng delta và lưu movement note                       |
 | AC-22 | Tạo order với `paymentMethod=COD`                                               | Từ chối 400; không tạo order, reservation hoặc movement                        |
 | AC-23 | Hiển thị price/amount trong catalog và order                                    | Dùng VND, hiển thị không có phần lẻ và không tự làm tròn giá trị               |
+| AC-24 | Customer tìm product, chọn item rồi tiếp tục duyệt catalog                      | Kết quả lọc đúng theo tên; selection và số lượng item đã chọn được giữ nguyên  |
 
 ---
 
@@ -557,6 +564,7 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 | SF-7                                           | FR-06, BR-11, BR-13, NFR-01                             | Supplier Receiving                       |
 | SF-8, SF-17, SF-18, SF-19                      | FR-07, BR-08 đến BR-10, BR-13, NFR-01, NFR-04           | Customer Return                          |
 | SF-9                                           | FR-08, BR-14                                            | Low-stock Alert                          |
+| SF-47                                          | FR-01.7, IR-04, AC-24                                   | Customer Storefront UX                   |
 
 ---
 

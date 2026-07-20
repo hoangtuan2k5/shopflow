@@ -44,7 +44,8 @@ test('renders payment handoff and field-specific server errors', async (context)
   )
 
   assert.match(paymentHtml, /id="payment-simulation"/)
-  assert.match(paymentHtml, /Order #501/)
+  assert.match(paymentHtml, /Mô phỏng thanh toán/)
+  assert.match(paymentHtml, /Đơn hàng #501/)
   assert.match(paymentHtml, /PENDING_PAYMENT/)
   assert.match(paymentHtml, /46\.970\.000/)
 
