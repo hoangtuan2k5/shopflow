@@ -466,8 +466,9 @@ Chi tiết cột, index, constraint và DDL nằm trong
 - **IR-03:** Hệ thống BẮT BUỘC cung cấp REST API được mô tả bằng OpenAPI.
 - SRS này là nguồn chuẩn cho behavior ở cấp sản phẩm. API contract hiện có cho
   [Product Catalog](./api-product-catalog-spec.md) và
-  [Customer Order](./api-customer-order-spec.md) quy định request, response và
-  error semantics của hai flow đó.
+  [Customer Order](./api-customer-order-spec.md), và
+  [Payment Simulation](./api-payment-simulation-spec.md) quy định request,
+  response và error semantics của ba flow đó.
 - Với các flow chưa có API contract được liên kết, SRS chỉ quy định behavior và
   điều kiện nghiệm thu; URL, payload, mã lỗi và error semantics cụ thể không
   thuộc baseline của tài liệu này.

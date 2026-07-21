@@ -1,6 +1,6 @@
 package dev.hoangtuan.shopflow.order;
 
-enum PaymentMethod {
+public enum PaymentMethod {
   CARD,
   COD
 }
