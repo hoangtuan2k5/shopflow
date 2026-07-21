@@ -4,6 +4,12 @@ export { getOpenApiDocument } from './openApi'
 export type { OpenApiDocument, OpenApiInfo, OpenApiTag } from './openApi'
 export { getProductById, getProducts } from './catalog'
 export type { ProductDetail, ProductListItem, StockStatus } from './catalog'
+export { adjustStock, getInventory } from './inventory'
+export type {
+  InventoryErrorDetails,
+  InventoryItem,
+  StockAdjustmentRequest,
+} from './inventory'
 export { createOrder } from './order'
 export type { CreateOrderRequest, OrderErrorDetails, OrderResponse, PaymentMethod } from './order'
 export { createPayment } from './payment'

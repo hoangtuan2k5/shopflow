@@ -23,7 +23,7 @@ export const roleRoutes: RoleRoute[] = [
   {
     path: 'warehouse',
     name: 'warehouse',
-    component: () => import('@/views/roles/RoleDashboardView.vue'),
+    component: () => import('@/views/inventory/InventoryView.vue'),
     meta: {
       role: 'warehouse',
       title: 'Warehouse',
