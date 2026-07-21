@@ -208,12 +208,6 @@ function closeProduct() {
 <template>
   <div class="min-h-screen bg-[#f5f6f8] text-foreground">
     <header class="sticky top-0 z-30 border-b border-primary/10 bg-card/95 backdrop-blur-xl">
-      <div class="hidden bg-primary text-primary-foreground md:block">
-        <div class="mx-auto flex max-w-7xl justify-between px-6 py-2 text-xs text-white/75">
-          <p><strong class="text-white">ShopFlow</strong> · Mua sắm rõ ràng, tồn kho trực tiếp</p>
-          <p>Catalog · Đặt hàng · Thanh toán mô phỏng</p>
-        </div>
-      </div>
       <div
         class="mx-auto grid max-w-7xl grid-cols-[1fr_auto] items-center gap-3 px-3 py-3 sm:px-6 md:grid-cols-[10rem_minmax(16rem,1fr)_auto] md:gap-7"
       >
@@ -262,7 +256,7 @@ function closeProduct() {
       >
         <div class="relative z-10 max-w-2xl px-5 py-7 sm:px-12 sm:py-11">
           <p class="text-xs font-black uppercase tracking-[0.16em] text-[#7ff0cf]">
-            Thiết bị làm việc · Tồn kho trực tiếp
+            Mua sắm liền mạch
           </p>
           <h1
             class="mt-3 max-w-lg text-[2rem] font-black leading-[1.02] tracking-[-0.04em] sm:text-5xl"
