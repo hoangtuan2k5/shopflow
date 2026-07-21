@@ -9,6 +9,7 @@
         "preview": "vite preview",
         "build-only": "vite build",
         "type-check": "vue-tsc --build",
+        "test:e2e": "playwright test",
         "lint": "run-s lint:*",
         "lint:oxlint": "oxlint . --fix",
         "lint:eslint": "eslint . --fix --cache",
@@ -33,6 +34,7 @@
         "zod": "^3.25.76"
     },
     "devDependencies": {
+        "@playwright/test": "^1.61.1",
         "@tailwindcss/vite": "^4.3.0",
         "@tsconfig/node24": "^24.0.4",
         "@types/node": "^24.12.2",
