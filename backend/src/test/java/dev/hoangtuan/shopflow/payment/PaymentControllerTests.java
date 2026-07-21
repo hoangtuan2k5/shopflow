@@ -1,6 +1,7 @@
 package dev.hoangtuan.shopflow.payment;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -153,6 +154,98 @@ class PaymentControllerTests {
     assertThat(countRows("shopflow.payments")).isEqualTo(1);
   }
 
+  @Test
+  void expiresPaymentAndReleasesEachProductWithoutChangingOnHand() throws Exception {
+    long firstProductId = insertProduct("Coffee", "2190000");
+    long secondProductId = insertProduct("Tea", "1000000");
+    insertInventory(firstProductId, 10, 3);
+    insertInventory(secondProductId, 5, 2);
+    long orderId = insertOrder("PENDING_PAYMENT", "5380000");
+    insertOrderItem(orderId, firstProductId, 2);
+    insertOrderItem(orderId, secondProductId, 1);
+
+    mockMvc
+        .perform(
+            post("/orders/{orderId}/payments", orderId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"result\":\"EXPIRED\",\"failureReason\":\"Expired by simulation\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("EXPIRED"))
+        .andExpect(jsonPath("$.orderStatus").value("PAYMENT_FAILED"));
+
+    assertThat(reservedStock(firstProductId)).isEqualTo(1);
+    assertThat(reservedStock(secondProductId)).isEqualTo(1);
+    assertThat(onHandStock(firstProductId)).isEqualTo(10);
+    assertThat(onHandStock(secondProductId)).isEqualTo(5);
+    assertReleaseMovement(firstProductId, orderId, -2);
+    assertReleaseMovement(secondProductId, orderId, -1);
+  }
+
+  @Test
+  void rejectsInvalidStateAndFailureReasonShapesWithoutCreatingPayment() throws Exception {
+    long productId = insertProduct("Coffee", "2190000");
+    insertInventory(productId, 5, 1);
+    long paidOrderId = insertOrder("PAID", "2190000");
+    insertOrderItem(paidOrderId, productId, 1);
+
+    mockMvc
+        .perform(
+            post("/orders/{orderId}/payments", paidOrderId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"result\":\"SUCCESS\"}"))
+        .andExpect(status().isConflict());
+
+    long pendingOrderId = insertOrder("PENDING_PAYMENT", "2190000");
+    insertOrderItem(pendingOrderId, productId, 1);
+
+    mockMvc
+        .perform(
+            post("/orders/{orderId}/payments", pendingOrderId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"result\":\"SUCCESS\",\"failureReason\":\"unexpected\"}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.message").value("failureReason is not allowed for success"));
+
+    String overlongReason = "x".repeat(501);
+    mockMvc
+        .perform(
+            post("/orders/{orderId}/payments", pendingOrderId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"result\":\"FAILED\",\"failureReason\":\"" + overlongReason + "\"}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.message").value("Invalid payment request"));
+
+    assertThat(countRows("shopflow.payments")).isZero();
+    assertThat(orderStatus(pendingOrderId)).isEqualTo("PENDING_PAYMENT");
+  }
+
+  @Test
+  void rollsBackPaymentAndEarlierReleasesWhenOneReservationIsInconsistent() {
+    long firstProductId = insertProduct("Coffee", "2190000");
+    long secondProductId = insertProduct("Tea", "1000000");
+    insertInventory(firstProductId, 5, 1);
+    insertInventory(secondProductId, 5, 0);
+    long orderId = insertOrder("PENDING_PAYMENT", "3190000");
+    insertOrderItem(orderId, firstProductId, 1);
+    insertOrderItem(orderId, secondProductId, 1);
+
+    assertThatThrownBy(
+            () ->
+                mockMvc.perform(
+                    post("/orders/{orderId}/payments", orderId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            "{\"result\":\"FAILED\",\"failureReason\":\"Declined by simulation\"}")))
+        .hasRootCauseInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Reserved stock is inconsistent");
+
+    assertThat(countRows("shopflow.payments")).isZero();
+    assertThat(orderStatus(orderId)).isEqualTo("PENDING_PAYMENT");
+    assertThat(reservedStock(firstProductId)).isEqualTo(1);
+    assertThat(reservedStock(secondProductId)).isZero();
+    assertThat(countRows("shopflow.stock_movements")).isZero();
+  }
+
   private long insertProduct(String name, String price) {
     jdbcTemplate.update(
         "INSERT INTO shopflow.products (name, price, active) VALUES (?, ?, ?)",
@@ -225,6 +318,20 @@ class PaymentControllerTests {
         "SELECT reserved_stock FROM shopflow.inventory_items WHERE product_id = ?",
         Integer.class,
         productId);
+  }
+
+  private void assertReleaseMovement(long productId, long orderId, int quantity) {
+    assertThat(
+            jdbcTemplate.queryForObject(
+                """
+                SELECT quantity FROM shopflow.stock_movements
+                WHERE product_id = ? AND type = 'PAYMENT_FAILED_RELEASE'
+                  AND reference_type = 'ORDER' AND reference_id = ?
+                """,
+                Integer.class,
+                productId,
+                orderId))
+        .isEqualTo(quantity);
   }
 
   private int countRows(String table) {
