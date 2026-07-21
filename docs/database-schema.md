@@ -951,14 +951,14 @@ database "delivery_status_history" as history
 database "inventory_items" as inventory
 database "stock_movements" as movements
 
-WS -> API : PATCH /orders/{id}/delivery\n{ to_status: SHIPPED }
+WS -> API : PATCH /orders/{id}/delivery\n{ toStatus: SHIPPED }
 activate API
 
-API -> orders : SELECT status, delivery_status
+API -> orders : SELECT status, delivery_status\nFOR UPDATE
 orders --> API : current state
 
 alt transition không hợp lệ\n(ví dụ: order chưa PAID,\nhoặc nhảy từ NONE → SHIPPED)
-    API --> WS : 400 - Invalid transition
+    API --> WS : 409 - Invalid transition
 else valid transition
     API -> orders : UPDATE delivery_status = to_status
     API -> history : INSERT (from, to, changed_by, changed_at)

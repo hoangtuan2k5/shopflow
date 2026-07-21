@@ -212,7 +212,8 @@ MVP không nhận COD.
 
 ### 5.4 FR-04 - Cập nhật delivery status
 
-Nguồn: [SF-5](https://tuanwork.atlassian.net/browse/SF-5).
+Nguồn: [SF-5](https://tuanwork.atlassian.net/browse/SF-5),
+[SF-49](https://tuanwork.atlassian.net/browse/SF-49).
 
 - **FR-04.1:** Chỉ order PAID mới được chuyển delivery status từ NONE sang
   PREPARING.
@@ -561,7 +562,7 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 | SF-2, SF-36, SF-37, SF-38, SF-39               | FR-01, IR-02, IR-03                                     | Product Catalog                          |
 | SF-3, SF-11, SF-12, SF-13, SF-35, SF-43, SF-44 | FR-02, BR-01 đến BR-04, BR-15, NFR-01 đến NFR-03, IR-01 | Create Customer Order                    |
 | SF-4, SF-40, SF-41, SF-42                      | FR-03, BR-05, NFR-01, NFR-04                            | Payment Simulation                       |
-| SF-5                                           | FR-04, BR-06, BR-07, NFR-01, NFR-04 đến NFR-06          | Delivery Status                          |
+| SF-5, SF-49                                    | FR-04, BR-06, BR-07, NFR-01, NFR-04 đến NFR-06          | Delivery Status                          |
 | SF-6, SF-14, SF-15, SF-16                      | FR-05, BR-01, BR-02, BR-12, BR-13, NFR-01 đến NFR-02    | Inventory Management                     |
 | SF-7                                           | FR-06, BR-11, BR-13, NFR-01                             | Supplier Receiving                       |
 | SF-8, SF-17, SF-18, SF-19                      | FR-07, BR-08 đến BR-10, BR-13, NFR-01, NFR-04           | Customer Return                          |
