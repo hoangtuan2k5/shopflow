@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-class StockReservationService {
+public class StockReservationService {
 
   private final JdbcTemplate jdbcTemplate;
 
@@ -93,6 +93,49 @@ class StockReservationService {
     }
   }
 
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void release(Long orderId) {
+    List<ReleaseItem> items =
+        jdbcTemplate.query(
+            """
+            SELECT product_id, SUM(quantity) AS quantity
+            FROM shopflow.order_items
+            WHERE order_id = ?
+            GROUP BY product_id
+            ORDER BY product_id
+            """,
+            (resultSet, rowNumber) ->
+                new ReleaseItem(resultSet.getLong("product_id"), resultSet.getInt("quantity")),
+            orderId);
+
+    for (ReleaseItem item : items) {
+      int updated =
+          jdbcTemplate.update(
+              """
+              UPDATE shopflow.inventory_items
+              SET reserved_stock = reserved_stock - ?
+              WHERE product_id = ? AND reserved_stock >= ?
+              """,
+              item.quantity(),
+              item.productId(),
+              item.quantity());
+      if (updated != 1) {
+        throw new IllegalStateException(
+            "Reserved stock is inconsistent for product " + item.productId());
+      }
+
+      jdbcTemplate.update(
+          """
+          INSERT INTO shopflow.stock_movements
+              (product_id, type, quantity, reference_type, reference_id)
+          VALUES (?, 'PAYMENT_FAILED_RELEASE', ?, 'ORDER', ?)
+          """,
+          item.productId(),
+          -item.quantity(),
+          orderId);
+    }
+  }
+
   private StockRow findAndLock(Long productId) {
     List<ProductRow> products =
         jdbcTemplate.query(
@@ -166,4 +209,6 @@ class StockReservationService {
   private record ProductRow(Long id, String name, BigDecimal price, boolean active) {}
 
   private record InventoryRow(Integer onHandStock, Integer reservedStock) {}
+
+  private record ReleaseItem(Long productId, int quantity) {}
 }

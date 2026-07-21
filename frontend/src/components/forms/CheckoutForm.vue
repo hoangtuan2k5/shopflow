@@ -6,12 +6,20 @@ import { z } from 'zod'
 import {
   IconAlertTriangle,
   IconArrowUpRight,
+  IconCircleCheck,
+  IconCircleX,
   IconMinus,
   IconPlus,
   IconReceipt,
   IconTrash,
 } from '@tabler/icons-vue'
-import type { OrderErrorDetails, OrderResponse } from '@/api'
+import type {
+  OrderErrorDetails,
+  OrderResponse,
+  PaymentErrorDetails,
+  PaymentResponse,
+  SimulatedPaymentResult,
+} from '@/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -30,6 +38,9 @@ const props = defineProps<{
   submitting: boolean
   error: OrderErrorDetails | null
   successOrder: OrderResponse | null
+  paymentSubmitting: boolean
+  paymentError: PaymentErrorDetails | null
+  paymentResult: PaymentResponse | null
 }>()
 
 const emit = defineEmits<{
@@ -37,6 +48,7 @@ const emit = defineEmits<{
   'update-quantity': [productId: number, quantity: number]
   remove: [productId: number]
   'start-over': []
+  pay: [result: SimulatedPaymentResult]
 }>()
 
 const formSchema = toTypedSchema(
@@ -242,9 +254,105 @@ const submit = handleSubmit((values) => emit('submit', values))
           </dd>
         </div>
       </dl>
+      <div
+        v-if="props.paymentResult"
+        class="flex items-start gap-4 rounded-lg border p-5"
+        :class="
+          props.paymentResult.status === 'SUCCESS'
+            ? 'border-success/25 bg-success-muted'
+            : 'border-destructive/25 bg-destructive-muted'
+        "
+        role="status"
+      >
+        <IconCircleCheck
+          v-if="props.paymentResult.status === 'SUCCESS'"
+          class="mt-0.5 shrink-0 text-success"
+          :size="24"
+          :stroke-width="1.8"
+          aria-hidden="true"
+        />
+        <IconCircleX
+          v-else
+          class="mt-0.5 shrink-0 text-destructive"
+          :size="24"
+          :stroke-width="1.8"
+          aria-hidden="true"
+        />
+        <div>
+          <p class="font-bold">
+            {{
+              props.paymentResult.status === 'SUCCESS'
+                ? 'Thanh toán thành công'
+                : props.paymentResult.status === 'EXPIRED'
+                  ? 'Thanh toán đã hết hạn'
+                  : 'Thanh toán thất bại'
+            }}
+          </p>
+          <p class="mt-1 text-sm text-muted-foreground">
+            Payment {{ props.paymentResult.status }} · Order {{ props.paymentResult.orderStatus }}
+          </p>
+          <p v-if="props.paymentResult.failedReason" class="mt-1 text-sm text-muted-foreground">
+            {{ props.paymentResult.failedReason }}
+          </p>
+        </div>
+      </div>
+      <div v-else class="grid gap-4 rounded-lg border border-border bg-background/70 p-4">
+        <div
+          v-if="props.paymentError"
+          class="flex gap-3 border-l-4 border-destructive bg-destructive-muted p-4"
+          role="alert"
+        >
+          <IconAlertTriangle
+            class="mt-0.5 shrink-0 text-destructive"
+            :size="20"
+            :stroke-width="1.8"
+            aria-hidden="true"
+          />
+          <div>
+            <p class="font-semibold">{{ props.paymentError.message || 'Không thể thanh toán.' }}</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Đơn hàng vẫn được giữ để bạn kiểm tra lỗi.
+            </p>
+          </div>
+        </div>
+        <div>
+          <p class="font-semibold">Chọn kết quả thanh toán mô phỏng</p>
+          <p class="mt-1 text-sm text-muted-foreground">
+            Đây là môi trường demo; không có giao dịch thẻ thật.
+          </p>
+        </div>
+        <div class="grid gap-2 sm:grid-cols-3">
+          <Button type="button" :disabled="props.paymentSubmitting" @click="emit('pay', 'SUCCESS')">
+            Thanh toán thành công
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            :disabled="props.paymentSubmitting"
+            @click="emit('pay', 'FAILED')"
+          >
+            Mô phỏng thất bại
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            :disabled="props.paymentSubmitting"
+            @click="emit('pay', 'EXPIRED')"
+          >
+            Mô phỏng hết hạn
+          </Button>
+        </div>
+        <p v-if="props.paymentSubmitting" class="text-sm font-semibold text-primary" role="status">
+          Đang xử lý kết quả thanh toán…
+        </p>
+      </div>
       <div class="flex flex-wrap items-center justify-between gap-3">
         <p class="text-sm text-muted-foreground">
-          Tồn kho đã được giữ. Hệ thống chưa ghi nhận thanh toán.
+          {{
+            props.paymentResult
+              ? 'Kết quả đã được ghi nhận cho đơn hàng.'
+              : 'Tồn kho đã được giữ. Hệ thống chưa ghi nhận thanh toán.'
+          }}
         </p>
         <Button type="button" variant="outline" @click="emit('start-over')">
           Tiếp tục mua sắm

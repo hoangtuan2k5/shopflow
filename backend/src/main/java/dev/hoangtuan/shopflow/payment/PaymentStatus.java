@@ -1,6 +1,6 @@
 package dev.hoangtuan.shopflow.payment;
 
-enum PaymentStatus {
+public enum PaymentStatus {
   PENDING,
   SUCCESS,
   FAILED,

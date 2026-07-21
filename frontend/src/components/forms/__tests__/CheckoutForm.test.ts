@@ -15,6 +15,24 @@ test('renders payment handoff and field-specific server errors', async (context)
     '/src/components/forms/CheckoutForm.vue',
   )
 
+  const successOrder = {
+    id: 501,
+    status: 'PENDING_PAYMENT',
+    deliveryStatus: 'NONE',
+    paymentMethod: 'CARD',
+    totalAmount: 46_970_000,
+    customer: { fullName: 'Guest', email: null, phone: null },
+    shippingAddress: {
+      receiverName: 'Guest',
+      phone: '0900000000',
+      addressLine: '1 Main',
+      district: null,
+      city: 'Hanoi',
+    },
+    items: [],
+    createdAt: '2026-07-20T08:00:00Z',
+  }
+
   const paymentHtml = await renderToString(
     createSSRApp({
       render: () =>
@@ -22,23 +40,10 @@ test('renders payment handoff and field-specific server errors', async (context)
           lines: [],
           submitting: false,
           error: null,
-          successOrder: {
-            id: 501,
-            status: 'PENDING_PAYMENT',
-            deliveryStatus: 'NONE',
-            paymentMethod: 'CARD',
-            totalAmount: 46_970_000,
-            customer: { fullName: 'Guest', email: null, phone: null },
-            shippingAddress: {
-              receiverName: 'Guest',
-              phone: '0900000000',
-              addressLine: '1 Main',
-              district: null,
-              city: 'Hanoi',
-            },
-            items: [],
-            createdAt: '2026-07-20T08:00:00Z',
-          },
+          successOrder,
+          paymentSubmitting: false,
+          paymentError: null,
+          paymentResult: null,
         }),
     }),
   )
@@ -48,6 +53,56 @@ test('renders payment handoff and field-specific server errors', async (context)
   assert.match(paymentHtml, /Đơn hàng #501/)
   assert.match(paymentHtml, /PENDING_PAYMENT/)
   assert.match(paymentHtml, /46\.970\.000/)
+  assert.match(paymentHtml, /Thanh toán thành công/)
+  assert.match(paymentHtml, /Mô phỏng thất bại/)
+  assert.match(paymentHtml, /Mô phỏng hết hạn/)
+
+  const paymentResultHtml = await renderToString(
+    createSSRApp({
+      render: () =>
+        h(CheckoutForm, {
+          lines: [],
+          submitting: false,
+          error: null,
+          successOrder,
+          paymentSubmitting: false,
+          paymentError: null,
+          paymentResult: {
+            id: 91,
+            orderId: 501,
+            method: 'CARD',
+            status: 'SUCCESS',
+            amount: 46_970_000,
+            paidAt: '2026-07-21T09:00:00Z',
+            failedReason: null,
+            createdAt: '2026-07-21T09:00:00Z',
+            orderStatus: 'PAID',
+          },
+        }),
+    }),
+  )
+
+  assert.match(paymentResultHtml, /Payment SUCCESS · Order PAID/)
+  assert.doesNotMatch(paymentResultHtml, /Mô phỏng thất bại/)
+
+  const paymentErrorHtml = await renderToString(
+    createSSRApp({
+      render: () =>
+        h(CheckoutForm, {
+          lines: [],
+          submitting: false,
+          error: null,
+          successOrder,
+          paymentSubmitting: false,
+          paymentError: { message: 'Order is not eligible for payment', status: 409 },
+          paymentResult: null,
+        }),
+    }),
+  )
+
+  assert.match(paymentErrorHtml, /Order is not eligible for payment/)
+  assert.match(paymentErrorHtml, /Đơn hàng #501/)
+  assert.match(paymentErrorHtml, /Thanh toán thành công/)
 
   const errorHtml = await renderToString(
     createSSRApp({
@@ -65,6 +120,9 @@ test('renders payment handoff and field-specific server errors', async (context)
             fieldErrors: { 'shippingAddress.phone': 'must not be blank' },
           },
           successOrder: null,
+          paymentSubmitting: false,
+          paymentError: null,
+          paymentResult: null,
         }),
     }),
   )
