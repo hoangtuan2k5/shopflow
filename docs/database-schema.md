@@ -906,7 +906,7 @@ database "orders" as orders
 database "inventory_items" as inventory
 database "stock_movements" as movements
 
-Customer -> API : POST /payments { order_id, result }
+Customer -> API : POST /orders/{orderId}/payments { result }
 activate API
 
 API -> payments : INSERT (status=PENDING)
