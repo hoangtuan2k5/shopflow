@@ -21,11 +21,14 @@ import {
 } from '@tabler/icons-vue'
 import {
   ApiClientError,
+  createPayment,
   createOrder,
   getProductById,
   getProducts,
   type CreateOrderRequest,
   type OrderErrorDetails,
+  type PaymentErrorDetails,
+  type SimulatedPaymentResult,
   type StockStatus,
 } from '@/api'
 import { Button } from '@/components/ui/button'
@@ -108,6 +111,18 @@ const cartTotal = computed(() =>
 )
 
 const orderMutation = useMutation({ mutationFn: createOrder })
+const paymentMutation = useMutation({
+  mutationFn: ({ orderId, result }: { orderId: number; result: SimulatedPaymentResult }) =>
+    createPayment(orderId, {
+      result,
+      ...(result === 'SUCCESS'
+        ? {}
+        : {
+            failureReason:
+              result === 'EXPIRED' ? 'Expired by simulation' : 'Declined by simulation',
+          }),
+    }),
+})
 const orderError = computed<OrderErrorDetails | null>(() => {
   const error = orderMutation.error.value
   if (!error) return null
@@ -115,8 +130,19 @@ const orderError = computed<OrderErrorDetails | null>(() => {
   return { message: 'Không thể tạo đơn hàng. Vui lòng thử lại.' }
 })
 const createdOrder = computed(() => orderMutation.data.value ?? null)
+const paymentResult = computed(() => paymentMutation.data.value ?? null)
+const paymentError = computed<PaymentErrorDetails | null>(() => {
+  const error = paymentMutation.error.value
+  if (!error) return null
+  if (error instanceof ApiClientError && isPaymentErrorDetails(error.details)) return error.details
+  return { message: 'Không thể xử lý thanh toán. Vui lòng thử lại.' }
+})
 
 function isOrderErrorDetails(value: unknown): value is OrderErrorDetails {
+  return typeof value === 'object' && value !== null && 'message' in value
+}
+
+function isPaymentErrorDetails(value: unknown): value is PaymentErrorDetails {
   return typeof value === 'object' && value !== null && 'message' in value
 }
 
@@ -191,12 +217,20 @@ function submitOrder(values: CheckoutFormValues) {
     })),
   }
   orderMutation.reset()
+  paymentMutation.reset()
   orderMutation.mutate(body)
+}
+
+function simulatePayment(result: SimulatedPaymentResult) {
+  if (!createdOrder.value) return
+  paymentMutation.reset()
+  paymentMutation.mutate({ orderId: createdOrder.value.id, result })
 }
 
 function startOver() {
   selectedQuantities.value = {}
   orderMutation.reset()
+  paymentMutation.reset()
   checkoutOpen.value = false
 }
 
@@ -684,7 +718,11 @@ function closeProduct() {
           :submitting="orderMutation.isPending.value"
           :error="orderError"
           :success-order="createdOrder"
+          :payment-submitting="paymentMutation.isPending.value"
+          :payment-error="paymentError"
+          :payment-result="paymentResult"
           @submit="submitOrder"
+          @pay="simulatePayment"
           @update-quantity="updateQuantity"
           @remove="removeFromCart"
           @start-over="startOver"

@@ -1,6 +1,6 @@
 package dev.hoangtuan.shopflow.payment;
 
-enum SimulatedPaymentResult {
+public enum SimulatedPaymentResult {
   SUCCESS,
   FAILED,
   EXPIRED
