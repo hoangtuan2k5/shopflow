@@ -2,7 +2,7 @@
 import { type HTMLAttributes } from 'vue'
 import { cn } from '@/lib/utils'
 
-const modelValue = defineModel<string>()
+const modelValue = defineModel<string | number>()
 
 defineOptions({
   inheritAttrs: false,
