@@ -1,6 +1,6 @@
 package dev.hoangtuan.shopflow.order;
 
-enum DeliveryStatus {
+public enum DeliveryStatus {
   NONE,
   PREPARING,
   SHIPPED,
