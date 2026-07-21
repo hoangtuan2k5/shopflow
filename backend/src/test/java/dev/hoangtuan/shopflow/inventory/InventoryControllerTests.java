@@ -74,6 +74,7 @@ class InventoryControllerTests {
         .andExpect(jsonPath("$.availableStock").value(5));
 
     assertThat(onHandStock(productId)).isEqualTo(8);
+    assertThat(movementType(productId)).isEqualTo("MANUAL_ADJUSTMENT");
     assertThat(movementQuantity(productId)).isEqualTo(-2);
     assertThat(movementNote(productId)).isEqualTo("Damaged during stock count");
   }
@@ -142,6 +143,50 @@ class InventoryControllerTests {
     assertThat(movementCount()).isZero();
   }
 
+  @Test
+  void rejectsNegativeMissingInventoryAndIntegerOverflow() throws Exception {
+    long missingInventoryId = insertProduct("No inventory", true);
+
+    adjust(missingInventoryId, -1, "Negative initial count").andExpect(status().isConflict());
+    assertThat(inventoryCount()).isZero();
+    assertThat(movementCount()).isZero();
+
+    long maximumId = insertProduct("Maximum", true);
+    insertInventory(maximumId, Integer.MAX_VALUE, 0);
+    adjust(maximumId, 1, "Overflow")
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.message").value("Adjustment violates inventory constraints"));
+
+    assertThat(onHandStock(maximumId)).isEqualTo(Integer.MAX_VALUE);
+    assertThat(movementCount()).isZero();
+  }
+
+  @Test
+  void rejectsMissingDeltaAndOverlongReason() throws Exception {
+    long productId = insertProduct("Validation", true);
+    insertInventory(productId, 3, 0);
+
+    mockMvc
+        .perform(
+            post("/inventory/{productId}/adjustments", productId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"reason\":\"Missing delta\"}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.fieldErrors.delta").isString());
+
+    String body = "{\"delta\":1,\"reason\":\"%s\"}".formatted("x".repeat(501));
+    mockMvc
+        .perform(
+            post("/inventory/{productId}/adjustments", productId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.fieldErrors.reason").isString());
+
+    assertThat(onHandStock(productId)).isEqualTo(3);
+    assertThat(movementCount()).isZero();
+  }
+
   private org.springframework.test.web.servlet.ResultActions adjust(
       long productId, int delta, String reason) throws Exception {
     String body = "{\"delta\":%d,\"reason\":\"%s\"}".formatted(delta, reason);
@@ -180,6 +225,11 @@ class InventoryControllerTests {
         "SELECT quantity FROM shopflow.stock_movements WHERE product_id = ?",
         Integer.class,
         productId);
+  }
+
+  private String movementType(long productId) {
+    return jdbcTemplate.queryForObject(
+        "SELECT type FROM shopflow.stock_movements WHERE product_id = ?", String.class, productId);
   }
 
   private String movementNote(long productId) {

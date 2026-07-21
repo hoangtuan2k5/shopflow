@@ -86,7 +86,7 @@ Cập nhật theo Jira board và repo (2026-07-17). Release mới nhất: **v0.4
 | Browse Product Catalog | SF-2 (SF-36…39) | Done | API contract, backend, frontend, verify |
 | Create Customer Order | SF-3 | In Progress | API contract **SF-44 Done** (`docs/api-customer-order-spec.md`); còn SF-11, SF-12, SF-35, SF-43, SF-13 |
 | Simulate Order Payment | SF-4 (SF-40…42) | In Progress | Jira parent đang In Progress; chưa có implementation trong repo |
-| Manage Inventory Stock | SF-6 (SF-14…16) | Chưa implement | Trong Sprint 3 |
+| Manage Inventory Stock | SF-6 (SF-14…16) | Done | API contract, backend, warehouse UI và verification |
 | Update Delivery Status | SF-5 | Chưa implement | Trong Sprint 3 |
 | Receive Supplier Stock | SF-7 | Chưa implement | Trong Sprint 3 |
 | Process Customer Return | SF-8 (SF-17…19) | Chưa implement | Trong Sprint 3 |
