@@ -10,6 +10,14 @@ export type {
   InventoryItem,
   StockAdjustmentRequest,
 } from './inventory'
+export { getDeliveries, updateDelivery } from './delivery'
+export type {
+  DeliveryErrorDetails,
+  DeliveryHistory,
+  DeliveryItem,
+  DeliveryOrder,
+  DeliveryStatus,
+} from './delivery'
 export { createOrder } from './order'
 export type { CreateOrderRequest, OrderErrorDetails, OrderResponse, PaymentMethod } from './order'
 export { createPayment } from './payment'

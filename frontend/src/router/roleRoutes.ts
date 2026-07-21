@@ -31,13 +31,23 @@ export const roleRoutes: RoleRoute[] = [
     },
   },
   {
+    path: 'warehouse/deliveries',
+    name: 'warehouse-deliveries',
+    component: () => import('@/views/delivery/DeliveryView.vue'),
+    meta: {
+      role: 'warehouse',
+      title: 'Delivery management',
+      description: 'Prepare and complete paid-order deliveries.',
+    },
+  },
+  {
     path: 'shop-owner',
     name: 'shop-owner',
-    component: () => import('@/views/roles/RoleDashboardView.vue'),
+    component: () => import('@/views/delivery/DeliveryView.vue'),
     meta: {
       role: 'shop-owner',
-      title: 'Shop Owner',
-      description: 'Review sales, inventory and dashboard workflows.',
+      title: 'Delivery management',
+      description: 'Review and advance paid-order deliveries.',
     },
   },
 ]

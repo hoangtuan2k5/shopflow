@@ -5,9 +5,11 @@ import {
   IconBox,
   IconCheck,
   IconRefresh,
+  IconTruckDelivery,
 } from '@tabler/icons-vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { z } from 'zod'
 import {
   adjustStock,
@@ -16,7 +18,7 @@ import {
   type InventoryErrorDetails,
   type InventoryItem,
 } from '@/api'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -122,14 +124,20 @@ function isInventoryErrorDetails(value: unknown): value is InventoryErrorDetails
           Review physical, reserved and available stock before making a counted adjustment.
         </p>
       </div>
-      <Button
-        variant="outline"
-        :disabled="inventoryQuery.isFetching.value"
-        @click="inventoryQuery.refetch()"
-      >
-        <IconRefresh :size="18" :stroke-width="1.8" aria-hidden="true" />
-        Refresh
-      </Button>
+      <div class="flex flex-wrap gap-2">
+        <RouterLink to="/warehouse/deliveries" :class="buttonVariants({ variant: 'outline' })">
+          <IconTruckDelivery :size="18" :stroke-width="1.8" aria-hidden="true" />
+          Manage deliveries
+        </RouterLink>
+        <Button
+          variant="outline"
+          :disabled="inventoryQuery.isFetching.value"
+          @click="inventoryQuery.refetch()"
+        >
+          <IconRefresh :size="18" :stroke-width="1.8" aria-hidden="true" />
+          Refresh
+        </Button>
+      </div>
     </header>
 
     <p
