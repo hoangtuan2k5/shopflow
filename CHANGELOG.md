@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-07-22
+
+### Added
+- **Supplier Receiving**:
+  - Added the receiving API contract, transactional `POST /receivings` backend, inventory update, and `STOCK_RECEIVED` audit movement (SF-7).
+  - Added the Warehouse receiving workflow with validation, retryable errors, and refreshed inventory.
+  - Added controller, PostgreSQL concurrency and rollback, and browser scenario coverage with QA evidence.
+
+### Changed
+- **Frontend**:
+  - Use Be Vietnam Pro as the default UI typeface for Vietnamese text while preserving system-font fallbacks (SF-59).
+
 ## [0.5.0] - 2026-07-22
 
 ### Added
