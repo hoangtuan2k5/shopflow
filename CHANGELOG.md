@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-07-22
+
+### Added
+- **Customer Orders**:
+  - Added the customer order API contract, order data model, stock validation and reservation, order creation, checkout UI, and end-to-end scenario coverage (SF-3).
+- **Payments**:
+  - Added simulated payment states, result handling, API contract, and scenario coverage (SF-4).
+- **Inventory**:
+  - Added stock list and adjustment APIs, owner and warehouse management UI, API contract, and scenario coverage (SF-6).
+- **Delivery**:
+  - Added delivery status transitions, completion handling, shared management UI, API contract, and scenario coverage (SF-5).
+- **CI/CD & DevOps**:
+  - Added production Docker images and a Docker Compose stack for the frontend, backend, and PostgreSQL.
+  - Added Caddy HTTPS and API routing for both ShopFlow domains.
+  - Added automatic VPS deployment after CI passes on `main` (SF-53).
+
+### Changed
+- Updated ShopFlow requirements, catalog prices, and currency formatting to use VND (SF-1, SF-45).
+- Improved the responsive customer storefront and simplified its messaging (SF-47, SF-48).
+
+### Fixed
+- Hardened order validation and payment handoff behavior (SF-46).
+- Preserved the VPS environment during deployment bootstrap and routed API requests before the SPA fallback (SF-53).
+
 ## [0.4.0] - 2026-07-12
 
 ### Added
