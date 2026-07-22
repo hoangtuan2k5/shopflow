@@ -77,19 +77,21 @@ Chi tiết backlog và board trên Jira project [`SF`](https://tuanwork.atlassia
 
 ## Tiến độ hiện tại
 
-Cập nhật theo Jira board và repo (2026-07-22). Release mới nhất: **v0.5.0**.
+Cập nhật theo Jira board và repo (2026-07-22). Release mới nhất: **v0.6.1**.
 
 | Hạng mục | Jira | Trạng thái | Ghi chú |
 |---|---|---|---|
 | Monorepo / CI / BE+FE bootstrap | SF-20…SF-28 | Done | Foundation sẵn sàng phát triển feature |
 | Core domain model | SF-10 | Done | Truy vết trong SRS |
 | Browse Product Catalog | SF-2 (SF-36…39) | Done | API contract, backend, frontend, verify |
-| Create Customer Order | SF-3 | In Progress | API contract **SF-44 Done** (`docs/api-customer-order-spec.md`); còn SF-11, SF-12, SF-35, SF-43, SF-13 |
-| Simulate Order Payment | SF-4 (SF-40…42) | In Progress | Jira parent đang In Progress; chưa có implementation trong repo |
-| Manage Inventory Stock | SF-6 (SF-14…16) | Done | API contract, backend, warehouse UI và verification |
-| Update Delivery Status | SF-5 (SF-49…52) | Done | Contract, backend, shared Warehouse/Shop Owner UI và verification |
+| Create Customer Order | SF-3 (SF-11, SF-12, SF-35, SF-43, SF-44, SF-13) | Done | API contract, backend, frontend và verification |
+| Simulate Order Payment | SF-4 (SF-40…42) | Done | API contract, backend, frontend và verification |
+| Manage Inventory Stock | SF-6 (SF-14…16, SF-45) | Done | API contract, backend, warehouse UI, VND baseline và verification |
+| Update Delivery Status | SF-5 (SF-49…52) | Done | API contract, backend, shared Warehouse/Shop Owner UI và verification |
 | Receive Supplier Stock | SF-7 (SF-55…58) | Done | API contract, backend, Warehouse UI và verification |
-| Process Customer Return | SF-8 (SF-17…19) | Chưa implement | Trong Sprint 3 |
+| Storefront UX | SF-47, SF-48, SF-59 | Done | Responsive storefront, hero slogan, Be Vietnam Pro typography |
+| Production Demo Catalog | SF-61 | Done | Flyway migration với 36 sản phẩm demo bằng tiếng Việt |
+| Process Customer Return | SF-8 | Chưa implement | Trong Sprint 3 |
 | Send Low Stock Alert | SF-9 | Chưa implement | Trong Sprint 3 |
 
 Thứ tự triển khai khuyến nghị trong Sprint 3: **SF-3** (order) → **SF-4** (payment) → inventory/operational stories.
