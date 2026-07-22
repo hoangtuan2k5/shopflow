@@ -77,7 +77,7 @@ Chi tiết backlog và board trên Jira project [`SF`](https://tuanwork.atlassia
 
 ## Tiến độ hiện tại
 
-Cập nhật theo Jira board và repo (2026-07-17). Release mới nhất: **v0.4.0**.
+Cập nhật theo Jira board và repo (2026-07-22). Release mới nhất: **v0.5.0**.
 
 | Hạng mục | Jira | Trạng thái | Ghi chú |
 |---|---|---|---|
@@ -88,7 +88,7 @@ Cập nhật theo Jira board và repo (2026-07-17). Release mới nhất: **v0.4
 | Simulate Order Payment | SF-4 (SF-40…42) | In Progress | Jira parent đang In Progress; chưa có implementation trong repo |
 | Manage Inventory Stock | SF-6 (SF-14…16) | Done | API contract, backend, warehouse UI và verification |
 | Update Delivery Status | SF-5 (SF-49…52) | Done | Contract, backend, shared Warehouse/Shop Owner UI và verification |
-| Receive Supplier Stock | SF-7 | Chưa implement | Trong Sprint 3 |
+| Receive Supplier Stock | SF-7 (SF-55…58) | Done | API contract, backend, Warehouse UI và verification |
 | Process Customer Return | SF-8 (SF-17…19) | Chưa implement | Trong Sprint 3 |
 | Send Low Stock Alert | SF-9 | Chưa implement | Trong Sprint 3 |
 
