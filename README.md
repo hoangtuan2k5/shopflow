@@ -2,6 +2,8 @@
 
 Hệ thống bán hàng và quản lý kho cho shop online quy mô nhỏ. Mô phỏng các luồng tạo đơn hàng, thanh toán, cập nhật trạng thái giao hàng, quản lý tồn kho, nhập hàng, hoàn hàng và cảnh báo sắp hết hàng.
 
+Currency baseline của MVP: **VND (đồng Việt Nam)**; giá và amount dùng đơn vị đồng, không có phần lẻ.
+
 ## Team
 
 ShopFlow Team gồm 3 thành viên:
@@ -65,10 +67,32 @@ shopflow/
 
 ## Sprint plan
 
-- **Sprint 1 (18/05/2026 → 13/06/2026):** Foundation MVP. Domain model, product catalog, order creation, payment simulation, inventory baseline, bootstrap monorepo + CI.
-- **Sprint 2 (15/06/2026 → 29/06/2026):** Operational flows. Delivery status, supplier receiving, customer return, low stock alert.
+| Sprint | Thời gian | Trạng thái | Phạm vi / kết quả |
+|---|---|---|---|
+| **Sprint 1** | 18/05/2026 → 13/06/2026 | Closed | Foundation: monorepo + CI, bootstrap backend/frontend, process docs. Phạm vi nghiệp vụ (catalog, order, payment, inventory baseline) một phần chuyển sang sprint sau. |
+| **Sprint 2** | 15/06/2026 → 29/06/2026 | Closed | Goal ban đầu: operational flows. Thực tế hoàn thành domain model (SF-10), Product Catalog end-to-end (SF-2, SF-36–39), SRS baseline, release **v0.3.0** / **v0.4.0**. Issue chưa xong chuyển sang Sprint 3. |
+| **Sprint 3** | 17/07/2026 → 31/07/2026 | **Active** | Carry-over unfinished MVP: Create Customer Order (SF-3), payment simulation (SF-4), inventory (SF-6), delivery (SF-5), supplier receiving (SF-7), customer return (SF-8), low-stock alert (SF-9). |
 
-Chi tiết backlog quản lý trên Jira project `SF` (Shopflow).
+Chi tiết backlog và board trên Jira project [`SF`](https://tuanwork.atlassian.net/browse/SF) (Shopflow).
+
+## Tiến độ hiện tại
+
+Cập nhật theo Jira board và repo (2026-07-17). Release mới nhất: **v0.4.0**.
+
+| Hạng mục | Jira | Trạng thái | Ghi chú |
+|---|---|---|---|
+| Monorepo / CI / BE+FE bootstrap | SF-20…SF-28 | Done | Foundation sẵn sàng phát triển feature |
+| Core domain model | SF-10 | Done | Truy vết trong SRS |
+| Browse Product Catalog | SF-2 (SF-36…39) | Done | API contract, backend, frontend, verify |
+| Create Customer Order | SF-3 | In Progress | API contract **SF-44 Done** (`docs/api-customer-order-spec.md`); còn SF-11, SF-12, SF-35, SF-43, SF-13 |
+| Simulate Order Payment | SF-4 (SF-40…42) | In Progress | Jira parent đang In Progress; chưa có implementation trong repo |
+| Manage Inventory Stock | SF-6 (SF-14…16) | Done | API contract, backend, warehouse UI và verification |
+| Update Delivery Status | SF-5 (SF-49…52) | Done | Contract, backend, shared Warehouse/Shop Owner UI và verification |
+| Receive Supplier Stock | SF-7 | Chưa implement | Trong Sprint 3 |
+| Process Customer Return | SF-8 (SF-17…19) | Chưa implement | Trong Sprint 3 |
+| Send Low Stock Alert | SF-9 | Chưa implement | Trong Sprint 3 |
+
+Thứ tự triển khai khuyến nghị trong Sprint 3: **SF-3** (order) → **SF-4** (payment) → inventory/operational stories.
 
 ## Cách chạy local
 
@@ -136,10 +160,9 @@ dùng H2 in-memory và tự chạy Flyway migration trong schema `shopflow`.
 |---|---|---|
 | `VITE_API_BASE_URL` | `http://localhost:8080` | Base URL của backend API cho frontend local. |
 
-Frontend API client nằm tại `frontend/src/api`. Trong Sprint 1, backend chưa có
-domain REST endpoint nên client tạm thời dùng Axios và TypeScript interfaces để
-gọi OpenAPI document tại `/v3/api-docs`; khi backend có endpoint nghiệp vụ, có
-thể thay bằng generated client từ OpenAPI spec.
+Frontend API client nằm tại `frontend/src/api`. Product Catalog đã có REST endpoint
+thật (`GET /products`, `GET /products/{id}`). Client vẫn dùng Axios + TypeScript
+interfaces; có thể thay bằng generated client từ OpenAPI (`/v3/api-docs`) khi cần.
 
 ## Build và test
 

@@ -40,7 +40,10 @@
 | **Computed column** không lưu DB | `available_stock = on_hand_stock - reserved_stock` |
 | **CHECK constraints** thay cho ENUM type | Linh hoạt khi thêm trạng thái mới |
 | **TIMESTAMPTZ** cho mọi datetime | Tránh sai múi giờ giữa server/client |
-| **`NUMERIC(12,2)`** cho tiền | Tránh lỗi floating-point của `FLOAT`/`DOUBLE` |
+| **`NUMERIC(12,2)`** cho tiền | Tránh lỗi floating-point; MVP dùng số nguyên VND |
+
+MVP dùng VND làm currency duy nhất. Ứng dụng chỉ nhận giá và amount là số nguyên
+VND; `NUMERIC(12,2)` được giữ làm capacity vật lý tương thích với schema hiện tại.
 
 ### 1.2 Sơ đồ quan hệ tóm tắt
 
@@ -229,11 +232,11 @@ items ||--o{ returnItems : "1:N"
 ## 2. Bảng `products`
 
 ### Mục đích
-Master data của sản phẩm — thông tin **chung** của 1 product. Đây là nguồn dữ liệu để dựng Product Catalog (FR-01) và Product Management (FR-12).
+Master data của sản phẩm — thông tin **chung** của 1 product. Đây là nguồn dữ liệu để dựng Product Catalog (FR-01); product management là khả năng mở rộng ngoài MVP.
 
 ### Đặc điểm
 - 1 product chỉ có 1 record duy nhất.
-- Khi `active = false`, product KHÔNG hiển thị trong catalog của customer (FR-12.4).
+- Khi `active = false`, product KHÔNG hiển thị trong catalog của customer (FR-01.6).
 - Giá ở đây là **giá hiện tại** — đã bán rồi thì order giữ snapshot riêng.
 
 ### Chi tiết trường
@@ -243,7 +246,7 @@ Master data của sản phẩm — thông tin **chung** của 1 product. Đây l
 | `id` | `BIGSERIAL` | PK | Khóa chính tự tăng. Dùng `BIGSERIAL` thay `SERIAL` để tránh tràn nếu shop lớn (`SERIAL` max ~2.1 tỷ). |
 | `name` | `VARCHAR(255)` | NOT NULL | Tên sản phẩm hiển thị trên catalog. 255 ký tự đủ cho mọi tên product hợp lý. |
 | `description` | `TEXT` | nullable | Mô tả dài. Dùng `TEXT` thay `VARCHAR(N)` vì không giới hạn độ dài, hiệu năng PostgreSQL tương đương. |
-| `price` | `NUMERIC(12,2)` | NOT NULL, ≥ 0 | Giá hiện tại. `(12,2)` = tối đa 10 chữ số phần nguyên + 2 chữ số phần thập phân → đủ cho 9,999,999,999.99 VND. |
+| `price` | `NUMERIC(12,2)` | NOT NULL, ≥ 0 | Giá hiện tại theo VND nguyên. `(12,2)` được giữ cho tương thích schema; ứng dụng không nhận phần lẻ. |
 | `active` | `BOOLEAN` | NOT NULL, DEFAULT TRUE | `true` = hiển thị catalog. `false` = ẩn nhưng không xóa (giữ tham chiếu cho order cũ). |
 | `low_stock_threshold` | `INT` | nullable, ≥ 0 | Ngưỡng cảnh báo hết hàng (FR-08.1). NULL = không cảnh báo cho product này. |
 | `created_at` | `TIMESTAMPTZ` | NOT NULL, DEFAULT now | Thời điểm tạo. `TIMESTAMPTZ` lưu kèm timezone, tránh lỗi giờ. |
@@ -256,7 +259,7 @@ Master data của sản phẩm — thông tin **chung** của 1 product. Đây l
 | `idx_products_active` | Catalog query `WHERE active = true` rất thường xuyên. |
 
 ### Liên quan SRS
-- FR-01 (Browse Product Catalog), FR-08 (Low Stock Alert), FR-12 (Manage Product Information).
+- FR-01 (Browse Product Catalog), FR-08 (Low Stock Alert). Product management nằm ngoài MVP.
 
 ---
 
@@ -358,8 +361,8 @@ CHECK (reserved_stock <= on_hand_stock)
 | `city` | `VARCHAR(100)` | NOT NULL | Tỉnh/thành phố. |
 | `status` | `VARCHAR(30)` | NOT NULL, CHECK | Trạng thái thanh toán/order: `PENDING_PAYMENT`, `PAID`, `PAYMENT_FAILED`, `CANCELLED`. |
 | `delivery_status` | `VARCHAR(30)` | NOT NULL, CHECK | Trạng thái giao hàng: `NONE`, `PREPARING`, `SHIPPED`, `DELIVERED`. Bắt đầu `NONE`. |
-| `payment_method` | `VARCHAR(20)` | NOT NULL, CHECK | `CARD` hoặc `COD`. |
-| `total_amount` | `NUMERIC(12,2)` | NOT NULL, ≥ 0 | Tổng tiền order. Tính sẵn để khỏi SUM order_items mỗi lần. Bằng `SUM(unit_price × quantity)`. |
+| `payment_method` | `VARCHAR(20)` | NOT NULL, CHECK | `CARD` trong MVP; schema còn giữ `COD` cho mở rộng. |
+| `total_amount` | `NUMERIC(12,2)` | NOT NULL, ≥ 0 | Tổng tiền order theo VND nguyên. Tính sẵn để khỏi SUM order_items mỗi lần. Bằng `SUM(unit_price × quantity)`. |
 | `created_at` | `TIMESTAMPTZ` | NOT NULL | Thời điểm tạo order. |
 | `updated_at` | `TIMESTAMPTZ` | NOT NULL | Lần cập nhật cuối. |
 
@@ -434,13 +437,13 @@ end note
 
 | Index | Lý do |
 | --- | --- |
-| `idx_orders_customer_id` | Lấy order theo customer (FR-10 dashboard). |
+| `idx_orders_customer_id` | Lấy order theo customer cho dashboard tương lai. |
 | `idx_orders_status` | Filter order theo status (dashboard). |
 | `idx_orders_delivery_status` | Filter order theo delivery (warehouse view). |
 | `idx_orders_created_at DESC` | List order mới nhất trước (UX phổ biến). |
 
 ### Liên quan SRS
-- FR-02, FR-03, FR-04, FR-10. BR-01 đến BR-07.
+- FR-02, FR-03, FR-04. BR-01 đến BR-07.
 
 ---
 
@@ -462,7 +465,7 @@ Chi tiết từng dòng sản phẩm trong order. Mỗi order có 1-N order_item
 | `order_id` | `BIGINT` | FK, NOT NULL | Order chứa item này. ON DELETE CASCADE. |
 | `product_id` | `BIGINT` | FK, NOT NULL | Sản phẩm. ON DELETE RESTRICT — không cho xóa product nếu đã có order. |
 | `product_name` | `VARCHAR(255)` | NOT NULL | **Snapshot** tên product lúc đặt. |
-| `unit_price` | `NUMERIC(12,2)` | NOT NULL, ≥ 0 | **Snapshot** giá lúc đặt. KHÔNG dùng giá hiện tại từ `products.price`. |
+| `unit_price` | `NUMERIC(12,2)` | NOT NULL, ≥ 0 | **Snapshot** giá VND nguyên lúc đặt. KHÔNG dùng giá hiện tại từ `products.price`. |
 | `quantity` | `INT` | NOT NULL, > 0 | Số lượng đặt. Phải dương — CHECK ở DB. |
 
 ### Vì sao cần snapshot?
@@ -488,11 +491,13 @@ Chi tiết từng dòng sản phẩm trong order. Mỗi order có 1-N order_item
 ## 7. Bảng `payments`
 
 ### Mục đích
-Lưu lịch sử **các lần thử thanh toán** cho 1 order. Hỗ trợ retry payment khi customer thanh toán lần đầu thất bại.
+Lưu payment record cho 1 order. Schema vật lý cho phép nhiều record để mở rộng sau
+này; MVP chỉ tạo tối đa một attempt và không hỗ trợ retry.
 
 ### Đặc điểm
-- **1 order có thể có N payment records** (retry → tạo record mới, không overwrite).
-- Payment thành công gần nhất (status=SUCCESS) quyết định `orders.status = PAID`.
+- **1 order có thể có N payment records ở cấp schema**; business baseline hiện tại
+  giới hạn 0..1 record.
+- Payment thành công quyết định `orders.status = PAID`.
 - ON DELETE CASCADE khi order bị xóa.
 
 ### Chi tiết trường
@@ -501,9 +506,9 @@ Lưu lịch sử **các lần thử thanh toán** cho 1 order. Hỗ trợ retry 
 | --- | --- | --- | --- |
 | `id` | `BIGSERIAL` | PK | Khóa chính. |
 | `order_id` | `BIGINT` | FK, NOT NULL | Order được thanh toán. CASCADE. |
-| `method` | `VARCHAR(20)` | NOT NULL, CHECK | `CARD` hoặc `COD`. |
+| `method` | `VARCHAR(20)` | NOT NULL, CHECK | `CARD` trong MVP; `COD` dành cho mở rộng. |
 | `status` | `VARCHAR(20)` | NOT NULL, CHECK | `PENDING`, `SUCCESS`, `FAILED`, `EXPIRED`. |
-| `amount` | `NUMERIC(12,2)` | NOT NULL, ≥ 0 | Số tiền thanh toán. Thường = `orders.total_amount`. |
+| `amount` | `NUMERIC(12,2)` | NOT NULL, ≥ 0 | Số tiền thanh toán theo VND nguyên. Thường = `orders.total_amount`. |
 | `paid_at` | `TIMESTAMPTZ` | nullable | Thời điểm thanh toán thành công. NULL khi PENDING/FAILED. |
 | `failed_reason` | `VARCHAR(500)` | nullable | Lý do thất bại — debug. |
 | `created_at` | `TIMESTAMPTZ` | NOT NULL | Thời điểm tạo record (bắt đầu attempt). |
@@ -522,36 +527,25 @@ skinparam state {
     FontStyle bold
 }
 
-[*] --> PENDING : create payment attempt
-PENDING --> SUCCESS : confirmed\n(CARD: instantly\nCOD: on delivery / shop confirm)
+[*] --> PENDING : create CARD payment attempt
+PENDING --> SUCCESS : confirmed
 PENDING --> FAILED : declined
 PENDING --> EXPIRED : timeout
-FAILED --> [*] : customer can retry\n(new payment row)
-EXPIRED --> [*] : customer can retry\n(new payment row)
+FAILED --> [*] : terminal in MVP
+EXPIRED --> [*] : terminal in MVP
 SUCCESS --> [*]
-
-note bottom of PENDING
-  COD: ở PENDING cho đến khi
-  delivery_status = DELIVERED hoặc
-  shop xác nhận thu tiền (BR-05)
-end note
 @enduml
 ```
 
-### COD special case (BR-05)
-
-Với `method = 'COD'`, `status` **chỉ chuyển SUCCESS** khi:
-- Delivery đã `DELIVERED`, **hoặc**
-- Shop Owner xác nhận đã thu tiền (manual confirm).
-
-Trước đó vẫn là `PENDING` dù order đã `PAID`.
+COD behavior và retry flow chưa thuộc MVP; các enum/schema tương ứng chỉ được giữ
+để mở rộng sau khi có requirement riêng.
 
 ### Index
 
 | Index | Lý do |
 | --- | --- |
 | `idx_payments_order_id` | Lấy lịch sử payment của 1 order. |
-| `idx_payments_status` | Filter các payment đang PENDING (job retry, COD cần confirm). |
+| `idx_payments_status` | Filter payment theo trạng thái trong flow mô phỏng. |
 
 ### Liên quan SRS
 - FR-03, BR-04, BR-05.
@@ -601,11 +595,11 @@ Một bảng audit mà ngại 4 FK riêng cho ORDER/RECEIVING/RETURN/ADJUSTMENT 
 
 | Index | Lý do |
 | --- | --- |
-| `idx_stock_movements_product_created` | Lịch sử movement theo product (FR-11.6). |
+| `idx_stock_movements_product_created` | Lịch sử movement theo product cho vận hành tương lai. |
 | `idx_stock_movements_reference` | Tìm tất cả movement của 1 reference (debug). |
 
 ### Liên quan SRS
-- FR-11 (Inventory Movement History), BR-13, §10.3.
+- BR-13, NFR-05. Inventory movement history độc lập nằm ngoài MVP.
 
 ---
 
@@ -810,13 +804,13 @@ Tài liệu nhanh các giá trị enum dùng trong CHECK constraints — tránh 
 ### `orders.payment_method` + `payments.method`
 | Value | Mô tả |
 | --- | --- |
-| `CARD` | Mô phỏng thanh toán thẻ |
-| `COD` | Thanh toán khi nhận hàng |
+| `CARD` | Mô phỏng thanh toán thẻ; method duy nhất của MVP |
+| `COD` | Giá trị dự phòng trong schema; workflow ngoài MVP |
 
 ### `payments.status`
 | Value | Mô tả |
 | --- | --- |
-| `PENDING` | Đang chờ xử lý (COD chưa giao xong) |
+| `PENDING` | Đang chờ kết quả payment simulation |
 | `SUCCESS` | Thanh toán thành công |
 | `FAILED` | Bị từ chối |
 | `EXPIRED` | Quá hạn |
@@ -912,7 +906,7 @@ database "orders" as orders
 database "inventory_items" as inventory
 database "stock_movements" as movements
 
-Customer -> API : POST /payments { order_id, result }
+Customer -> API : POST /orders/{orderId}/payments { result }
 activate API
 
 API -> payments : INSERT (status=PENDING)
@@ -957,14 +951,14 @@ database "delivery_status_history" as history
 database "inventory_items" as inventory
 database "stock_movements" as movements
 
-WS -> API : PATCH /orders/{id}/delivery\n{ to_status: SHIPPED }
+WS -> API : PATCH /orders/{id}/delivery\n{ toStatus: SHIPPED }
 activate API
 
-API -> orders : SELECT status, delivery_status
+API -> orders : SELECT status, delivery_status\nFOR UPDATE
 orders --> API : current state
 
 alt transition không hợp lệ\n(ví dụ: order chưa PAID,\nhoặc nhảy từ NONE → SHIPPED)
-    API --> WS : 400 - Invalid transition
+    API --> WS : 409 - Invalid transition
 else valid transition
     API -> orders : UPDATE delivery_status = to_status
     API -> history : INSERT (from, to, changed_by, changed_at)

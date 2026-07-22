@@ -1,7 +1,7 @@
 # ShopFlow — Product Catalog API Specification
 
-**Phiên bản:** 1.0
-**Ngày lập:** 15/06/2026
+**Phiên bản:** 1.2
+**Ngày cập nhật:** 17/07/2026
 **Liên quan:**
 - [SF-2: Browse Product Catalog](https://tuanwork.atlassian.net/browse/SF-2)
 - [SF-36: Define Product Catalog API Contract](https://tuanwork.atlassian.net/browse/SF-36)
@@ -31,10 +31,13 @@
 
 Cung cấp API read-only cho Product Catalog — khách hàng xem danh sách sản phẩm đang bán và chi tiết từng sản phẩm.
 
+Giá trả về là số nguyên theo đơn vị VND; API không nhận hoặc phát sinh phần lẻ.
+
 | Thuộc tính | Giá trị |
 |---|---|
 | Base URL | `http://localhost:8080` |
 | Content-Type | `application/json` |
+| Currency | `VND` |
 
 ---
 
@@ -49,13 +52,13 @@ Trả về danh sách product đang active, kèm trạng thái còn hàng.
   {
     "id": 1,
     "name": "iPhone 15",
-    "price": 999.99,
+    "price": 19990000,
     "stockStatus": "IN_STOCK"
   },
   {
     "id": 2,
     "name": "MacBook Air M4",
-    "price": 1099.00,
+    "price": 29990000,
     "stockStatus": "OUT_OF_STOCK"
   }
 ]
@@ -67,7 +70,7 @@ Trả về danh sách product đang active, kèm trạng thái còn hàng.
 |---|---|---|---|
 | `id` | `number` (long) | `products.id` | BIGSERIAL PK |
 | `name` | `string` | `products.name` | VARCHAR(255), NOT NULL |
-| `price` | `number` | `products.price` | NUMERIC(12,2), ≥ 0 |
+| `price` | `number` | `products.price` | NUMERIC(12,2), ≥ 0, số nguyên VND |
 | `stockStatus` | `string` enum | Computed | `IN_STOCK` hoặc `OUT_OF_STOCK` |
 
 **Query behavior:**
@@ -93,7 +96,7 @@ Trả về chi tiết 1 product.
   "id": 1,
   "name": "iPhone 15",
   "description": "Apple iPhone 15 128GB — phiên bản mới nhất với Dynamic Island, cổng USB-C và camera 48MP.",
-  "price": 999.99,
+  "price": 19990000,
   "stockStatus": "IN_STOCK"
 }
 ```
@@ -105,7 +108,7 @@ Trả về chi tiết 1 product.
 | `id` | `number` (long) | `products.id` | |
 | `name` | `string` | `products.name` | |
 | `description` | `string` or `null` | `products.description` | TEXT, nullable |
-| `price` | `number` | `products.price` | NUMERIC(12,2) |
+| `price` | `number` | `products.price` | NUMERIC(12,2), số nguyên VND |
 | `stockStatus` | `string` enum | Computed | `IN_STOCK` hoặc `OUT_OF_STOCK` |
 
 **Error responses:**
@@ -153,7 +156,7 @@ available_stock = on_hand_stock - reserved_stock
 | `id` | BIGSERIAL | PK |
 | `name` | VARCHAR(255) | NOT NULL |
 | `description` | TEXT | |
-| `price` | NUMERIC(12,2) | NOT NULL, CHECK (price >= 0) |
+| `price` | NUMERIC(12,2) | NOT NULL, CHECK (price >= 0), số nguyên VND |
 | `active` | BOOLEAN | NOT NULL, DEFAULT TRUE |
 | `low_stock_threshold` | INT | |
 | `created_at` | TIMESTAMPTZ | NOT NULL |
@@ -263,4 +266,6 @@ export function getProductById(id: number) {
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.2 | 2026-07-17 | Chuyển currency baseline sang VND và quy định price là số nguyên |
+| 1.1 | 2026-07-17 | Clarify USD as the single MVP currency |
 | 1.0 | 2026-06-15 | Initial API spec: GET /products, GET /products/{id}, stockStatus spec |
