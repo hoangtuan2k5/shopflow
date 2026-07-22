@@ -69,3 +69,45 @@ jobs:
 
       - name: Browser tests
         run: npm run test:e2e
+
+  deploy:
+    name: Deploy production to VPS
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs:
+      - backend
+      - frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST_KEY: ${{ secrets.VPS_HOST_KEY }}
+        run: |
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$VPS_HOST_KEY" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+
+      - name: Deploy Docker Compose stack
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$VPS_USER@$VPS_HOST" 'bash -s' <<'REMOTE'
+          set -eu
+
+          if [ ! -d /opt/shopflow/.git ]; then
+            sudo mkdir -p /opt/shopflow
+            sudo chown "$USER:$USER" /opt/shopflow
+            git clone --branch main --single-branch https://github.com/hoangtuan2k5/shopflow.git /opt/shopflow
+          fi
+
+          cd /opt/shopflow
+          git fetch --prune origin main
+          git reset --hard origin/main
+          test -f .env
+          docker compose --env-file .env -f docker-compose.prod.yml up -d --build --remove-orphans --wait
+          docker compose --env-file .env -f docker-compose.prod.yml exec -T frontend wget --spider --quiet --no-check-certificate https://shopflow.hoangtuan.dev/healthz
+          docker compose --env-file .env -f docker-compose.prod.yml exec -T backend curl --fail --silent http://127.0.0.1:8080/actuator/health >/dev/null
+          docker compose --env-file .env -f docker-compose.prod.yml ps
+          REMOTE
