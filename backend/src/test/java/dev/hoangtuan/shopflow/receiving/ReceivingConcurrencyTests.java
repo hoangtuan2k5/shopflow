@@ -1,6 +1,7 @@
 package dev.hoangtuan.shopflow.receiving;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.hoangtuan.shopflow.TestcontainersConfiguration;
 import java.math.BigDecimal;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
@@ -65,6 +67,29 @@ class ReceivingConcurrencyTests {
     assertThat(inventoryCount(productId)).isEqualTo(1);
     assertThat(receivingCount(productId)).isEqualTo(2);
     assertThat(movementCount(productId)).isEqualTo(2);
+  }
+
+  @Test
+  void auditFailureRollsBackInventoryAndReceivingRecord() {
+    long productId = insertProduct("Audit failure");
+    jdbcTemplate.execute(
+        """
+        ALTER TABLE shopflow.stock_movements
+        ADD CONSTRAINT prevent_stock_received CHECK (type <> 'STOCK_RECEIVED')
+        """);
+
+    try {
+      assertThatThrownBy(
+              () -> receivingService.receive(new ReceivingRequest(productId, 3, null, null)))
+          .isInstanceOf(DataIntegrityViolationException.class);
+
+      assertThat(inventoryCount(productId)).isZero();
+      assertThat(receivingCount(productId)).isZero();
+      assertThat(movementCount(productId)).isZero();
+    } finally {
+      jdbcTemplate.execute(
+          "ALTER TABLE shopflow.stock_movements DROP CONSTRAINT prevent_stock_received");
+    }
   }
 
   private void submitTogether(long productId, int firstQuantity, int secondQuantity)
