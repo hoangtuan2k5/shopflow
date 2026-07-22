@@ -96,14 +96,15 @@ jobs:
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$VPS_USER@$VPS_HOST" 'bash -s' <<'REMOTE'
           set -eu
 
-          if [ ! -d /opt/shopflow/.git ]; then
-            sudo mkdir -p /opt/shopflow
-            sudo chown "$USER:$USER" /opt/shopflow
-            git clone --branch main --single-branch https://github.com/hoangtuan2k5/shopflow.git /opt/shopflow
-          fi
-
+          sudo mkdir -p /opt/shopflow
+          sudo chown "$USER:$USER" /opt/shopflow
           cd /opt/shopflow
+          if [ ! -d .git ]; then
+            git init
+            git remote add origin https://github.com/hoangtuan2k5/shopflow.git
+          fi
           git fetch --prune origin main
+          git checkout -B main origin/main
           git reset --hard origin/main
           test -f .env
           docker compose --env-file .env -f docker-compose.prod.yml up -d --build --remove-orphans --wait
