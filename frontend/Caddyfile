@@ -1,15 +1,17 @@
 shopflow.hoangtuan.dev, shopflow.phamthuy.dev {
-    root * /srv
-    encode gzip
+	root * /srv
+	encode gzip
 
-    handle /healthz {
-        respond "ok" 200
-    }
+	handle /healthz {
+		respond "ok" 200
+	}
 
-    handle_path /api/* {
-        reverse_proxy backend:8080
-    }
+	handle_path /api/* {
+		reverse_proxy backend:8080
+	}
 
-    try_files {path} /index.html
-    file_server
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
 }
