@@ -10,6 +10,12 @@ export type {
   InventoryItem,
   StockAdjustmentRequest,
 } from './inventory'
+export { createReceiving } from './receiving'
+export type {
+  ReceivingErrorDetails,
+  SupplierReceivingRequest,
+  SupplierReceivingResponse,
+} from './receiving'
 export { getDeliveries, updateDelivery } from './delivery'
 export type {
   DeliveryErrorDetails,

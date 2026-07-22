@@ -14,9 +14,11 @@ import { z } from 'zod'
 import {
   adjustStock,
   ApiClientError,
+  createReceiving,
   getInventory,
   type InventoryErrorDetails,
   type InventoryItem,
+  type ReceivingErrorDetails,
 } from '@/api'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
@@ -32,9 +34,14 @@ import { Input } from '@/components/ui/input'
 const inventoryKey = ['inventory'] as const
 const queryClient = useQueryClient()
 const selectedItem = ref<InventoryItem | null>(null)
+const receivingItem = ref<InventoryItem | null>(null)
 const delta = ref<string | number>('')
 const reason = ref('')
 const formErrors = ref<Record<string, string>>({})
+const receivingQuantity = ref<string | number>('')
+const supplierName = ref('')
+const receivingNote = ref('')
+const receivingFormErrors = ref<Record<string, string>>({})
 const successMessage = ref('')
 
 const adjustmentSchema = z.object({
@@ -48,6 +55,25 @@ const adjustmentSchema = z.object({
     .max(2_147_483_647, 'Adjustment is too large.')
     .refine((value) => value !== 0, 'Adjustment cannot be zero.'),
   reason: z.string().min(1, 'Reason is required.').max(500, 'Use 500 characters or fewer.'),
+})
+
+const receivingSchema = z.object({
+  quantity: z
+    .number({
+      required_error: 'Enter a whole-number quantity.',
+      invalid_type_error: 'Enter a whole-number quantity.',
+    })
+    .int('Enter a whole-number quantity.')
+    .min(1, 'Quantity must be greater than zero.')
+    .max(2_147_483_647, 'Quantity is too large.'),
+  supplierName: z
+    .string()
+    .refine((value) => value === '' || value.trim().length > 0, 'Supplier name cannot be blank.')
+    .refine((value) => value.trim().length <= 255, 'Use 255 characters or fewer.'),
+  note: z
+    .string()
+    .refine((value) => value === '' || value.trim().length > 0, 'Note cannot be blank.')
+    .refine((value) => value.trim().length <= 500, 'Use 500 characters or fewer.'),
 })
 
 const inventoryQuery = useQuery({
@@ -67,12 +93,53 @@ const adjustmentMutation = useMutation({
   },
 })
 
+const receivingMutation = useMutation({
+  mutationFn: ({ productId, quantity, supplierName, note }: {
+    productId: number
+    quantity: number
+    supplierName: string | null
+    note: string | null
+  }) => createReceiving({ productId, quantity, supplierName, note }),
+  onSuccess: async (received) => {
+    queryClient.setQueryData<InventoryItem[]>(inventoryKey, (items) =>
+      items?.map((item) =>
+        item.productId === received.productId
+          ? {
+              productId: received.productId,
+              productName: received.productName,
+              onHandStock: received.onHandStock,
+              reservedStock: received.reservedStock,
+              availableStock: received.availableStock,
+            }
+          : item,
+      ),
+    )
+    successMessage.value = `Received ${received.quantity} units for ${received.productName}.`
+    receivingItem.value = null
+    await queryClient.invalidateQueries({ queryKey: inventoryKey })
+  },
+})
+
 const adjustmentError = computed(() => {
   const error = adjustmentMutation.error.value
   if (error instanceof ApiClientError && isInventoryErrorDetails(error.details)) {
     return error.details
   }
   return null
+})
+
+const receivingError = computed(() => {
+  const error = receivingMutation.error.value
+  if (error instanceof ApiClientError && isReceivingErrorDetails(error.details)) {
+    return error.details
+  }
+  return null
+})
+
+const receivingErrorMessage = computed(() => {
+  if (receivingError.value) return receivingError.value.message
+  const error = receivingMutation.error.value
+  return error instanceof Error ? error.message : 'Receiving could not be saved. Try again.'
 })
 
 function openAdjustment(item: InventoryItem) {
@@ -85,6 +152,19 @@ function openAdjustment(item: InventoryItem) {
 
 function closeAdjustment() {
   if (!adjustmentMutation.isPending.value) selectedItem.value = null
+}
+
+function openReceiving(item: InventoryItem) {
+  receivingItem.value = item
+  receivingQuantity.value = ''
+  supplierName.value = ''
+  receivingNote.value = ''
+  receivingFormErrors.value = {}
+  receivingMutation.reset()
+}
+
+function closeReceiving() {
+  if (!receivingMutation.isPending.value) receivingItem.value = null
 }
 
 function submitAdjustment() {
@@ -107,9 +187,38 @@ function submitAdjustment() {
   })
 }
 
+function submitReceiving() {
+  const result = receivingSchema.safeParse({
+    quantity: String(receivingQuantity.value).trim() === '' ? Number.NaN : Number(receivingQuantity.value),
+    supplierName: supplierName.value,
+    note: receivingNote.value,
+  })
+
+  if (!result.success) {
+    receivingFormErrors.value = Object.fromEntries(
+      result.error.issues.map((issue) => [String(issue.path[0]), issue.message]),
+    )
+    return
+  }
+
+  receivingFormErrors.value = {}
+  receivingMutation.mutate({
+    productId: receivingItem.value!.productId,
+    quantity: result.data.quantity,
+    supplierName: result.data.supplierName === '' ? null : result.data.supplierName.trim(),
+    note: result.data.note === '' ? null : result.data.note.trim(),
+  })
+}
+
 function isInventoryErrorDetails(value: unknown): value is InventoryErrorDetails {
   if (!value || typeof value !== 'object') return false
   const details = value as Partial<InventoryErrorDetails>
+  return typeof details.message === 'string' && typeof details.status === 'number'
+}
+
+function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails {
+  if (!value || typeof value !== 'object') return false
+  const details = value as Partial<ReceivingErrorDetails>
   return typeof details.message === 'string' && typeof details.status === 'number'
 }
 </script>
@@ -228,10 +337,16 @@ function isInventoryErrorDetails(value: unknown): value is InventoryErrorDetails
               </dd>
             </div>
           </dl>
-          <Button class="w-full lg:w-auto" variant="outline" @click="openAdjustment(item)">
-            <IconAdjustmentsHorizontal :size="18" :stroke-width="1.8" aria-hidden="true" />
-            Adjust
-          </Button>
+          <div class="grid gap-2 sm:grid-cols-2 lg:flex">
+            <Button class="w-full lg:w-auto" @click="openReceiving(item)">
+              <IconBox :size="18" :stroke-width="1.8" aria-hidden="true" />
+              Receive stock
+            </Button>
+            <Button class="w-full lg:w-auto" variant="outline" @click="openAdjustment(item)">
+              <IconAdjustmentsHorizontal :size="18" :stroke-width="1.8" aria-hidden="true" />
+              Adjust
+            </Button>
+          </div>
         </li>
       </ul>
     </div>
@@ -323,6 +438,100 @@ function isInventoryErrorDetails(value: unknown): value is InventoryErrorDetails
             </Button>
             <Button type="submit" :disabled="adjustmentMutation.isPending.value">
               {{ adjustmentMutation.isPending.value ? 'Saving…' : 'Save adjustment' }}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog :open="receivingItem !== null" @update:open="(open) => !open && closeReceiving()">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Receive stock for {{ receivingItem?.productName }}</DialogTitle>
+          <DialogDescription>
+            Record the quantity delivered by a supplier. On-hand stock will increase immediately.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form class="grid gap-4" novalidate @submit.prevent="submitReceiving">
+          <div class="grid gap-1.5">
+            <label for="receiving-quantity" class="text-sm font-medium">Quantity</label>
+            <Input
+              id="receiving-quantity"
+              v-model="receivingQuantity"
+              type="number"
+              step="1"
+              inputmode="numeric"
+              placeholder="For example: 20"
+              :aria-invalid="Boolean(receivingFormErrors.quantity || receivingError?.fieldErrors?.quantity)"
+              aria-describedby="receiving-quantity-error"
+            />
+            <p
+              v-if="receivingFormErrors.quantity || receivingError?.fieldErrors?.quantity"
+              id="receiving-quantity-error"
+              class="text-sm text-destructive"
+            >
+              {{ receivingFormErrors.quantity || receivingError?.fieldErrors?.quantity }}
+            </p>
+          </div>
+
+          <div class="grid gap-1.5">
+            <label for="receiving-supplier" class="text-sm font-medium">Supplier name (optional)</label>
+            <Input
+              id="receiving-supplier"
+              v-model="supplierName"
+              placeholder="For example: Acme Distribution"
+              :aria-invalid="Boolean(receivingFormErrors.supplierName || receivingError?.fieldErrors?.supplierName)"
+              aria-describedby="receiving-supplier-error"
+            />
+            <p
+              v-if="receivingFormErrors.supplierName || receivingError?.fieldErrors?.supplierName"
+              id="receiving-supplier-error"
+              class="text-sm text-destructive"
+            >
+              {{ receivingFormErrors.supplierName || receivingError?.fieldErrors?.supplierName }}
+            </p>
+          </div>
+
+          <div class="grid gap-1.5">
+            <label for="receiving-note" class="text-sm font-medium">Note (optional)</label>
+            <textarea
+              id="receiving-note"
+              v-model="receivingNote"
+              rows="3"
+              class="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+              placeholder="Invoice number or delivery note"
+              :aria-invalid="Boolean(receivingFormErrors.note || receivingError?.fieldErrors?.note)"
+              aria-describedby="receiving-note-error"
+            />
+            <p
+              v-if="receivingFormErrors.note || receivingError?.fieldErrors?.note"
+              id="receiving-note-error"
+              class="text-sm text-destructive"
+            >
+              {{ receivingFormErrors.note || receivingError?.fieldErrors?.note }}
+            </p>
+          </div>
+
+          <p
+            v-if="receivingMutation.isError.value"
+            class="rounded-md bg-destructive-muted px-3 py-2 text-sm text-destructive"
+            role="alert"
+          >
+            {{ receivingErrorMessage }}
+          </p>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              :disabled="receivingMutation.isPending.value"
+              @click="closeReceiving"
+            >
+              Cancel
+            </Button>
+            <Button type="submit" :disabled="receivingMutation.isPending.value">
+              {{ receivingMutation.isPending.value ? 'Receiving…' : 'Receive stock' }}
             </Button>
           </DialogFooter>
         </form>
