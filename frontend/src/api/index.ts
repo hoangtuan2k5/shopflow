@@ -1,5 +1,13 @@
 export { apiBaseUrl, httpClient, request, ApiClientError } from './httpClient'
 export type { ApiClientProblem } from './httpClient'
+export { getSession, login, logout } from './auth'
+export type {
+  AuthErrorDetails,
+  AuthenticatedUser,
+  LoginRequest,
+  SessionResponse,
+  UserRole,
+} from './auth'
 export { getOpenApiDocument } from './openApi'
 export type { OpenApiDocument, OpenApiInfo, OpenApiTag } from './openApi'
 export { getProductById, getProducts } from './catalog'

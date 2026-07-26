@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
+import { mockSession } from './session'
 
 type DeliveryStatus = 'NONE' | 'PREPARING' | 'SHIPPED' | 'DELIVERED'
 
@@ -40,6 +41,10 @@ function collectBrowserErrors(page: Page) {
   })
   return errors
 }
+
+test.beforeEach(async ({ page }) => {
+  await mockSession(page, 'WAREHOUSE')
+})
 
 test('Warehouse advances an order and sees the recorded history', async ({ page }) => {
   const browserErrors = collectBrowserErrors(page)
@@ -126,6 +131,7 @@ test('Loading, API failure, retry, and empty states are recoverable', async ({ p
 test('Shop Owner uses the shared mobile workflow with focus restored after the dialog', async ({
   page,
 }) => {
+  await mockSession(page, 'SHOP_OWNER')
   await page.setViewportSize({ width: 390, height: 844 })
   await page.route('**/api/deliveries', (route) => fulfillJson(route, [deliveryOrder('SHIPPED')]))
 

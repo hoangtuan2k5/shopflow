@@ -27,6 +27,8 @@ export const httpClient = axios.create({
     Accept: 'application/json',
   },
   timeout: 10_000,
+  // Phiên đăng nhập nằm trong cookie HttpOnly nên request phải mang cookie theo.
+  withCredentials: true,
 })
 
 httpClient.interceptors.response.use(

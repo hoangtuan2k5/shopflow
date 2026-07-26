@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
+import { mockSession } from './session'
 
 async function fulfillJson(route: Route, body: unknown, status = 200) {
   await route.fulfill({
@@ -16,6 +17,10 @@ function collectBrowserErrors(page: Page) {
   })
   return errors
 }
+
+test.beforeEach(async ({ page }) => {
+  await mockSession(page, 'WAREHOUSE')
+})
 
 test.describe('Vietnamese browser locale', () => {
   test.use({ locale: 'vi-VN' })
