@@ -25,10 +25,10 @@ export interface PaymentErrorDetails {
   status?: number
 }
 
-export function createPayment(orderId: number, body: CreatePaymentRequest) {
+export function createPayment(orderRef: string, body: CreatePaymentRequest) {
   return request<PaymentResponse>({
     method: 'POST',
-    url: `/orders/${orderId}/payments`,
+    url: `/orders/${orderRef}/payments`,
     data: body,
   })
 }

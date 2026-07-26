@@ -6,6 +6,7 @@ import java.util.List;
 
 public record OrderResponse(
     Long id,
+    String orderRef,
     OrderStatus status,
     DeliveryStatus deliveryStatus,
     PaymentMethod paymentMethod,

@@ -25,6 +25,7 @@ test('renders payment handoff and field-specific server errors', async (context)
 
   const successOrder = {
     id: 501,
+    orderRef: '3f2a1c9e-7b44-4d1a-9f0e-5c8d2a6b1e73',
     status: 'PENDING_PAYMENT',
     deliveryStatus: 'NONE',
     paymentMethod: 'CARD',

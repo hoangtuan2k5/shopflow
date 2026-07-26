@@ -24,6 +24,13 @@ class Order {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  /**
+   * Tham chiếu công khai, không đoán được, dùng thay cho id tuần tự khi khách vãng lai thanh toán.
+   * Biết id không đủ để trả tiền cho một đơn hàng.
+   */
+  @Column(name = "order_ref", nullable = false, length = 36, updatable = false)
+  private String orderRef;
+
   @Column(name = "customer_id")
   private Long customerId;
 
@@ -62,6 +69,7 @@ class Order {
       ShippingAddress shippingAddress,
       PaymentMethod paymentMethod,
       BigDecimal totalAmount) {
+    this.orderRef = java.util.UUID.randomUUID().toString();
     this.customer = customer;
     this.shippingAddress = shippingAddress;
     this.paymentMethod = paymentMethod;
@@ -87,6 +95,10 @@ class Order {
 
   Long getId() {
     return id;
+  }
+
+  String getOrderRef() {
+    return orderRef;
   }
 
   Long getCustomerId() {

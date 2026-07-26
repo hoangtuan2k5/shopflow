@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Payment")
 @RestController
-@RequestMapping("/orders/{orderId}/payments")
+@RequestMapping("/orders/{orderRef}/payments")
 class PaymentController {
 
   private final PaymentService paymentService;
@@ -20,9 +20,14 @@ class PaymentController {
     this.paymentService = paymentService;
   }
 
+  /**
+   * Đơn hàng được định danh bằng tham chiếu không đoán được chứ không phải id tuần tự: thanh toán
+   * mở cho khách vãng lai nên không thể chặn bằng vai trò, và id tuần tự sẽ cho phép người lạ dò ra
+   * đơn của người khác.
+   */
   @PostMapping
   ResponseEntity<PaymentResponse> createPayment(
-      @PathVariable Long orderId, @Valid @RequestBody CreatePaymentRequest request) {
-    return ResponseEntity.ok(paymentService.createPayment(orderId, request));
+      @PathVariable String orderRef, @Valid @RequestBody CreatePaymentRequest request) {
+    return ResponseEntity.ok(paymentService.createPayment(orderRef, request));
   }
 }
