@@ -116,3 +116,32 @@ test('Clearing the threshold removes the alert and rejects invalid values', asyn
   await expect(page.getByRole('alert')).toHaveCount(0)
   await expect(page.getByText('Low stock', { exact: true })).toHaveCount(0)
 })
+
+test('Threshold dialog reports a network failure that carries no error body', async ({ page }) => {
+  let attempts = 0
+
+  await page.route('**/api/inventory', (route) => fulfillJson(route, [inventoryItem()]))
+  await page.route('**/api/inventory/7/threshold', async (route) => {
+    attempts += 1
+    if (attempts === 1) {
+      await route.abort('failed')
+      return
+    }
+    await fulfillJson(route, inventoryItem({ lowStockThreshold: 4 }))
+  })
+
+  await page.goto('/warehouse')
+  await page.getByRole('button', { name: 'Set alert' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Alert threshold').fill('4')
+  await dialog.getByRole('button', { name: 'Save alert' }).click()
+
+  await expect(dialog.getByRole('alert')).not.toBeEmpty()
+  await expect(dialog.getByLabel('Alert threshold')).toHaveValue('4')
+
+  await dialog.getByRole('button', { name: 'Save alert' }).click()
+  await expect(page.getByRole('status')).toHaveText(
+    'Mechanical Keyboard alerts when available stock is 4 or less.',
+  )
+  await expect.poll(() => attempts).toBe(2)
+})

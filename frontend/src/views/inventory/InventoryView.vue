@@ -186,6 +186,12 @@ const receivingErrorMessage = computed(() => {
   return error instanceof Error ? error.message : 'Receiving could not be saved. Try again.'
 })
 
+const thresholdErrorMessage = computed(() => {
+  if (thresholdError.value) return thresholdError.value.message
+  const error = thresholdMutation.error.value
+  return error instanceof Error ? error.message : 'Low stock alert could not be saved. Try again.'
+})
+
 function openAdjustment(item: InventoryItem) {
   selectedItem.value = item
   delta.value = ''
@@ -685,11 +691,11 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
           </div>
 
           <p
-            v-if="thresholdMutation.isError.value && thresholdError"
+            v-if="thresholdMutation.isError.value"
             class="rounded-md bg-destructive-muted px-3 py-2 text-sm text-destructive"
             role="alert"
           >
-            {{ thresholdError.message }}
+            {{ thresholdErrorMessage }}
           </p>
 
           <DialogFooter>
