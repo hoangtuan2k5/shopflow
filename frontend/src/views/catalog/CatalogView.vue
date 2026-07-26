@@ -17,6 +17,7 @@ import {
   IconSearch,
   IconShieldCheck,
   IconShoppingCart,
+  IconUserCircle,
   IconTrash,
   IconX,
 } from '@tabler/icons-vue'
@@ -32,9 +33,11 @@ import {
   type SimulatedPaymentResult,
   type StockStatus,
 } from '@/api'
-import { Button } from '@/components/ui/button'
+import { RouterLink } from 'vue-router'
+import { Button, buttonVariants } from '@/components/ui/button'
 import CheckoutForm from '@/components/forms/CheckoutForm.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import { useSessionStore } from '@/stores/session'
 import {
   Dialog,
   DialogClose,
@@ -45,6 +48,7 @@ import {
 } from '@/components/ui/dialog'
 
 const { t } = useI18n()
+const session = useSessionStore()
 
 const selectedProductId = ref<number | null>(null)
 const selectedQuantities = ref<Record<number, number>>({})
@@ -274,6 +278,15 @@ function closeProduct() {
         </label>
         <div class="flex items-center gap-2 md:col-start-3 md:row-start-1">
           <LanguageSwitcher />
+          <RouterLink
+            :to="session.isAuthenticated ? session.homePath : '/login'"
+            :class="buttonVariants({ variant: 'outline', class: 'h-11 px-3 md:h-12' })"
+          >
+            <IconUserCircle :size="20" :stroke-width="1.8" aria-hidden="true" />
+            <span class="hidden sm:inline">
+              {{ session.isAuthenticated ? t('auth.workspace') : t('auth.signIn') }}
+            </span>
+          </RouterLink>
           <Button
             class="h-11 gap-2 border-border px-3 font-bold text-primary md:h-12"
             variant="outline"

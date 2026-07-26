@@ -189,3 +189,21 @@ test('A session that expires mid-use lands the operator back on the sign in page
 
   await expect(page).toHaveURL(/\/login\?redirect=\/warehouse$/)
 })
+
+test('The storefront offers a way in for staff and a way back for signed-in users', async ({
+  page,
+}) => {
+  await mockSession(page, null)
+  await page.route('**/api/products', (route) => fulfillJson(route, []))
+
+  await page.goto('/customer')
+  await page.getByRole('link', { name: 'Sign in' }).click()
+  await expect(page).toHaveURL(/\/login$/)
+
+  await mockSession(page, 'SHOP_OWNER')
+  await page.route('**/api/deliveries', (route) => fulfillJson(route, []))
+  await page.goto('/customer')
+
+  await page.getByRole('link', { name: 'Workspace' }).click()
+  await expect(page).toHaveURL(/\/shop-owner$/)
+})

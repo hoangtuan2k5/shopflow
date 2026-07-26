@@ -31,6 +31,7 @@ export const vi: typeof en = {
     submitting: 'Đang đăng nhập…',
     signIn: 'Đăng nhập',
     signOut: 'Đăng xuất',
+    workspace: 'Khu vực làm việc',
     guestHint: 'Xem hàng và đặt hàng không cần tài khoản.',
   },
   common: {
