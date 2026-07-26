@@ -14,6 +14,25 @@ export const vi: typeof en = {
       'shop-owner': { label: 'Chủ shop', description: 'Quản trị' },
     },
   },
+  auth: {
+    kicker: 'Đăng nhập',
+    title: 'Chào mừng trở lại',
+    subtitle: 'Đăng nhập để vào khu vực vận hành kho và chủ shop.',
+    fields: {
+      username: 'Tên đăng nhập',
+      password: 'Mật khẩu',
+    },
+    form: {
+      usernameRequired: 'Nhập tên đăng nhập.',
+      passwordRequired: 'Nhập mật khẩu.',
+    },
+    rejected: 'Tên đăng nhập hoặc mật khẩu không đúng.',
+    submit: 'Đăng nhập',
+    submitting: 'Đang đăng nhập…',
+    signIn: 'Đăng nhập',
+    signOut: 'Đăng xuất',
+    guestHint: 'Xem hàng và đặt hàng không cần tài khoản.',
+  },
   common: {
     cancel: 'Hủy',
     refresh: 'Tải lại',

@@ -25,12 +25,13 @@ class PaymentService {
   }
 
   @Transactional
-  PaymentResponse createPayment(Long orderId, CreatePaymentRequest request) {
+  PaymentResponse createPayment(String orderRef, CreatePaymentRequest request) {
     validateRequest(request);
-    OrderPaymentData order = findAndLockOrder(orderId);
+    OrderPaymentData order = findAndLockOrder(orderRef);
     if (order == null) {
       throw new PaymentNotFoundException("Order not found");
     }
+    Long orderId = order.id();
     if (!"PENDING_PAYMENT".equals(order.status())
         || order.method() != PaymentMethod.CARD
         || paymentRepository.existsByOrderId(orderId)) {
@@ -80,21 +81,22 @@ class PaymentService {
     }
   }
 
-  private OrderPaymentData findAndLockOrder(Long orderId) {
+  private OrderPaymentData findAndLockOrder(String orderRef) {
     List<OrderPaymentData> orders =
         jdbcTemplate.query(
             """
-            SELECT status, payment_method, total_amount
+            SELECT id, status, payment_method, total_amount
             FROM shopflow.orders
-            WHERE id = ?
+            WHERE order_ref = ?
             FOR UPDATE
             """,
             (resultSet, rowNumber) ->
                 new OrderPaymentData(
+                    resultSet.getLong("id"),
                     resultSet.getString("status"),
                     PaymentMethod.valueOf(resultSet.getString("payment_method")),
                     resultSet.getBigDecimal("total_amount")),
-            orderId);
+            orderRef);
     return orders.isEmpty() ? null : orders.getFirst();
   }
 
@@ -113,5 +115,6 @@ class PaymentService {
     }
   }
 
-  private record OrderPaymentData(String status, PaymentMethod method, BigDecimal amount) {}
+  private record OrderPaymentData(
+      Long id, String status, PaymentMethod method, BigDecimal amount) {}
 }

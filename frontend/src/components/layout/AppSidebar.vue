@@ -1,13 +1,21 @@
 <script setup lang="ts">
-import type { Component } from 'vue'
+import { computed, type Component } from 'vue'
 import { IconBuildingWarehouse, IconChartBar, IconShoppingBag } from '@tabler/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
+import { canReach } from '@/router'
 import { cn } from '@/lib/utils'
 import { type RoleKey, useAppShellStore } from '@/stores/appShell'
+import { useSessionStore } from '@/stores/session'
 
 const { t } = useI18n()
 const appShell = useAppShellStore()
+const session = useSessionStore()
+
+// Hiện link tới nơi người dùng sẽ bị bật ra ngay là điều hướng lừa người dùng.
+const visibleRoles = computed(() =>
+  appShell.roles.filter((role) => canReach(session.roleKey, role.key)),
+)
 
 const roleIcons: Record<RoleKey, Component> = {
   customer: IconShoppingBag,
@@ -27,7 +35,7 @@ const roleIcons: Record<RoleKey, Component> = {
   >
     <nav :aria-label="t('shell.roleNav')" class="grid gap-2">
       <RouterLink
-        v-for="role in appShell.roles"
+        v-for="role in visibleRoles"
         :key="role.key"
         :to="role.path"
         :class="

@@ -1,6 +1,6 @@
 # ShopFlow — Customer Order API Specification
 
-**Phiên bản:** 1.3
+**Phiên bản:** 1.4
 **Ngày cập nhật:** 20/07/2026
 **Liên quan:**
 - [SF-3: Create Customer Order](https://tuanwork.atlassian.net/browse/SF-3)
@@ -131,6 +131,7 @@ Tạo order mới từ danh sách product và thông tin giao hàng.
 ```json
 {
   "id": 42,
+  "orderRef": "3f2a1c9e-7b44-4d1a-9f0e-5c8d2a6b1e73",
   "status": "PENDING_PAYMENT",
   "deliveryStatus": "NONE",
   "paymentMethod": "CARD",
@@ -532,6 +533,7 @@ export function createOrder(body: CreateOrderRequest) {
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.4 | 2026-07-26 | Bổ sung `orderRef` vào response; đây là định danh dùng cho đường thanh toán |
 | 1.3 | 2026-07-20 | Chặn numeric coercion, thêm field errors, total boundary và payment handoff |
 | 1.2 | 2026-07-17 | Chuyển currency baseline sang VND và giữ contract CARD-only/COD rejection |
 | 1.1 | 2026-07-17 | Chốt CARD-only/USD và bổ sung rejection contract cho COD |

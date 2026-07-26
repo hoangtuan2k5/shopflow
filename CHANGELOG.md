@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-07-26
+
+### Added
+- **Access**:
+  - Added user accounts with BCrypt-hashed passwords, three seeded demo accounts, and login, logout and current-session endpoints backed by an HttpOnly session cookie (SF-72).
+  - Added the login screen, session restore on start-up, and a sign-out control that clears cached data (SF-72).
+  - Added role-based authorization across every endpoint, with catalog, order creation and guest payment left open, and route guards that send anonymous visitors to sign in and bounce wrong-role visitors to their own workspace (SF-73).
+  - Added a content-dependent check so warehouse staff can restock a return but cannot approve or reject one (SF-73).
+
+### Changed
+- **Security**:
+  - Unknown, wrong-password and deactivated accounts now fail identically in status, message and response time (SF-72).
+  - CSRF protection is enabled for state-changing requests, and the API documentation endpoints are switched off in the staging profile (SF-73).
+
+### Fixed
+- **Payment**:
+  - Orders are now addressed by an unguessable reference when paying. The sequential order id in the payment path let anyone mark a stranger's order paid, or fail it and release the stock it was holding (SF-85).
+
+### Breaking
+- Warehouse and shop owner areas now require signing in. Demo credentials are listed in the README.
+- `POST /orders/{orderId}/payments` is replaced by `POST /orders/{orderRef}/payments`; the reference comes from the order creation response.
+
 ## [0.8.0] - 2026-07-26
 
 ### Added

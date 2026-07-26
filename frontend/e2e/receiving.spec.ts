@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
+import { mockSession } from './session'
 
 type InventoryItem = {
   productId: number
@@ -39,6 +40,10 @@ function collectBrowserErrors(page: Page) {
   })
   return errors
 }
+
+test.beforeEach(async ({ page }) => {
+  await mockSession(page, 'WAREHOUSE')
+})
 
 test('Warehouse receives stock with only the contract fields and sees refreshed inventory', async ({
   page,
@@ -100,7 +105,9 @@ test('Warehouse receives stock with only the contract fields and sees refreshed 
   expect(browserErrors).toEqual([])
 })
 
-test('Client validation rejects invalid receiving fields without truncating them', async ({ page }) => {
+test('Client validation rejects invalid receiving fields without truncating them', async ({
+  page,
+}) => {
   await page.route('**/api/inventory', (route) => fulfillJson(route, [inventoryItem()]))
 
   await page.goto('/warehouse')
@@ -125,7 +132,9 @@ test('Client validation rejects invalid receiving fields without truncating them
   await expect(dialog.getByLabel('Note (optional)')).toHaveValue(longNote)
 })
 
-test('Rejected and network receipts retain entered values until a successful retry', async ({ page }) => {
+test('Rejected and network receipts retain entered values until a successful retry', async ({
+  page,
+}) => {
   let attempts = 0
   await page.route('**/api/inventory', (route) => fulfillJson(route, [inventoryItem()]))
   await page.route('**/api/receivings', async (route) => {
@@ -185,7 +194,9 @@ test('Rejected and network receipts retain entered values until a successful ret
   await expect.poll(() => attempts).toBe(4)
 })
 
-test('Inventory loading, retry, empty state, and mobile dialog focus remain usable', async ({ page }) => {
+test('Inventory loading, retry, empty state, and mobile dialog focus remain usable', async ({
+  page,
+}) => {
   let requests = 0
   let releaseFirst!: () => void
   const firstRequestHeld = new Promise<void>((resolve) => {

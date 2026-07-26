@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
+import { mockSession } from './session'
 
 type ReturnStatus = 'REQUESTED' | 'APPROVED' | 'RESTOCKED' | 'REJECTED'
 
@@ -88,6 +89,10 @@ function collectBrowserErrors(page: Page) {
   return errors
 }
 
+test.beforeEach(async ({ page }) => {
+  await mockSession(page, 'WAREHOUSE')
+})
+
 test('Warehouse registers, approves and restocks a return for a delivered order', async ({
   page,
 }) => {
@@ -152,10 +157,8 @@ test('Warehouse registers, approves and restocks a return for a delivered order'
 })
 
 test('Shop owner rejects a request and cannot restock approved returns', async ({ page }) => {
-  let returns = [
-    returnRequest(),
-    returnRequest({ id: 13, status: 'APPROVED', restockable: true }),
-  ]
+  await mockSession(page, 'SHOP_OWNER')
+  let returns = [returnRequest(), returnRequest({ id: 13, status: 'APPROVED', restockable: true })]
 
   await page.route('**/api/returns', (route) => fulfillJson(route, returns))
   await page.route('**/api/returns/orders', (route) => fulfillJson(route, []))

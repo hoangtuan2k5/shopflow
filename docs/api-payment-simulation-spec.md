@@ -1,8 +1,8 @@
 # ShopFlow — Payment Simulation API Specification
 
-**Phiên bản:** 1.0
+**Phiên bản:** 1.1
 
-**Ngày cập nhật:** 21/07/2026
+**Ngày cập nhật:** 26/07/2026
 
 **Liên quan:**
 
@@ -22,12 +22,28 @@ transaction.
 
 | Thuộc tính | Giá trị |
 | --- | --- |
-| Endpoint | `POST /orders/{orderId}/payments` |
+| Endpoint | `POST /orders/{orderRef}/payments` |
 | Content-Type | `application/json` |
 | Currency | `VND` |
 | Phạm vi | Mô phỏng CARD; không gọi payment gateway thật |
 
 MVP không hỗ trợ retry, refund, webhook, polling, COD hoặc nhiều payment attempt.
+
+### Vì sao định danh bằng `orderRef` chứ không phải `orderId`
+
+Thanh toán mở cho khách vãng lai nên không thể chặn bằng vai trò. Nếu đường dẫn
+mang `orderId` — một `BIGSERIAL` tăng dần — thì bất kỳ ai cũng dò được id của
+người khác và:
+
+- gửi `FAILED` để ép đơn của họ sang `PAYMENT_FAILED`, giải phóng tồn kho đang giữ;
+- gửi `SUCCESS` để đánh dấu đơn của họ đã thanh toán mà không trả tiền.
+
+`orderRef` là một UUID ngẫu nhiên gắn với order lúc tạo và trả về trong response
+của `POST /orders`. Nó hoạt động như một capability: chỉ người nhận được tham
+chiếu mới thanh toán được cho order đó. Order vẫn được tham chiếu nội bộ bằng
+`orderId`; chỉ đường thanh toán dùng `orderRef`.
+
+`orderRef` không tồn tại hoặc sai định dạng đều trả `404`, không phân biệt.
 
 ---
 
@@ -117,7 +133,7 @@ Error body tối thiểu:
 | HTTP | Trường hợp |
 | --- | --- |
 | `400 Bad Request` | Body malformed; result thiếu/không hợp lệ; failureReason sai quy tắc |
-| `404 Not Found` | Không có order mang `orderId` |
+| `404 Not Found` | Không có order mang `orderRef` |
 | `409 Conflict` | Order không còn `PENDING_PAYMENT` hoặc đã có payment attempt |
 
 Request bị từ chối không tạo payment và không đổi order, inventory hay movement.
@@ -139,6 +155,8 @@ thành công và tối đa một payment row được tạo.
 2. `FAILED`/`EXPIRED` chuyển order sang `PAYMENT_FAILED`, release đủ mọi item và
    ghi movement tương ứng.
 3. Order không tồn tại trả 404 và không ghi dữ liệu.
+7. Gọi endpoint bằng `orderId` tuần tự thay vì `orderRef` trả 404; order, payment và
+   reservation đều không đổi.
 4. Order sai trạng thái hoặc payment lặp lại trả 409 và không ghi thêm attempt.
 5. Body sai trả 400.
 6. Hai request đồng thời chỉ tạo tối đa một attempt.
@@ -149,4 +167,5 @@ thành công và tối đa một payment row được tạo.
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 1.1 | 2026-07-26 | Đổi định danh đường thanh toán từ `orderId` sang `orderRef` để chặn dò id |
 | 1.0 | 2026-07-21 | Chốt payment states, endpoint, payload, side effects và error semantics |

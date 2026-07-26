@@ -21,6 +21,8 @@ export interface CreateOrderRequest {
 
 export interface OrderResponse {
   id: number
+  /** Tham chiếu không đoán được, dùng để thanh toán thay cho id tuần tự. */
+  orderRef: string
   status: 'PENDING_PAYMENT'
   deliveryStatus: 'NONE'
   paymentMethod: PaymentMethod

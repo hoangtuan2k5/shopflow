@@ -123,6 +123,7 @@ class OrderService {
             .toList();
     return new OrderResponse(
         order.getId(),
+        order.getOrderRef(),
         order.getStatus(),
         order.getDeliveryStatus(),
         order.getPaymentMethod(),

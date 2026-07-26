@@ -2,6 +2,9 @@ package dev.hoangtuan.shopflow.payment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -17,13 +20,26 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 @ActiveProfiles("test")
 @SpringBootTest
 @AutoConfigureMockMvc
 class PaymentControllerTests {
 
-  @Autowired private MockMvc mockMvc;
+  @Autowired private WebApplicationContext webApplicationContext;
+
+  private MockMvc mockMvc;
+
+  @BeforeEach
+  void buildMockMvc() {
+    mockMvc =
+        MockMvcBuilders.webAppContextSetup(webApplicationContext)
+            .apply(springSecurity())
+            .defaultRequest(get("/").with(csrf()))
+            .build();
+  }
 
   @Autowired private JdbcTemplate jdbcTemplate;
 
@@ -47,7 +63,7 @@ class PaymentControllerTests {
 
     mockMvc
         .perform(
-            post("/orders/{orderId}/payments", orderId)
+            post("/orders/{orderRef}/payments", orderRef(orderId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"result\":\"SUCCESS\"}"))
         .andExpect(status().isOk())
@@ -77,7 +93,7 @@ class PaymentControllerTests {
 
     mockMvc
         .perform(
-            post("/orders/{orderId}/payments", orderId)
+            post("/orders/{orderRef}/payments", orderRef(orderId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"result\":\"FAILED\",\"failureReason\":\"Declined by simulation\"}"))
         .andExpect(status().isOk())
@@ -104,10 +120,55 @@ class PaymentControllerTests {
   }
 
   @Test
+  void refusesToPayForAnOrderAddressedByItsSequentialId() throws Exception {
+    long productId = insertProduct("Coffee", "2190000");
+    insertInventory(productId, 5, 1);
+    long orderId = insertOrder("PENDING_PAYMENT", "2190000");
+    insertOrderItem(orderId, productId, 1);
+
+    // Đường tấn công cũ: dò id tuần tự để đánh dấu đã thanh toán hoặc ép thất bại
+    // nhằm giải phóng tồn kho đang giữ của đơn người khác.
+    for (String guess : new String[] {String.valueOf(orderId), "1", "999999"}) {
+      mockMvc
+          .perform(
+              post("/orders/{orderRef}/payments", guess)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content("{\"result\":\"FAILED\",\"failureReason\":\"Declined\"}"))
+          .andExpect(status().isNotFound());
+    }
+
+    assertThat(orderStatus(orderId)).isEqualTo("PENDING_PAYMENT");
+    assertThat(countPayments()).isZero();
+    assertThat(
+            jdbcTemplate.queryForObject(
+                "SELECT reserved_stock FROM shopflow.inventory_items WHERE product_id = ?",
+                Integer.class,
+                productId))
+        .isEqualTo(1);
+  }
+
+  @Test
+  void givesEveryOrderAnUnguessableReferenceDistinctFromItsId() {
+    long first = insertOrder("PENDING_PAYMENT", "2190000");
+    long second = insertOrder("PENDING_PAYMENT", "2190000");
+
+    String firstRef = orderRef(first);
+    String secondRef = orderRef(second);
+
+    // Hai đơn liền kề nhau về id nhưng tham chiếu không liền kề: biết một cái không suy ra cái kia.
+    assertThat(second).isEqualTo(first + 1);
+    assertThat(firstRef)
+        .matches("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}");
+    assertThat(secondRef)
+        .matches("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
+        .isNotEqualTo(firstRef);
+  }
+
+  @Test
   void rejectsMissingOrderInvalidBodyAndRepeatedPayment() throws Exception {
     mockMvc
         .perform(
-            post("/orders/{orderId}/payments", Long.MAX_VALUE)
+            post("/orders/{orderRef}/payments", "00000000-0000-0000-0000-000000000000")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"result\":\"SUCCESS\"}"))
         .andExpect(status().isNotFound())
@@ -121,7 +182,7 @@ class PaymentControllerTests {
 
     mockMvc
         .perform(
-            post("/orders/{orderId}/payments", orderId)
+            post("/orders/{orderRef}/payments", orderRef(orderId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"result\":\"FAILED\"}"))
         .andExpect(status().isBadRequest())
@@ -129,7 +190,7 @@ class PaymentControllerTests {
 
     mockMvc
         .perform(
-            post("/orders/{orderId}/payments", orderId)
+            post("/orders/{orderRef}/payments", orderRef(orderId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"result\":\"UNKNOWN\"}"))
         .andExpect(status().isBadRequest())
@@ -137,14 +198,14 @@ class PaymentControllerTests {
 
     mockMvc
         .perform(
-            post("/orders/{orderId}/payments", orderId)
+            post("/orders/{orderRef}/payments", orderRef(orderId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"result\":\"SUCCESS\"}"))
         .andExpect(status().isOk());
 
     mockMvc
         .perform(
-            post("/orders/{orderId}/payments", orderId)
+            post("/orders/{orderRef}/payments", orderRef(orderId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"result\":\"SUCCESS\"}"))
         .andExpect(status().isConflict())
@@ -166,7 +227,7 @@ class PaymentControllerTests {
 
     mockMvc
         .perform(
-            post("/orders/{orderId}/payments", orderId)
+            post("/orders/{orderRef}/payments", orderRef(orderId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"result\":\"EXPIRED\",\"failureReason\":\"Expired by simulation\"}"))
         .andExpect(status().isOk())
@@ -190,7 +251,7 @@ class PaymentControllerTests {
 
     mockMvc
         .perform(
-            post("/orders/{orderId}/payments", paidOrderId)
+            post("/orders/{orderRef}/payments", orderRef(paidOrderId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"result\":\"SUCCESS\"}"))
         .andExpect(status().isConflict());
@@ -200,7 +261,7 @@ class PaymentControllerTests {
 
     mockMvc
         .perform(
-            post("/orders/{orderId}/payments", pendingOrderId)
+            post("/orders/{orderRef}/payments", orderRef(pendingOrderId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"result\":\"SUCCESS\",\"failureReason\":\"unexpected\"}"))
         .andExpect(status().isBadRequest())
@@ -209,7 +270,7 @@ class PaymentControllerTests {
     String overlongReason = "x".repeat(501);
     mockMvc
         .perform(
-            post("/orders/{orderId}/payments", pendingOrderId)
+            post("/orders/{orderRef}/payments", orderRef(pendingOrderId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"result\":\"FAILED\",\"failureReason\":\"" + overlongReason + "\"}"))
         .andExpect(status().isBadRequest())
@@ -232,7 +293,7 @@ class PaymentControllerTests {
     assertThatThrownBy(
             () ->
                 mockMvc.perform(
-                    post("/orders/{orderId}/payments", orderId)
+                    post("/orders/{orderRef}/payments", orderRef(orderId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(
                             "{\"result\":\"FAILED\",\"failureReason\":\"Declined by simulation\"}")))
@@ -261,6 +322,11 @@ class PaymentControllerTests {
         productId,
         onHandStock,
         reservedStock);
+  }
+
+  private String orderRef(long orderId) {
+    return jdbcTemplate.queryForObject(
+        "SELECT order_ref FROM shopflow.orders WHERE id = ?", String.class, orderId);
   }
 
   private long insertOrder(String status, String amount) {
@@ -294,6 +360,10 @@ class PaymentControllerTests {
         "Coffee",
         new BigDecimal("2190000"),
         quantity);
+  }
+
+  private int countPayments() {
+    return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM shopflow.payments", Integer.class);
   }
 
   private String orderStatus(long orderId) {
