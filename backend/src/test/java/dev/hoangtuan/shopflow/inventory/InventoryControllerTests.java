@@ -3,6 +3,7 @@ package dev.hoangtuan.shopflow.inventory;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -60,6 +61,76 @@ class InventoryControllerTests {
         .andExpect(jsonPath("$[2].onHandStock").value(0))
         .andExpect(jsonPath("$[2].reservedStock").value(0))
         .andExpect(jsonPath("$[2].availableStock").value(0));
+  }
+
+  @Test
+  void flagsLowStockAtOrBelowThresholdOnly() throws Exception {
+    long atThresholdId = insertProduct("At threshold", true);
+    long aboveThresholdId = insertProduct("Above threshold", true);
+    long untrackedId = insertProduct("Untracked", true);
+    long zeroThresholdId = insertProduct("Zero threshold", true);
+    insertInventory(atThresholdId, 10, 5);
+    insertInventory(aboveThresholdId, 11, 5);
+    insertInventory(zeroThresholdId, 2, 2);
+    setThreshold(atThresholdId, 5);
+    setThreshold(aboveThresholdId, 5);
+    setThreshold(zeroThresholdId, 0);
+
+    mockMvc
+        .perform(get("/inventory"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].lowStockThreshold").value(5))
+        .andExpect(jsonPath("$[0].lowStock").value(true))
+        .andExpect(jsonPath("$[1].lowStockThreshold").value(5))
+        .andExpect(jsonPath("$[1].lowStock").value(false))
+        .andExpect(jsonPath("$[2].lowStockThreshold").isEmpty())
+        .andExpect(jsonPath("$[2].lowStock").value(false))
+        .andExpect(jsonPath("$[3].lowStockThreshold").value(0))
+        .andExpect(jsonPath("$[3].lowStock").value(true));
+  }
+
+  @Test
+  void updatesThresholdAndRecomputesFlagWithoutMovements() throws Exception {
+    long productId = insertProduct("Tracked", true);
+    insertInventory(productId, 4, 0);
+
+    putThreshold(productId, "{\"lowStockThreshold\":5}")
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.lowStockThreshold").value(5))
+        .andExpect(jsonPath("$.lowStock").value(true));
+    assertThat(thresholdInDatabase(productId)).isEqualTo(5);
+
+    adjust(productId, 5, "Recount")
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.availableStock").value(9))
+        .andExpect(jsonPath("$.lowStockThreshold").value(5))
+        .andExpect(jsonPath("$.lowStock").value(false));
+
+    putThreshold(productId, "{\"lowStockThreshold\":null}")
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.lowStockThreshold").isEmpty())
+        .andExpect(jsonPath("$.lowStock").value(false));
+    assertThat(thresholdInDatabase(productId)).isNull();
+    assertThat(movementCount()).isEqualTo(1);
+  }
+
+  @Test
+  void rejectsInvalidThresholdRequests() throws Exception {
+    long productId = insertProduct("Threshold validation", true);
+    setThreshold(productId, 3);
+
+    putThreshold(productId, "{\"lowStockThreshold\":-1}")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.fieldErrors.lowStockThreshold").isString());
+    putThreshold(productId, "{\"lowStockThreshold\":1.5}")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.message").value("Malformed request body"));
+    putThreshold(Long.MAX_VALUE, "{\"lowStockThreshold\":2}")
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.message").value("Product not found"));
+
+    assertThat(thresholdInDatabase(productId)).isEqualTo(3);
+    assertThat(movementCount()).isZero();
   }
 
   @Test
@@ -203,6 +274,24 @@ class InventoryControllerTests {
         new BigDecimal("1000"),
         active);
     return jdbcTemplate.queryForObject("SELECT MAX(id) FROM shopflow.products", Long.class);
+  }
+
+  private org.springframework.test.web.servlet.ResultActions putThreshold(
+      long productId, String body) throws Exception {
+    return mockMvc.perform(
+        put("/inventory/{productId}/threshold", productId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body));
+  }
+
+  private void setThreshold(long productId, Integer threshold) {
+    jdbcTemplate.update(
+        "UPDATE shopflow.products SET low_stock_threshold = ? WHERE id = ?", threshold, productId);
+  }
+
+  private Integer thresholdInDatabase(long productId) {
+    return jdbcTemplate.queryForObject(
+        "SELECT low_stock_threshold FROM shopflow.products WHERE id = ?", Integer.class, productId);
   }
 
   private void insertInventory(long productId, int onHandStock, int reservedStock) {

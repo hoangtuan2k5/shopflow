@@ -4,10 +4,11 @@ export { getOpenApiDocument } from './openApi'
 export type { OpenApiDocument, OpenApiInfo, OpenApiTag } from './openApi'
 export { getProductById, getProducts } from './catalog'
 export type { ProductDetail, ProductListItem, StockStatus } from './catalog'
-export { adjustStock, getInventory } from './inventory'
+export { adjustStock, getInventory, updateLowStockThreshold } from './inventory'
 export type {
   InventoryErrorDetails,
   InventoryItem,
+  LowStockThresholdRequest,
   StockAdjustmentRequest,
 } from './inventory'
 export { createReturn, getReturnableOrders, getReturns, updateReturn } from './returns'
