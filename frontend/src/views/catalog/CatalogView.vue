@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, type Component } from 'vue'
 import { useMutation, useQuery } from '@tanstack/vue-query'
+import { useI18n } from 'vue-i18n'
 import {
   IconAlertCircle,
   IconArrowRight,
@@ -33,6 +34,7 @@ import {
 } from '@/api'
 import { Button } from '@/components/ui/button'
 import CheckoutForm from '@/components/forms/CheckoutForm.vue'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import {
   Dialog,
   DialogClose,
@@ -41,6 +43,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+
+const { t } = useI18n()
 
 const selectedProductId = ref<number | null>(null)
 const selectedQuantities = ref<Record<number, number>>({})
@@ -73,18 +77,21 @@ const filteredInStockCount = computed(
   () => filteredProducts.value.filter((product) => product.stockStatus === 'IN_STOCK').length,
 )
 
-const stockStatus = {
-  IN_STOCK: {
-    label: 'Còn hàng',
-    classes: 'bg-success-muted text-success',
-    icon: IconCircleCheck,
-  },
-  OUT_OF_STOCK: {
-    label: 'Hết hàng',
-    classes: 'bg-destructive-muted text-destructive',
-    icon: IconCircleX,
-  },
-} satisfies Record<StockStatus, { label: string; classes: string; icon: Component }>
+const stockStatus = computed(
+  () =>
+    ({
+      IN_STOCK: {
+        label: t('catalog.stock.IN_STOCK'),
+        classes: 'bg-success-muted text-success',
+        icon: IconCircleCheck,
+      },
+      OUT_OF_STOCK: {
+        label: t('catalog.stock.OUT_OF_STOCK'),
+        classes: 'bg-destructive-muted text-destructive',
+        icon: IconCircleX,
+      },
+    }) satisfies Record<StockStatus, { label: string; classes: string; icon: Component }>,
+)
 
 const productVisuals = [
   'from-[#dce9ff] to-[#eef4ff] text-[#28558d]',
@@ -127,7 +134,7 @@ const orderError = computed<OrderErrorDetails | null>(() => {
   const error = orderMutation.error.value
   if (!error) return null
   if (error instanceof ApiClientError && isOrderErrorDetails(error.details)) return error.details
-  return { message: 'Không thể tạo đơn hàng. Vui lòng thử lại.' }
+  return { message: t('catalog.orderFallbackError') }
 })
 const createdOrder = computed(() => orderMutation.data.value ?? null)
 const paymentResult = computed(() => paymentMutation.data.value ?? null)
@@ -135,7 +142,7 @@ const paymentError = computed<PaymentErrorDetails | null>(() => {
   const error = paymentMutation.error.value
   if (!error) return null
   if (error instanceof ApiClientError && isPaymentErrorDetails(error.details)) return error.details
-  return { message: 'Không thể xử lý thanh toán. Vui lòng thử lại.' }
+  return { message: t('catalog.paymentFallbackError') }
 })
 
 function isOrderErrorDetails(value: unknown): value is OrderErrorDetails {
@@ -251,13 +258,13 @@ function closeProduct() {
           alt="ShopFlow"
         />
         <label class="relative col-span-2 row-start-2 md:col-span-1 md:col-start-2 md:row-start-1">
-          <span class="sr-only">Tìm sản phẩm</span>
+          <span class="sr-only">{{ t('catalog.searchLabel') }}</span>
           <input
             v-model="searchQuery"
             type="search"
             autocomplete="off"
             class="h-11 w-full rounded-lg border-2 border-primary bg-card px-4 pr-12 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 md:h-12"
-            placeholder="Tìm sản phẩm bạn cần..."
+            :placeholder="t('catalog.searchPlaceholder')"
           />
           <span
             class="pointer-events-none absolute right-1 top-1 grid size-9 place-items-center rounded-md bg-primary text-white md:size-10"
@@ -265,22 +272,25 @@ function closeProduct() {
             <IconSearch :size="19" :stroke-width="1.9" aria-hidden="true" />
           </span>
         </label>
-        <Button
-          class="h-11 gap-2 border-border px-3 font-bold text-primary md:col-start-3 md:row-start-1 md:h-12"
-          variant="outline"
-          type="button"
-          aria-label="Mở giỏ hàng"
-          @click="cartOpen = true"
-        >
-          <IconShoppingCart :size="20" :stroke-width="1.8" aria-hidden="true" />
-          <span class="hidden sm:inline">Giỏ hàng</span>
-          <span
-            class="grid size-6 place-items-center rounded-full bg-success text-xs font-bold text-white"
-            aria-live="polite"
+        <div class="flex items-center gap-2 md:col-start-3 md:row-start-1">
+          <LanguageSwitcher />
+          <Button
+            class="h-11 gap-2 border-border px-3 font-bold text-primary md:h-12"
+            variant="outline"
+            type="button"
+            :aria-label="t('catalog.openCart')"
+            @click="cartOpen = true"
           >
-            {{ selectedItemCount }}
-          </span>
-        </Button>
+            <IconShoppingCart :size="20" :stroke-width="1.8" aria-hidden="true" />
+            <span class="hidden sm:inline">{{ t('catalog.cart') }}</span>
+            <span
+              class="grid size-6 place-items-center rounded-full bg-success text-xs font-bold text-white"
+              aria-live="polite"
+            >
+              {{ selectedItemCount }}
+            </span>
+          </Button>
+        </div>
       </div>
     </header>
 
@@ -290,23 +300,22 @@ function closeProduct() {
       >
         <div class="relative z-10 max-w-2xl px-5 py-7 sm:px-12 sm:py-11">
           <p class="text-xs font-black uppercase tracking-[0.16em] text-[#7ff0cf]">
-            Mua sắm liền mạch
+            {{ t('catalog.hero.kicker') }}
           </p>
           <h1
             class="mt-3 max-w-lg text-[2rem] font-black leading-[1.02] tracking-[-0.04em] sm:text-5xl"
           >
-            Chọn nhanh.<br />Đặt hàng gọn.
+            {{ t('catalog.hero.line1') }}<br />{{ t('catalog.hero.line2') }}
           </h1>
           <p class="mt-3 max-w-xl text-sm leading-relaxed text-[#e3eaff] sm:text-base">
-            Giá VND minh bạch, trạng thái còn hàng rõ ràng và quy trình đặt hàng liền mạch trên mọi
-            thiết bị.
+            {{ t('catalog.hero.text') }}
           </p>
           <Button
             class="mt-5 bg-[#6ff0cb] font-black text-[#073a32] hover:bg-[#8bf4d7]"
             type="button"
             @click="scrollToProducts"
           >
-            Khám phá sản phẩm
+            {{ t('catalog.hero.cta') }}
             <IconArrowRight :size="18" :stroke-width="1.9" aria-hidden="true" />
           </Button>
         </div>
@@ -323,15 +332,17 @@ function closeProduct() {
 
       <section
         class="flex snap-x overflow-x-auto rounded-xl border border-border bg-card sm:grid sm:grid-cols-3"
-        aria-label="Lợi ích mua hàng"
+        :aria-label="t('catalog.benefits.label')"
       >
         <div class="flex min-w-[82%] snap-start items-center gap-3 p-4 sm:min-w-0">
           <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-success">
             ₫
           </span>
           <span
-            ><strong class="block text-sm">Giá VND rõ ràng</strong
-            ><small class="text-muted-foreground">Không làm tròn hoặc phí ẩn</small></span
+            ><strong class="block text-sm">{{ t('catalog.benefits.pricingTitle') }}</strong
+            ><small class="text-muted-foreground">{{
+              t('catalog.benefits.pricingHint')
+            }}</small></span
           >
         </div>
         <div
@@ -341,8 +352,10 @@ function closeProduct() {
             <IconShieldCheck :size="20" :stroke-width="1.8" aria-hidden="true" />
           </span>
           <span
-            ><strong class="block text-sm">Tồn kho trực tiếp</strong
-            ><small class="text-muted-foreground">Kiểm tra lại khi đặt hàng</small></span
+            ><strong class="block text-sm">{{ t('catalog.benefits.stockTitle') }}</strong
+            ><small class="text-muted-foreground">{{
+              t('catalog.benefits.stockHint')
+            }}</small></span
           >
         </div>
         <div
@@ -352,8 +365,10 @@ function closeProduct() {
             <IconReceipt :size="20" :stroke-width="1.8" aria-hidden="true" />
           </span>
           <span
-            ><strong class="block text-sm">Đặt hàng liền mạch</strong
-            ><small class="text-muted-foreground">Giữ giỏ khi cần sửa thông tin</small></span
+            ><strong class="block text-sm">{{ t('catalog.benefits.orderingTitle') }}</strong
+            ><small class="text-muted-foreground">{{
+              t('catalog.benefits.orderingHint')
+            }}</small></span
           >
         </div>
       </section>
@@ -361,15 +376,18 @@ function closeProduct() {
       <section id="products" class="scroll-mt-36 pt-3">
         <header class="mb-4 flex items-end justify-between gap-4">
           <div>
-            <p class="text-xs font-black uppercase tracking-[0.16em] text-success">Gợi ý hôm nay</p>
+            <p class="text-xs font-black uppercase tracking-[0.16em] text-success">
+              {{ t('catalog.section.kicker') }}
+            </p>
             <h2 class="mt-1 text-2xl font-black tracking-tight text-primary sm:text-3xl">
-              Sản phẩm dành cho bạn
+              {{ t('catalog.section.title') }}
             </h2>
             <p
               v-if="!productsQuery.isPending.value && !productsQuery.isError.value"
               class="mt-2 text-sm text-muted-foreground"
             >
-              {{ filteredProducts.length }} sản phẩm · {{ filteredInStockCount }} còn hàng
+              {{ t('catalog.productCount', filteredProducts.length) }} ·
+              {{ t('catalog.inStockCount', filteredInStockCount) }}
             </p>
           </div>
           <Button
@@ -380,14 +398,14 @@ function closeProduct() {
             @click="searchQuery = ''"
           >
             <IconX :size="16" :stroke-width="1.8" aria-hidden="true" />
-            Xóa tìm kiếm
+            {{ t('catalog.clearSearch') }}
           </Button>
         </header>
 
         <div
           v-if="productsQuery.isPending.value"
           class="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4"
-          aria-label="Đang tải sản phẩm"
+          :aria-label="t('catalog.loadingLabel')"
         >
           <div
             v-for="index in 4"
@@ -416,13 +434,13 @@ function closeProduct() {
             aria-hidden="true"
           />
           <div>
-            <p class="font-semibold">Không thể tải sản phẩm</p>
+            <p class="font-semibold">{{ t('catalog.loadErrorTitle') }}</p>
             <p class="mt-1 text-sm text-muted-foreground">
-              Vui lòng kiểm tra kết nối tới backend rồi thử lại.
+              {{ t('catalog.loadErrorHint') }}
             </p>
             <Button class="mt-4" variant="outline" @click="productsQuery.refetch()">
               <IconRefresh :size="18" :stroke-width="1.8" aria-hidden="true" />
-              Thử lại
+              {{ t('common.tryAgain') }}
             </Button>
           </div>
         </div>
@@ -435,9 +453,9 @@ function closeProduct() {
             <IconInbox :size="26" :stroke-width="1.6" aria-hidden="true" />
           </div>
           <div>
-            <p class="font-semibold">Chưa có sản phẩm</p>
+            <p class="font-semibold">{{ t('catalog.emptyTitle') }}</p>
             <p class="mt-1 text-sm text-muted-foreground">
-              Catalog hiện chưa có sản phẩm đang bán.
+              {{ t('catalog.emptyHint') }}
             </p>
           </div>
         </div>
@@ -448,10 +466,12 @@ function closeProduct() {
         >
           <IconSearch :size="30" :stroke-width="1.6" aria-hidden="true" />
           <div>
-            <p class="font-semibold">Không tìm thấy sản phẩm</p>
-            <p class="mt-1 text-sm text-muted-foreground">Thử một từ khóa khác.</p>
+            <p class="font-semibold">{{ t('catalog.noResultsTitle') }}</p>
+            <p class="mt-1 text-sm text-muted-foreground">{{ t('catalog.noResultsHint') }}</p>
           </div>
-          <Button variant="outline" type="button" @click="searchQuery = ''">Xóa tìm kiếm</Button>
+          <Button variant="outline" type="button" @click="searchQuery = ''">
+            {{ t('catalog.clearSearch') }}
+          </Button>
         </div>
 
         <div v-else class="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
@@ -464,7 +484,7 @@ function closeProduct() {
               class="relative grid aspect-square place-items-center overflow-hidden bg-gradient-to-br sm:aspect-[4/3]"
               :class="visualClass(product.id)"
               type="button"
-              :aria-label="`Xem chi tiết ${product.name}`"
+              :aria-label="t('catalog.viewDetails', { name: product.name })"
               @click="selectedProductId = product.id"
             >
               <span class="absolute -right-8 -top-10 size-36 rounded-full bg-white/45" />
@@ -508,7 +528,11 @@ function closeProduct() {
                 @click="addToCart(product)"
               >
                 <IconShoppingCart :size="17" :stroke-width="1.8" aria-hidden="true" />
-                {{ product.stockStatus === 'OUT_OF_STOCK' ? 'Hết hàng' : 'Thêm vào giỏ' }}
+                {{
+                  product.stockStatus === 'OUT_OF_STOCK'
+                    ? t('catalog.stock.OUT_OF_STOCK')
+                    : t('catalog.addToCart')
+                }}
               </Button>
             </div>
           </article>
@@ -522,7 +546,7 @@ function closeProduct() {
       type="button"
       @click="cartOpen = true"
     >
-      <span>Xem giỏ hàng · {{ selectedItemCount }} sản phẩm</span>
+      <span>{{ t('catalog.viewCartBar', selectedItemCount) }}</span>
       <span>{{ currency.format(cartTotal) }}</span>
     </Button>
 
@@ -532,7 +556,7 @@ function closeProduct() {
           <Button
             class="absolute right-4 top-4 z-10 size-10 bg-card/90 p-0"
             variant="outline"
-            aria-label="Đóng chi tiết sản phẩm"
+            :aria-label="t('catalog.productDialog.close')"
           >
             <IconX :size="20" :stroke-width="1.8" aria-hidden="true" />
           </Button>
@@ -540,16 +564,16 @@ function closeProduct() {
 
         <div v-if="productQuery.isPending.value" class="grid min-h-72 place-items-center p-6">
           <DialogHeader class="sr-only">
-            <DialogTitle>Chi tiết sản phẩm</DialogTitle>
-            <DialogDescription>Đang tải chi tiết sản phẩm.</DialogDescription>
+            <DialogTitle>{{ t('catalog.productDialog.title') }}</DialogTitle>
+            <DialogDescription>{{ t('catalog.productDialog.loading') }}</DialogDescription>
           </DialogHeader>
           <IconPackage class="animate-pulse text-primary" :size="40" aria-hidden="true" />
         </div>
 
         <div v-else-if="productQuery.isError.value" class="p-6 pr-16" role="alert">
           <DialogHeader>
-            <DialogTitle>Không thể tải sản phẩm</DialogTitle>
-            <DialogDescription>Sản phẩm này hiện không thể truy cập.</DialogDescription>
+            <DialogTitle>{{ t('catalog.productDialog.errorTitle') }}</DialogTitle>
+            <DialogDescription>{{ t('catalog.productDialog.errorHint') }}</DialogDescription>
           </DialogHeader>
         </div>
 
@@ -575,7 +599,9 @@ function closeProduct() {
                 {{ productQuery.data.value.name }}
               </DialogTitle>
               <DialogDescription class="leading-relaxed">
-                {{ productQuery.data.value.description || 'Chưa có mô tả sản phẩm.' }}
+                {{
+                  productQuery.data.value.description || t('catalog.productDialog.noDescription')
+                }}
               </DialogDescription>
             </DialogHeader>
             <p class="border-t border-border pt-5 text-2xl font-black text-primary">
@@ -588,7 +614,9 @@ function closeProduct() {
             >
               <IconShoppingCart :size="18" :stroke-width="1.8" aria-hidden="true" />
               {{
-                productQuery.data.value.stockStatus === 'OUT_OF_STOCK' ? 'Hết hàng' : 'Thêm vào giỏ'
+                productQuery.data.value.stockStatus === 'OUT_OF_STOCK'
+                  ? t('catalog.stock.OUT_OF_STOCK')
+                  : t('catalog.addToCart')
               }}
             </Button>
           </div>
@@ -603,13 +631,21 @@ function closeProduct() {
         <div class="flex items-start justify-between border-b border-border p-5 text-left">
           <div>
             <p class="text-xs font-black uppercase tracking-[0.16em] text-success">
-              Đơn hàng của bạn
+              {{ t('catalog.cartPanel.kicker') }}
             </p>
-            <DialogTitle class="mt-1 text-2xl text-primary">Giỏ hàng</DialogTitle>
-            <DialogDescription>{{ selectedItemCount }} sản phẩm đã chọn</DialogDescription>
+            <DialogTitle class="mt-1 text-2xl text-primary">
+              {{ t('catalog.cartPanel.title') }}
+            </DialogTitle>
+            <DialogDescription>
+              {{ t('catalog.cartPanel.itemsSelected', selectedItemCount) }}
+            </DialogDescription>
           </div>
           <DialogClose as-child>
-            <Button class="size-10 shrink-0 p-0" variant="outline" aria-label="Đóng giỏ hàng">
+            <Button
+              class="size-10 shrink-0 p-0"
+              variant="outline"
+              :aria-label="t('catalog.cartPanel.close')"
+            >
               <IconX :size="20" :stroke-width="1.8" aria-hidden="true" />
             </Button>
           </DialogClose>
@@ -623,8 +659,8 @@ function closeProduct() {
               :stroke-width="1.5"
               aria-hidden="true"
             />
-            <p class="mt-3 font-bold">Giỏ hàng đang trống</p>
-            <p class="mt-1 text-sm text-muted-foreground">Thêm sản phẩm để bắt đầu đặt hàng.</p>
+            <p class="mt-3 font-bold">{{ t('catalog.cartPanel.emptyTitle') }}</p>
+            <p class="mt-1 text-sm text-muted-foreground">{{ t('catalog.cartPanel.emptyHint') }}</p>
           </div>
         </div>
         <div v-else class="overflow-y-auto px-5">
@@ -649,7 +685,7 @@ function closeProduct() {
                   class="grid size-8 place-items-center disabled:opacity-40"
                   type="button"
                   :disabled="line.quantity <= 1"
-                  :aria-label="`Giảm số lượng ${line.product.name}`"
+                  :aria-label="t('catalog.cartPanel.decrease', { name: line.product.name })"
                   @click="updateQuantity(line.product.id, line.quantity - 1)"
                 >
                   <IconMinus :size="15" :stroke-width="2" aria-hidden="true" />
@@ -658,7 +694,7 @@ function closeProduct() {
                 <button
                   class="grid size-8 place-items-center"
                   type="button"
-                  :aria-label="`Tăng số lượng ${line.product.name}`"
+                  :aria-label="t('catalog.cartPanel.increase', { name: line.product.name })"
                   @click="updateQuantity(line.product.id, line.quantity + 1)"
                 >
                   <IconPlus :size="15" :stroke-width="2" aria-hidden="true" />
@@ -668,7 +704,7 @@ function closeProduct() {
             <button
               class="self-start rounded-md p-2 text-destructive hover:bg-destructive-muted"
               type="button"
-              :aria-label="`Xóa ${line.product.name}`"
+              :aria-label="t('catalog.cartPanel.remove', { name: line.product.name })"
               @click="removeFromCart(line.product.id)"
             >
               <IconTrash :size="18" :stroke-width="1.8" aria-hidden="true" />
@@ -678,7 +714,7 @@ function closeProduct() {
 
         <footer class="border-t border-border bg-secondary/30 p-5">
           <div class="flex items-end justify-between gap-4">
-            <span class="text-sm text-muted-foreground">Tạm tính</span>
+            <span class="text-sm text-muted-foreground">{{ t('catalog.cartPanel.subtotal') }}</span>
             <strong class="whitespace-nowrap text-2xl font-black text-primary">
               {{ currency.format(cartTotal) }}
             </strong>
@@ -689,7 +725,7 @@ function closeProduct() {
             :disabled="checkoutLines.length === 0"
             @click="openCheckout"
           >
-            Tiến hành đặt hàng
+            {{ t('catalog.cartPanel.checkout') }}
             <IconArrowRight :size="18" :stroke-width="1.8" aria-hidden="true" />
           </Button>
         </footer>
@@ -701,14 +737,14 @@ function closeProduct() {
         class="max-h-[calc(100dvh-1rem)] w-[min(calc(100%-1rem),68rem)] max-w-none overflow-y-auto p-0 sm:max-h-[calc(100dvh-2rem)]"
       >
         <DialogHeader class="sr-only">
-          <DialogTitle>Đặt hàng</DialogTitle>
-          <DialogDescription>Kiểm tra sản phẩm và nhập thông tin giao hàng.</DialogDescription>
+          <DialogTitle>{{ t('catalog.checkoutDialog.title') }}</DialogTitle>
+          <DialogDescription>{{ t('catalog.checkoutDialog.description') }}</DialogDescription>
         </DialogHeader>
         <DialogClose as-child>
           <Button
             class="absolute right-3 top-3 z-20 size-10 bg-card/90 p-0"
             variant="outline"
-            aria-label="Đóng đặt hàng"
+            :aria-label="t('catalog.checkoutDialog.close')"
           >
             <IconX :size="20" :stroke-width="1.8" aria-hidden="true" />
           </Button>

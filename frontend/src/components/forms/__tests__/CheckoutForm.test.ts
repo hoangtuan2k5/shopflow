@@ -14,6 +14,14 @@ test('renders payment handoff and field-specific server errors', async (context)
   const { default: CheckoutForm } = await vite.ssrLoadModule(
     '/src/components/forms/CheckoutForm.vue',
   )
+  const { i18n } = await vite.ssrLoadModule('/src/i18n/index.ts')
+  i18n.global.locale.value = 'vi'
+
+  function renderForm(props: Record<string, unknown>) {
+    const app = createSSRApp({ render: () => h(CheckoutForm, props) })
+    app.use(i18n)
+    return renderToString(app)
+  }
 
   const successOrder = {
     id: 501,
@@ -33,20 +41,15 @@ test('renders payment handoff and field-specific server errors', async (context)
     createdAt: '2026-07-20T08:00:00Z',
   }
 
-  const paymentHtml = await renderToString(
-    createSSRApp({
-      render: () =>
-        h(CheckoutForm, {
-          lines: [],
-          submitting: false,
-          error: null,
-          successOrder,
-          paymentSubmitting: false,
-          paymentError: null,
-          paymentResult: null,
-        }),
-    }),
-  )
+  const paymentHtml = await renderForm({
+    lines: [],
+    submitting: false,
+    error: null,
+    successOrder,
+    paymentSubmitting: false,
+    paymentError: null,
+    paymentResult: null,
+  })
 
   assert.match(paymentHtml, /id="payment-simulation"/)
   assert.match(paymentHtml, /Mô phỏng thanh toán/)
@@ -57,30 +60,25 @@ test('renders payment handoff and field-specific server errors', async (context)
   assert.match(paymentHtml, /Mô phỏng thất bại/)
   assert.match(paymentHtml, /Mô phỏng hết hạn/)
 
-  const paymentResultHtml = await renderToString(
-    createSSRApp({
-      render: () =>
-        h(CheckoutForm, {
-          lines: [],
-          submitting: false,
-          error: null,
-          successOrder,
-          paymentSubmitting: false,
-          paymentError: null,
-          paymentResult: {
-            id: 91,
-            orderId: 501,
-            method: 'CARD',
-            status: 'SUCCESS',
-            amount: 46_970_000,
-            paidAt: '2026-07-21T09:00:00Z',
-            failedReason: null,
-            createdAt: '2026-07-21T09:00:00Z',
-            orderStatus: 'PAID',
-          },
-        }),
-    }),
-  )
+  const paymentResultHtml = await renderForm({
+    lines: [],
+    submitting: false,
+    error: null,
+    successOrder,
+    paymentSubmitting: false,
+    paymentError: null,
+    paymentResult: {
+      id: 91,
+      orderId: 501,
+      method: 'CARD',
+      status: 'SUCCESS',
+      amount: 46_970_000,
+      paidAt: '2026-07-21T09:00:00Z',
+      failedReason: null,
+      createdAt: '2026-07-21T09:00:00Z',
+      orderStatus: 'PAID',
+    },
+  })
 
   assert.match(paymentResultHtml, /Payment SUCCESS · Order PAID/)
   assert.doesNotMatch(paymentResultHtml, /Mô phỏng thất bại/)
@@ -89,95 +87,75 @@ test('renders payment handoff and field-specific server errors', async (context)
     ['FAILED', 'Thanh toán thất bại', 'Declined by simulation'],
     ['EXPIRED', 'Thanh toán đã hết hạn', 'Expired by simulation'],
   ] as const) {
-    const terminalHtml = await renderToString(
-      createSSRApp({
-        render: () =>
-          h(CheckoutForm, {
-            lines: [],
-            submitting: false,
-            error: null,
-            successOrder,
-            paymentSubmitting: false,
-            paymentError: null,
-            paymentResult: {
-              id: 92,
-              orderId: 501,
-              method: 'CARD',
-              status,
-              amount: 46_970_000,
-              paidAt: null,
-              failedReason: reason,
-              createdAt: '2026-07-21T09:00:00Z',
-              orderStatus: 'PAYMENT_FAILED',
-            },
-          }),
-      }),
-    )
+    const terminalHtml = await renderForm({
+      lines: [],
+      submitting: false,
+      error: null,
+      successOrder,
+      paymentSubmitting: false,
+      paymentError: null,
+      paymentResult: {
+        id: 92,
+        orderId: 501,
+        method: 'CARD',
+        status,
+        amount: 46_970_000,
+        paidAt: null,
+        failedReason: reason,
+        createdAt: '2026-07-21T09:00:00Z',
+        orderStatus: 'PAYMENT_FAILED',
+      },
+    })
 
     assert.match(terminalHtml, new RegExp(title))
     assert.match(terminalHtml, new RegExp(`Payment ${status} · Order PAYMENT_FAILED`))
     assert.match(terminalHtml, new RegExp(reason))
   }
 
-  const paymentLoadingHtml = await renderToString(
-    createSSRApp({
-      render: () =>
-        h(CheckoutForm, {
-          lines: [],
-          submitting: false,
-          error: null,
-          successOrder,
-          paymentSubmitting: true,
-          paymentError: null,
-          paymentResult: null,
-        }),
-    }),
-  )
+  const paymentLoadingHtml = await renderForm({
+    lines: [],
+    submitting: false,
+    error: null,
+    successOrder,
+    paymentSubmitting: true,
+    paymentError: null,
+    paymentResult: null,
+  })
 
   assert.match(paymentLoadingHtml, /Đang xử lý kết quả thanh toán…/)
   assert.match(paymentLoadingHtml, /disabled/)
 
-  const paymentErrorHtml = await renderToString(
-    createSSRApp({
-      render: () =>
-        h(CheckoutForm, {
-          lines: [],
-          submitting: false,
-          error: null,
-          successOrder,
-          paymentSubmitting: false,
-          paymentError: { message: 'Order is not eligible for payment', status: 409 },
-          paymentResult: null,
-        }),
-    }),
-  )
+  const paymentErrorHtml = await renderForm({
+    lines: [],
+    submitting: false,
+    error: null,
+    successOrder,
+    paymentSubmitting: false,
+    paymentError: { message: 'Order is not eligible for payment', status: 409 },
+    paymentResult: null,
+  })
 
   assert.match(paymentErrorHtml, /Order is not eligible for payment/)
   assert.match(paymentErrorHtml, /Đơn hàng #501/)
   assert.match(paymentErrorHtml, /Thanh toán thành công/)
 
-  const errorHtml = await renderToString(
-    createSSRApp({
-      render: () =>
-        h(CheckoutForm, {
-          lines: [
-            {
-              product: { id: 1, name: 'Coffee', price: 100_000, stockStatus: 'IN_STOCK' },
-              quantity: 1,
-            },
-          ],
-          submitting: false,
-          error: {
-            message: 'Invalid order request',
-            fieldErrors: { 'shippingAddress.phone': 'must not be blank' },
-          },
-          successOrder: null,
-          paymentSubmitting: false,
-          paymentError: null,
-          paymentResult: null,
-        }),
-    }),
-  )
+  const errorHtml = await renderForm({
+    lines: [
+      {
+        product: { id: 1, name: 'Coffee', price: 100_000, stockStatus: 'IN_STOCK' },
+        quantity: 1,
+      },
+    ],
+    submitting: false,
+    error: {
+      message: 'Invalid order request',
+      fieldErrors: { 'shippingAddress.phone': 'must not be blank' },
+    },
+    successOrder: null,
+    paymentSubmitting: false,
+    paymentError: null,
+    paymentResult: null,
+  })
 
   assert.match(errorHtml, /Coffee/)
   assert.match(errorHtml, /must not be blank/)

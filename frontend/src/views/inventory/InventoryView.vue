@@ -11,6 +11,7 @@ import {
 } from '@tabler/icons-vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { z } from 'zod'
 import {
@@ -34,6 +35,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 
+const { t } = useI18n()
 const inventoryKey = ['inventory'] as const
 const queryClient = useQueryClient()
 const selectedItem = ref<InventoryItem | null>(null)
@@ -50,46 +52,52 @@ const thresholdValue = ref<string | number>('')
 const thresholdFormErrors = ref<Record<string, string>>({})
 const successMessage = ref('')
 
-const adjustmentSchema = z.object({
-  delta: z
-    .number({
-      required_error: 'Enter a whole-number adjustment.',
-      invalid_type_error: 'Enter a whole-number adjustment.',
-    })
-    .int('Enter a whole-number adjustment.')
-    .min(-2_147_483_648, 'Adjustment is too small.')
-    .max(2_147_483_647, 'Adjustment is too large.')
-    .refine((value) => value !== 0, 'Adjustment cannot be zero.'),
-  reason: z.string().min(1, 'Reason is required.').max(500, 'Use 500 characters or fewer.'),
-})
-
-const receivingSchema = z.object({
-  quantity: z
-    .number({
-      required_error: 'Enter a whole-number quantity.',
-      invalid_type_error: 'Enter a whole-number quantity.',
-    })
-    .int('Enter a whole-number quantity.')
-    .min(1, 'Quantity must be greater than zero.')
-    .max(2_147_483_647, 'Quantity is too large.'),
-  supplierName: z
-    .string()
-    .refine((value) => value === '' || value.trim().length > 0, 'Supplier name cannot be blank.')
-    .refine((value) => value.trim().length <= 255, 'Use 255 characters or fewer.'),
-  note: z
-    .string()
-    .refine((value) => value === '' || value.trim().length > 0, 'Note cannot be blank.')
-    .refine((value) => value.trim().length <= 500, 'Use 500 characters or fewer.'),
-})
-
-const thresholdSchema = z
-  .number({
-    invalid_type_error: 'Enter a whole-number threshold.',
+function adjustmentSchema() {
+  return z.object({
+    delta: z
+      .number({
+        required_error: t('inventory.form.deltaInvalid'),
+        invalid_type_error: t('inventory.form.deltaInvalid'),
+      })
+      .int(t('inventory.form.deltaInvalid'))
+      .min(-2_147_483_648, t('inventory.form.deltaTooSmall'))
+      .max(2_147_483_647, t('inventory.form.deltaTooLarge'))
+      .refine((value) => value !== 0, t('inventory.form.deltaZero')),
+    reason: z.string().min(1, t('inventory.form.reasonRequired')).max(500, t('common.max500')),
   })
-  .int('Enter a whole-number threshold.')
-  .min(0, 'Threshold cannot be negative.')
-  .max(2_147_483_647, 'Threshold is too large.')
-  .nullable()
+}
+
+function receivingSchema() {
+  return z.object({
+    quantity: z
+      .number({
+        required_error: t('inventory.form.quantityInvalid'),
+        invalid_type_error: t('inventory.form.quantityInvalid'),
+      })
+      .int(t('inventory.form.quantityInvalid'))
+      .min(1, t('inventory.form.quantityMin'))
+      .max(2_147_483_647, t('inventory.form.quantityMax')),
+    supplierName: z
+      .string()
+      .refine((value) => value === '' || value.trim().length > 0, t('inventory.form.supplierBlank'))
+      .refine((value) => value.trim().length <= 255, t('inventory.form.supplierMax')),
+    note: z
+      .string()
+      .refine((value) => value === '' || value.trim().length > 0, t('inventory.form.noteBlank'))
+      .refine((value) => value.trim().length <= 500, t('common.max500')),
+  })
+}
+
+function thresholdSchema() {
+  return z
+    .number({
+      invalid_type_error: t('inventory.form.thresholdInvalid'),
+    })
+    .int(t('inventory.form.thresholdInvalid'))
+    .min(0, t('inventory.form.thresholdNegative'))
+    .max(2_147_483_647, t('inventory.form.thresholdMax'))
+    .nullable()
+}
 
 const inventoryQuery = useQuery({
   queryKey: inventoryKey,
@@ -107,13 +115,18 @@ const adjustmentMutation = useMutation({
     queryClient.setQueryData<InventoryItem[]>(inventoryKey, (items) =>
       items?.map((item) => (item.productId === updated.productId ? updated : item)),
     )
-    successMessage.value = `${updated.productName} stock updated.`
+    successMessage.value = t('inventory.successAdjusted', { product: updated.productName })
     selectedItem.value = null
   },
 })
 
 const receivingMutation = useMutation({
-  mutationFn: ({ productId, quantity, supplierName, note }: {
+  mutationFn: ({
+    productId,
+    quantity,
+    supplierName,
+    note,
+  }: {
     productId: number
     quantity: number
     supplierName: string | null
@@ -135,7 +148,10 @@ const receivingMutation = useMutation({
           : item,
       ),
     )
-    successMessage.value = `Received ${received.quantity} units for ${received.productName}.`
+    successMessage.value = t('inventory.successReceived', {
+      quantity: received.quantity,
+      product: received.productName,
+    })
     receivingItem.value = null
     await queryClient.invalidateQueries({ queryKey: inventoryKey })
   },
@@ -150,8 +166,11 @@ const thresholdMutation = useMutation({
     )
     successMessage.value =
       updated.lowStockThreshold === null
-        ? `${updated.productName} low stock alert removed.`
-        : `${updated.productName} alerts when available stock is ${updated.lowStockThreshold} or less.`
+        ? t('inventory.successAlertRemoved', { product: updated.productName })
+        : t('inventory.successAlertSet', {
+            product: updated.productName,
+            threshold: updated.lowStockThreshold,
+          })
     thresholdItem.value = null
   },
 })
@@ -183,13 +202,13 @@ const receivingError = computed(() => {
 const receivingErrorMessage = computed(() => {
   if (receivingError.value) return receivingError.value.message
   const error = receivingMutation.error.value
-  return error instanceof Error ? error.message : 'Receiving could not be saved. Try again.'
+  return error instanceof Error ? error.message : t('inventory.receivingDialog.fallbackError')
 })
 
 const thresholdErrorMessage = computed(() => {
   if (thresholdError.value) return thresholdError.value.message
   const error = thresholdMutation.error.value
-  return error instanceof Error ? error.message : 'Low stock alert could not be saved. Try again.'
+  return error instanceof Error ? error.message : t('inventory.thresholdDialog.fallbackError')
 })
 
 function openAdjustment(item: InventoryItem) {
@@ -230,7 +249,7 @@ function closeThreshold() {
 
 function submitThreshold() {
   const raw = String(thresholdValue.value).trim()
-  const result = thresholdSchema.safeParse(raw === '' ? null : Number(raw))
+  const result = thresholdSchema().safeParse(raw === '' ? null : Number(raw))
 
   if (!result.success) {
     thresholdFormErrors.value = { lowStockThreshold: result.error.issues[0]!.message }
@@ -245,7 +264,7 @@ function submitThreshold() {
 }
 
 function submitAdjustment() {
-  const result = adjustmentSchema.safeParse({
+  const result = adjustmentSchema().safeParse({
     delta: String(delta.value).trim() === '' ? Number.NaN : Number(delta.value),
     reason: reason.value.trim(),
   })
@@ -265,8 +284,9 @@ function submitAdjustment() {
 }
 
 function submitReceiving() {
-  const result = receivingSchema.safeParse({
-    quantity: String(receivingQuantity.value).trim() === '' ? Number.NaN : Number(receivingQuantity.value),
+  const result = receivingSchema().safeParse({
+    quantity:
+      String(receivingQuantity.value).trim() === '' ? Number.NaN : Number(receivingQuantity.value),
     supplierName: supplierName.value,
     note: receivingNote.value,
   })
@@ -302,22 +322,26 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
 
 <template>
   <section class="grid gap-6">
-    <header class="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+    <header
+      class="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between"
+    >
       <div class="space-y-2">
-        <p class="text-xs font-bold uppercase text-success">Warehouse operations</p>
-        <h1 class="text-3xl font-semibold text-primary">Inventory management</h1>
+        <p class="text-xs font-bold uppercase text-success">
+          {{ t('common.warehouseOperations') }}
+        </p>
+        <h1 class="text-3xl font-semibold text-primary">{{ t('inventory.title') }}</h1>
         <p class="max-w-2xl text-sm text-muted-foreground">
-          Review physical, reserved and available stock before making a counted adjustment.
+          {{ t('inventory.subtitle') }}
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
         <RouterLink to="/warehouse/deliveries" :class="buttonVariants({ variant: 'outline' })">
           <IconTruckDelivery :size="18" :stroke-width="1.8" aria-hidden="true" />
-          Manage deliveries
+          {{ t('common.manageDeliveries') }}
         </RouterLink>
         <RouterLink to="/warehouse/returns" :class="buttonVariants({ variant: 'outline' })">
           <IconArrowBackUp :size="18" :stroke-width="1.8" aria-hidden="true" />
-          Manage returns
+          {{ t('common.manageReturns') }}
         </RouterLink>
         <Button
           variant="outline"
@@ -325,7 +349,7 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
           @click="inventoryQuery.refetch()"
         >
           <IconRefresh :size="18" :stroke-width="1.8" aria-hidden="true" />
-          Refresh
+          {{ t('common.refresh') }}
         </Button>
       </div>
     </header>
@@ -346,8 +370,7 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
       role="alert"
     >
       <IconBell :size="18" :stroke-width="1.8" aria-hidden="true" />
-      {{ lowStockCount }} {{ lowStockCount === 1 ? 'product is' : 'products are' }} low on stock.
-      Receive supplier stock to restore availability.
+      {{ t('inventory.lowStockBanner', lowStockCount) }}
     </p>
 
     <div v-if="inventoryQuery.isPending.value" class="overflow-hidden rounded-lg border bg-card">
@@ -372,9 +395,11 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
           :stroke-width="1.8"
           aria-hidden="true"
         />
-        <h2 class="text-lg font-semibold">Inventory could not be loaded</h2>
-        <p class="text-sm text-muted-foreground">Check the connection and try again.</p>
-        <Button variant="outline" @click="inventoryQuery.refetch()">Try again</Button>
+        <h2 class="text-lg font-semibold">{{ t('inventory.loadErrorTitle') }}</h2>
+        <p class="text-sm text-muted-foreground">{{ t('common.checkConnection') }}</p>
+        <Button variant="outline" @click="inventoryQuery.refetch()">
+          {{ t('common.tryAgain') }}
+        </Button>
       </div>
     </div>
 
@@ -384,8 +409,8 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
     >
       <div class="grid max-w-sm justify-items-center gap-3">
         <IconBox class="text-muted-foreground" :size="30" :stroke-width="1.8" aria-hidden="true" />
-        <h2 class="text-lg font-semibold">No products to manage</h2>
-        <p class="text-sm text-muted-foreground">Inventory will appear when products are available.</p>
+        <h2 class="text-lg font-semibold">{{ t('inventory.emptyTitle') }}</h2>
+        <p class="text-sm text-muted-foreground">{{ t('inventory.emptyHint') }}</p>
       </div>
     </div>
 
@@ -393,13 +418,13 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
       <div
         class="hidden grid-cols-[minmax(12rem,2fr)_repeat(3,minmax(6rem,1fr))_auto] gap-4 border-b bg-muted/60 px-5 py-3 text-xs font-bold uppercase text-muted-foreground lg:grid"
       >
-        <span>Product</span>
-        <span>On hand</span>
-        <span>Reserved</span>
-        <span>Available</span>
-        <span class="sr-only">Action</span>
+        <span>{{ t('inventory.columns.product') }}</span>
+        <span>{{ t('inventory.columns.onHand') }}</span>
+        <span>{{ t('inventory.columns.reserved') }}</span>
+        <span>{{ t('inventory.columns.available') }}</span>
+        <span class="sr-only">{{ t('inventory.columns.action') }}</span>
       </div>
-      <ul aria-label="Inventory products" class="divide-y">
+      <ul :aria-label="t('inventory.listLabel')" class="divide-y">
         <li
           v-for="item in inventoryQuery.data.value"
           :key="item.productId"
@@ -412,27 +437,33 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
                 v-if="item.lowStock"
                 class="shrink-0 rounded-full bg-destructive-muted px-2 py-0.5 text-xs font-semibold text-destructive"
               >
-                Low stock
+                {{ t('inventory.lowStockBadge') }}
               </span>
             </p>
             <p class="text-xs text-muted-foreground">
-              Product #{{ item.productId
+              {{ t('inventory.productLine', { id: item.productId })
               }}<template v-if="item.lowStockThreshold !== null">
-                · Alerts at ≤ {{ item.lowStockThreshold }}</template
+                · {{ t('inventory.alertsAt', { threshold: item.lowStockThreshold }) }}</template
               >
             </p>
           </div>
           <dl class="grid grid-cols-3 gap-3 lg:contents">
             <div>
-              <dt class="text-xs text-muted-foreground lg:sr-only">On hand</dt>
+              <dt class="text-xs text-muted-foreground lg:sr-only">
+                {{ t('inventory.columns.onHand') }}
+              </dt>
               <dd class="mt-1 font-semibold tabular-nums lg:mt-0">{{ item.onHandStock }}</dd>
             </div>
             <div>
-              <dt class="text-xs text-muted-foreground lg:sr-only">Reserved</dt>
+              <dt class="text-xs text-muted-foreground lg:sr-only">
+                {{ t('inventory.columns.reserved') }}
+              </dt>
               <dd class="mt-1 font-semibold tabular-nums lg:mt-0">{{ item.reservedStock }}</dd>
             </div>
             <div>
-              <dt class="text-xs text-muted-foreground lg:sr-only">Available</dt>
+              <dt class="text-xs text-muted-foreground lg:sr-only">
+                {{ t('inventory.columns.available') }}
+              </dt>
               <dd
                 class="mt-1 font-semibold tabular-nums lg:mt-0"
                 :class="item.availableStock > 0 ? 'text-success' : 'text-destructive'"
@@ -444,15 +475,15 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
           <div class="grid gap-2 sm:grid-cols-2 lg:flex">
             <Button class="w-full lg:w-auto" @click="openReceiving(item)">
               <IconBox :size="18" :stroke-width="1.8" aria-hidden="true" />
-              Receive stock
+              {{ t('inventory.receiveStock') }}
             </Button>
             <Button class="w-full lg:w-auto" variant="outline" @click="openAdjustment(item)">
               <IconAdjustmentsHorizontal :size="18" :stroke-width="1.8" aria-hidden="true" />
-              Adjust
+              {{ t('inventory.adjust') }}
             </Button>
             <Button class="w-full lg:w-auto" variant="outline" @click="openThreshold(item)">
               <IconBell :size="18" :stroke-width="1.8" aria-hidden="true" />
-              Set alert
+              {{ t('inventory.setAlert') }}
             </Button>
           </div>
         </li>
@@ -462,38 +493,41 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
     <Dialog :open="selectedItem !== null" @update:open="(open) => !open && closeAdjustment()">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Adjust {{ selectedItem?.productName }}</DialogTitle>
+          <DialogTitle>
+            {{ t('inventory.adjustDialog.title', { product: selectedItem?.productName }) }}
+          </DialogTitle>
           <DialogDescription>
-            Enter the counted change, not the final stock quantity. Negative values reduce on-hand
-            stock.
+            {{ t('inventory.adjustDialog.description') }}
           </DialogDescription>
         </DialogHeader>
 
         <div v-if="selectedItem" class="grid grid-cols-3 gap-2 rounded-md bg-muted p-3 text-center">
           <div>
-            <p class="text-xs text-muted-foreground">On hand</p>
+            <p class="text-xs text-muted-foreground">{{ t('inventory.columns.onHand') }}</p>
             <p class="font-semibold tabular-nums">{{ selectedItem.onHandStock }}</p>
           </div>
           <div>
-            <p class="text-xs text-muted-foreground">Reserved</p>
+            <p class="text-xs text-muted-foreground">{{ t('inventory.columns.reserved') }}</p>
             <p class="font-semibold tabular-nums">{{ selectedItem.reservedStock }}</p>
           </div>
           <div>
-            <p class="text-xs text-muted-foreground">Available</p>
+            <p class="text-xs text-muted-foreground">{{ t('inventory.columns.available') }}</p>
             <p class="font-semibold tabular-nums">{{ selectedItem.availableStock }}</p>
           </div>
         </div>
 
         <form class="grid gap-4" @submit.prevent="submitAdjustment">
           <div class="grid gap-1.5">
-            <label for="stock-delta" class="text-sm font-medium">Stock change</label>
+            <label for="stock-delta" class="text-sm font-medium">
+              {{ t('inventory.adjustDialog.deltaLabel') }}
+            </label>
             <Input
               id="stock-delta"
               v-model="delta"
               type="number"
               step="1"
               inputmode="numeric"
-              placeholder="For example: 5 or -2"
+              :placeholder="t('inventory.adjustDialog.deltaPlaceholder')"
               :aria-invalid="Boolean(formErrors.delta || adjustmentError?.fieldErrors?.delta)"
               aria-describedby="stock-delta-error"
             />
@@ -507,14 +541,16 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
           </div>
 
           <div class="grid gap-1.5">
-            <label for="stock-reason" class="text-sm font-medium">Reason</label>
+            <label for="stock-reason" class="text-sm font-medium">
+              {{ t('inventory.adjustDialog.reasonLabel') }}
+            </label>
             <textarea
               id="stock-reason"
               v-model="reason"
               rows="3"
               maxlength="500"
               class="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
-              placeholder="Why does the counted stock need changing?"
+              :placeholder="t('inventory.adjustDialog.reasonPlaceholder')"
               :aria-invalid="Boolean(formErrors.reason || adjustmentError?.fieldErrors?.reason)"
               aria-describedby="stock-reason-error"
             />
@@ -542,10 +578,14 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
               :disabled="adjustmentMutation.isPending.value"
               @click="closeAdjustment"
             >
-              Cancel
+              {{ t('common.cancel') }}
             </Button>
             <Button type="submit" :disabled="adjustmentMutation.isPending.value">
-              {{ adjustmentMutation.isPending.value ? 'Saving…' : 'Save adjustment' }}
+              {{
+                adjustmentMutation.isPending.value
+                  ? t('common.saving')
+                  : t('inventory.adjustDialog.submit')
+              }}
             </Button>
           </DialogFooter>
         </form>
@@ -555,23 +595,29 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
     <Dialog :open="receivingItem !== null" @update:open="(open) => !open && closeReceiving()">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Receive stock for {{ receivingItem?.productName }}</DialogTitle>
+          <DialogTitle>
+            {{ t('inventory.receivingDialog.title', { product: receivingItem?.productName }) }}
+          </DialogTitle>
           <DialogDescription>
-            Record the quantity delivered by a supplier. On-hand stock will increase immediately.
+            {{ t('inventory.receivingDialog.description') }}
           </DialogDescription>
         </DialogHeader>
 
         <form class="grid gap-4" novalidate @submit.prevent="submitReceiving">
           <div class="grid gap-1.5">
-            <label for="receiving-quantity" class="text-sm font-medium">Quantity</label>
+            <label for="receiving-quantity" class="text-sm font-medium">
+              {{ t('inventory.receivingDialog.quantityLabel') }}
+            </label>
             <Input
               id="receiving-quantity"
               v-model="receivingQuantity"
               type="number"
               step="1"
               inputmode="numeric"
-              placeholder="For example: 20"
-              :aria-invalid="Boolean(receivingFormErrors.quantity || receivingError?.fieldErrors?.quantity)"
+              :placeholder="t('inventory.receivingDialog.quantityPlaceholder')"
+              :aria-invalid="
+                Boolean(receivingFormErrors.quantity || receivingError?.fieldErrors?.quantity)
+              "
               aria-describedby="receiving-quantity-error"
             />
             <p
@@ -584,12 +630,18 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
           </div>
 
           <div class="grid gap-1.5">
-            <label for="receiving-supplier" class="text-sm font-medium">Supplier name (optional)</label>
+            <label for="receiving-supplier" class="text-sm font-medium">
+              {{ t('inventory.receivingDialog.supplierLabel') }}
+            </label>
             <Input
               id="receiving-supplier"
               v-model="supplierName"
-              placeholder="For example: Acme Distribution"
-              :aria-invalid="Boolean(receivingFormErrors.supplierName || receivingError?.fieldErrors?.supplierName)"
+              :placeholder="t('inventory.receivingDialog.supplierPlaceholder')"
+              :aria-invalid="
+                Boolean(
+                  receivingFormErrors.supplierName || receivingError?.fieldErrors?.supplierName,
+                )
+              "
               aria-describedby="receiving-supplier-error"
             />
             <p
@@ -602,13 +654,15 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
           </div>
 
           <div class="grid gap-1.5">
-            <label for="receiving-note" class="text-sm font-medium">Note (optional)</label>
+            <label for="receiving-note" class="text-sm font-medium">
+              {{ t('inventory.receivingDialog.noteLabel') }}
+            </label>
             <textarea
               id="receiving-note"
               v-model="receivingNote"
               rows="3"
               class="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
-              placeholder="Invoice number or delivery note"
+              :placeholder="t('inventory.receivingDialog.notePlaceholder')"
               :aria-invalid="Boolean(receivingFormErrors.note || receivingError?.fieldErrors?.note)"
               aria-describedby="receiving-note-error"
             />
@@ -636,10 +690,14 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
               :disabled="receivingMutation.isPending.value"
               @click="closeReceiving"
             >
-              Cancel
+              {{ t('common.cancel') }}
             </Button>
             <Button type="submit" :disabled="receivingMutation.isPending.value">
-              {{ receivingMutation.isPending.value ? 'Receiving…' : 'Receive stock' }}
+              {{
+                receivingMutation.isPending.value
+                  ? t('inventory.receivingDialog.submitting')
+                  : t('inventory.receiveStock')
+              }}
             </Button>
           </DialogFooter>
         </form>
@@ -649,16 +707,19 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
     <Dialog :open="thresholdItem !== null" @update:open="(open) => !open && closeThreshold()">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Low stock alert for {{ thresholdItem?.productName }}</DialogTitle>
+          <DialogTitle>
+            {{ t('inventory.thresholdDialog.title', { product: thresholdItem?.productName }) }}
+          </DialogTitle>
           <DialogDescription>
-            Alert when available stock is at or below the threshold. Leave the field empty to stop
-            tracking this product.
+            {{ t('inventory.thresholdDialog.description') }}
           </DialogDescription>
         </DialogHeader>
 
         <form class="grid gap-4" novalidate @submit.prevent="submitThreshold">
           <div class="grid gap-1.5">
-            <label for="low-stock-threshold" class="text-sm font-medium">Alert threshold</label>
+            <label for="low-stock-threshold" class="text-sm font-medium">
+              {{ t('inventory.thresholdDialog.label') }}
+            </label>
             <Input
               id="low-stock-threshold"
               v-model="thresholdValue"
@@ -666,11 +727,11 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
               step="1"
               inputmode="numeric"
               min="0"
-              placeholder="For example: 5"
+              :placeholder="t('inventory.thresholdDialog.placeholder')"
               :aria-invalid="
                 Boolean(
                   thresholdFormErrors.lowStockThreshold ||
-                    thresholdError?.fieldErrors?.lowStockThreshold,
+                  thresholdError?.fieldErrors?.lowStockThreshold,
                 )
               "
               aria-describedby="low-stock-threshold-error"
@@ -705,10 +766,14 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
               :disabled="thresholdMutation.isPending.value"
               @click="closeThreshold"
             >
-              Cancel
+              {{ t('common.cancel') }}
             </Button>
             <Button type="submit" :disabled="thresholdMutation.isPending.value">
-              {{ thresholdMutation.isPending.value ? 'Saving…' : 'Save alert' }}
+              {{
+                thresholdMutation.isPending.value
+                  ? t('common.saving')
+                  : t('inventory.thresholdDialog.submit')
+              }}
             </Button>
           </DialogFooter>
         </form>

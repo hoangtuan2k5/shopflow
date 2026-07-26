@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 import { IconBuildingWarehouse, IconChartBar, IconShoppingBag } from '@tabler/icons-vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { cn } from '@/lib/utils'
 import { type RoleKey, useAppShellStore } from '@/stores/appShell'
 
+const { t } = useI18n()
 const appShell = useAppShellStore()
 
 const roleIcons: Record<RoleKey, Component> = {
@@ -23,7 +25,7 @@ const roleIcons: Record<RoleKey, Component> = {
       )
     "
   >
-    <nav aria-label="Role navigation" class="grid gap-2">
+    <nav :aria-label="t('shell.roleNav')" class="grid gap-2">
       <RouterLink
         v-for="role in appShell.roles"
         :key="role.key"
@@ -43,8 +45,10 @@ const roleIcons: Record<RoleKey, Component> = {
           aria-hidden="true"
         />
         <span class="min-w-0">
-          <span class="block font-medium">{{ role.label }}</span>
-          <span class="block text-xs text-muted-foreground">{{ role.description }}</span>
+          <span class="block font-medium">{{ t(`shell.roles.${role.key}.label`) }}</span>
+          <span class="block text-xs text-muted-foreground">
+            {{ t(`shell.roles.${role.key}.description`) }}
+          </span>
         </span>
       </RouterLink>
     </nav>

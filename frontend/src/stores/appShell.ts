@@ -5,30 +5,13 @@ export type RoleKey = 'customer' | 'warehouse' | 'shop-owner'
 
 export interface NavigationRole {
   key: RoleKey
-  label: string
   path: string
-  description: string
 }
 
 const roles: NavigationRole[] = [
-  {
-    key: 'customer',
-    label: 'Customer',
-    path: '/customer',
-    description: 'Storefront',
-  },
-  {
-    key: 'warehouse',
-    label: 'Warehouse',
-    path: '/warehouse',
-    description: 'Operations',
-  },
-  {
-    key: 'shop-owner',
-    label: 'Shop Owner',
-    path: '/shop-owner',
-    description: 'Management',
-  },
+  { key: 'customer', path: '/customer' },
+  { key: 'warehouse', path: '/warehouse' },
+  { key: 'shop-owner', path: '/shop-owner' },
 ]
 
 export const useAppShellStore = defineStore('appShell', () => {
