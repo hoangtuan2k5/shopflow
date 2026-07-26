@@ -19,6 +19,14 @@ spring:
     schemas: shopflow
     default-schema: shopflow
 
+server:
+  servlet:
+    session:
+      timeout: 8h
+      cookie:
+        http-only: true
+        same-site: strict
+
 springdoc:
   api-docs:
     path: /v3/api-docs
