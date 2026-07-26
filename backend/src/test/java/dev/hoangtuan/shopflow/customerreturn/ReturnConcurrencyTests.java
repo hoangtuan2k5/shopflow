@@ -126,6 +126,45 @@ class ReturnConcurrencyTests {
     }
   }
 
+  @Test
+  void concurrentRestocksCreateOneInventoryRowForAProductWithoutInventory() throws Exception {
+    long productId = insertProduct();
+    long orderId = insertOrder();
+    long orderItemId = insertOrderItem(orderId, productId, 4);
+    UpdateReturnRequest restock = new UpdateReturnRequest(ReturnStatus.RESTOCKED, null);
+    long firstId = approvedRestockableReturn(orderId, orderItemId, 2);
+    long secondId = approvedRestockableReturn(orderId, orderItemId, 2);
+    CyclicBarrier start = new CyclicBarrier(2);
+    ExecutorService executor = Executors.newFixedThreadPool(2);
+
+    try {
+      Future<ReturnResponse> first =
+          submit(executor, start, () -> returnService.update(firstId, restock));
+      Future<ReturnResponse> second =
+          submit(executor, start, () -> returnService.update(secondId, restock));
+
+      for (Future<ReturnResponse> result : List.of(first, second)) {
+        assertThat(result.get(15, TimeUnit.SECONDS).status()).isEqualTo(ReturnStatus.RESTOCKED);
+      }
+
+      assertThat(countRows("shopflow.inventory_items")).isEqualTo(1);
+      assertThat(onHandStock(productId)).isEqualTo(4);
+      assertThat(countRows("shopflow.stock_movements")).isEqualTo(2);
+    } finally {
+      executor.shutdownNow();
+      assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+    }
+  }
+
+  private long approvedRestockableReturn(long orderId, long orderItemId, int quantity) {
+    ReturnResponse created =
+        returnService.create(
+            new CreateReturnRequest(
+                orderId, null, List.of(new ReturnItemRequest(orderItemId, quantity))));
+    returnService.update(created.id(), new UpdateReturnRequest(ReturnStatus.APPROVED, true));
+    return created.id();
+  }
+
   private Future<ReturnResponse> submit(
       ExecutorService executor, CyclicBarrier start, Callable<ReturnResponse> call) {
     return executor.submit(

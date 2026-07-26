@@ -164,6 +164,7 @@ class ReturnService {
   }
 
   private void restockItem(ReturnItemResponse item, Long returnId) {
+    lockProduct(item.productId());
     Integer onHandStock = findOnHandStockForUpdate(item.productId());
     if (onHandStock == null) {
       jdbcTemplate.update(
@@ -235,7 +236,8 @@ class ReturnService {
             SELECT ri.order_item_id, SUM(ri.quantity) AS returned_quantity
             FROM shopflow.return_request_items ri
             JOIN shopflow.return_requests rr ON rr.id = ri.return_request_id
-            WHERE rr.status IN ('REQUESTED', 'APPROVED', 'RESTOCKED')
+            JOIN shopflow.order_items rio ON rio.id = ri.order_item_id
+            WHERE rio.order_id = ? AND rr.status IN ('REQUESTED', 'APPROVED', 'RESTOCKED')
             GROUP BY ri.order_item_id
         ) r ON r.order_item_id = oi.id
         WHERE oi.order_id = ?
@@ -252,6 +254,7 @@ class ReturnService {
               returnedQuantity,
               quantity - returnedQuantity);
         },
+        orderId,
         orderId);
   }
 
@@ -295,6 +298,13 @@ class ReturnService {
             this::returnRow,
             returnId);
     return returns.isEmpty() ? null : returns.getFirst();
+  }
+
+  private void lockProduct(Long productId) {
+    jdbcTemplate.query(
+        "SELECT id FROM shopflow.products WHERE id = ? FOR UPDATE",
+        (resultSet, rowNumber) -> resultSet.getLong("id"),
+        productId);
   }
 
   private Integer findOnHandStockForUpdate(Long productId) {
