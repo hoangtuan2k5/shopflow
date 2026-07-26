@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
+import { useI18n } from 'vue-i18n'
 import { z } from 'zod'
 import {
   IconAlertTriangle,
@@ -51,17 +52,21 @@ const emit = defineEmits<{
   pay: [result: SimulatedPaymentResult]
 }>()
 
-const formSchema = toTypedSchema(
-  z.object({
-    fullName: z.string().trim().min(1, 'Nhập tên khách hàng.'),
-    email: z.string().trim().email('Nhập email hợp lệ.').or(z.literal('')),
-    customerPhone: z.string().trim(),
-    receiverName: z.string().trim().min(1, 'Nhập tên người nhận.'),
-    receiverPhone: z.string().trim().min(1, 'Nhập số điện thoại người nhận.'),
-    addressLine: z.string().trim().min(1, 'Nhập địa chỉ giao hàng.'),
-    district: z.string().trim(),
-    city: z.string().trim().min(1, 'Nhập tỉnh hoặc thành phố giao hàng.'),
-  }),
+const { t } = useI18n()
+
+const formSchema = computed(() =>
+  toTypedSchema(
+    z.object({
+      fullName: z.string().trim().min(1, t('checkout.errors.fullNameRequired')),
+      email: z.string().trim().email(t('checkout.errors.emailInvalid')).or(z.literal('')),
+      customerPhone: z.string().trim(),
+      receiverName: z.string().trim().min(1, t('checkout.errors.receiverNameRequired')),
+      receiverPhone: z.string().trim().min(1, t('checkout.errors.receiverPhoneRequired')),
+      addressLine: z.string().trim().min(1, t('checkout.errors.addressRequired')),
+      district: z.string().trim(),
+      city: z.string().trim().min(1, t('checkout.errors.cityRequired')),
+    }),
+  ),
 )
 
 type CheckoutValues = {
@@ -147,10 +152,10 @@ function formatCurrency(value: number) {
 function lineError(productId: number) {
   const insufficient = insufficientByProduct.value.get(productId)
   if (insufficient) {
-    return `Hiện chỉ còn ${insufficient.availableStock} sản phẩm.`
+    return t('checkout.review.onlyLeft', { stock: insufficient.availableStock })
   }
   if (unavailableProductIds.value.has(productId)) {
-    return 'Sản phẩm này không còn khả dụng.'
+    return t('checkout.review.unavailable')
   }
   return null
 }
@@ -172,18 +177,18 @@ const submit = handleSubmit((values) => emit('submit', values))
           class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-success"
         >
           <IconReceipt :size="16" :stroke-width="1.8" aria-hidden="true" />
-          Đặt hàng
+          {{ t('checkout.kicker') }}
         </p>
         <h2 id="checkout-title" class="mt-2 text-2xl font-bold tracking-tight">
-          Hoàn tất đơn hàng
+          {{ t('checkout.title') }}
         </h2>
         <p class="mt-1 max-w-xl text-sm text-muted-foreground">
-          Giá và tồn kho được kiểm tra lại khi bạn gửi đơn hàng.
+          {{ t('checkout.hint') }}
         </p>
       </div>
       <div class="rounded-md border border-border bg-card/80 px-3 py-2 text-right">
         <p class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {{ props.lines.length }} sản phẩm
+          {{ t('checkout.itemCount', props.lines.length) }}
         </p>
         <p class="mt-0.5 text-lg font-bold tabular-nums">{{ formatCurrency(totalAmount) }}</p>
       </div>
@@ -202,11 +207,10 @@ const submit = handleSubmit((values) => emit('submit', values))
       />
       <div>
         <p class="font-semibold text-foreground">
-          {{ props.error.message || 'Không thể tạo đơn hàng.' }}
+          {{ props.error.message || t('checkout.errorFallback') }}
         </p>
         <p class="mt-1 text-sm text-muted-foreground">
-          Kiểm tra trường hoặc sản phẩm được đánh dấu rồi thử lại. Tồn kho trên hệ thống là dữ liệu
-          quyết định.
+          {{ t('checkout.errorHint') }}
         </p>
       </div>
     </div>
@@ -225,29 +229,33 @@ const submit = handleSubmit((values) => emit('submit', values))
           <IconReceipt :size="21" :stroke-width="1.8" aria-hidden="true" />
         </div>
         <div>
-          <p class="text-sm font-bold uppercase tracking-wider text-success">03 / Thanh toán</p>
-          <h3 id="payment-simulation-title" class="mt-1 text-xl font-bold">Mô phỏng thanh toán</h3>
+          <p class="text-sm font-bold uppercase tracking-wider text-success">
+            {{ t('checkout.payment.step') }}
+          </p>
+          <h3 id="payment-simulation-title" class="mt-1 text-xl font-bold">
+            {{ t('checkout.payment.title') }}
+          </h3>
           <p class="mt-1 text-sm text-muted-foreground">
-            Đơn hàng #{{ props.successOrder.id }} đã được tạo và sẵn sàng cho bước thanh toán thẻ.
+            {{ t('checkout.payment.created', { id: props.successOrder.id }) }}
           </p>
         </div>
       </div>
       <dl class="grid gap-3 rounded-lg border border-border bg-background/70 p-4 sm:grid-cols-3">
         <div>
           <dt class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Đơn hàng
+            {{ t('checkout.payment.order') }}
           </dt>
           <dd class="mt-1 font-bold">#{{ props.successOrder.id }}</dd>
         </div>
         <div>
           <dt class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Trạng thái
+            {{ t('checkout.payment.status') }}
           </dt>
           <dd class="mt-1 font-bold">{{ props.successOrder.status }}</dd>
         </div>
         <div>
           <dt class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Tổng tiền
+            {{ t('checkout.payment.total') }}
           </dt>
           <dd class="mt-1 font-bold tabular-nums">
             {{ formatCurrency(props.successOrder.totalAmount) }}
@@ -282,10 +290,10 @@ const submit = handleSubmit((values) => emit('submit', values))
           <p class="font-bold">
             {{
               props.paymentResult.status === 'SUCCESS'
-                ? 'Thanh toán thành công'
+                ? t('checkout.payment.resultSuccess')
                 : props.paymentResult.status === 'EXPIRED'
-                  ? 'Thanh toán đã hết hạn'
-                  : 'Thanh toán thất bại'
+                  ? t('checkout.payment.resultExpired')
+                  : t('checkout.payment.resultFailed')
             }}
           </p>
           <p class="mt-1 text-sm text-muted-foreground">
@@ -309,21 +317,23 @@ const submit = handleSubmit((values) => emit('submit', values))
             aria-hidden="true"
           />
           <div>
-            <p class="font-semibold">{{ props.paymentError.message || 'Không thể thanh toán.' }}</p>
+            <p class="font-semibold">
+              {{ props.paymentError.message || t('checkout.payment.errorFallback') }}
+            </p>
             <p class="mt-1 text-sm text-muted-foreground">
-              Đơn hàng vẫn được giữ để bạn kiểm tra lỗi.
+              {{ t('checkout.payment.errorHint') }}
             </p>
           </div>
         </div>
         <div>
-          <p class="font-semibold">Chọn kết quả thanh toán mô phỏng</p>
+          <p class="font-semibold">{{ t('checkout.payment.choose') }}</p>
           <p class="mt-1 text-sm text-muted-foreground">
-            Đây là môi trường demo; không có giao dịch thẻ thật.
+            {{ t('checkout.payment.demoHint') }}
           </p>
         </div>
         <div class="grid gap-2 sm:grid-cols-3">
           <Button type="button" :disabled="props.paymentSubmitting" @click="emit('pay', 'SUCCESS')">
-            Thanh toán thành công
+            {{ t('checkout.payment.paySuccess') }}
           </Button>
           <Button
             type="button"
@@ -331,7 +341,7 @@ const submit = handleSubmit((values) => emit('submit', values))
             :disabled="props.paymentSubmitting"
             @click="emit('pay', 'FAILED')"
           >
-            Mô phỏng thất bại
+            {{ t('checkout.payment.simulateFailure') }}
           </Button>
           <Button
             type="button"
@@ -339,23 +349,21 @@ const submit = handleSubmit((values) => emit('submit', values))
             :disabled="props.paymentSubmitting"
             @click="emit('pay', 'EXPIRED')"
           >
-            Mô phỏng hết hạn
+            {{ t('checkout.payment.simulateExpiry') }}
           </Button>
         </div>
         <p v-if="props.paymentSubmitting" class="text-sm font-semibold text-primary" role="status">
-          Đang xử lý kết quả thanh toán…
+          {{ t('checkout.payment.processing') }}
         </p>
       </div>
       <div class="flex flex-wrap items-center justify-between gap-3">
         <p class="text-sm text-muted-foreground">
           {{
-            props.paymentResult
-              ? 'Kết quả đã được ghi nhận cho đơn hàng.'
-              : 'Tồn kho đã được giữ. Hệ thống chưa ghi nhận thanh toán.'
+            props.paymentResult ? t('checkout.payment.recorded') : t('checkout.payment.reserved')
           }}
         </p>
         <Button type="button" variant="outline" @click="emit('start-over')">
-          Tiếp tục mua sắm
+          {{ t('checkout.payment.continueShopping') }}
           <IconArrowUpRight :size="17" :stroke-width="1.8" aria-hidden="true" />
         </Button>
       </div>
@@ -369,9 +377,9 @@ const submit = handleSubmit((values) => emit('submit', values))
       <div class="grid content-start gap-4">
         <div>
           <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            01 / Kiểm tra
+            {{ t('checkout.review.step') }}
           </p>
-          <h3 class="mt-1 text-lg font-bold">Sản phẩm đã chọn</h3>
+          <h3 class="mt-1 text-lg font-bold">{{ t('checkout.review.title') }}</h3>
         </div>
 
         <div class="grid gap-3">
@@ -387,13 +395,13 @@ const submit = handleSubmit((values) => emit('submit', values))
               <div class="min-w-0">
                 <p class="truncate font-semibold">{{ line.product.name }}</p>
                 <p class="mt-1 text-sm tabular-nums text-muted-foreground">
-                  {{ formatCurrency(line.product.price) }} mỗi sản phẩm
+                  {{ t('checkout.review.perItem', { price: formatCurrency(line.product.price) }) }}
                 </p>
               </div>
               <button
                 type="button"
                 class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive-muted hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                :aria-label="`Xóa ${line.product.name}`"
+                :aria-label="t('catalog.cartPanel.remove', { name: line.product.name })"
                 @click="emit('remove', line.product.id)"
               >
                 <IconTrash :size="17" :stroke-width="1.8" aria-hidden="true" />
@@ -405,7 +413,7 @@ const submit = handleSubmit((values) => emit('submit', values))
                   type="button"
                   class="grid size-8 place-items-center text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-40"
                   :disabled="line.quantity <= 1"
-                  :aria-label="`Giảm số lượng ${line.product.name}`"
+                  :aria-label="t('catalog.cartPanel.decrease', { name: line.product.name })"
                   @click="emit('update-quantity', line.product.id, line.quantity - 1)"
                 >
                   <IconMinus :size="15" :stroke-width="2" aria-hidden="true" />
@@ -416,7 +424,7 @@ const submit = handleSubmit((values) => emit('submit', values))
                 <button
                   type="button"
                   class="grid size-8 place-items-center text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                  :aria-label="`Tăng số lượng ${line.product.name}`"
+                  :aria-label="t('catalog.cartPanel.increase', { name: line.product.name })"
                   @click="emit('update-quantity', line.product.id, line.quantity + 1)"
                 >
                   <IconPlus :size="15" :stroke-width="2" aria-hidden="true" />
@@ -436,7 +444,7 @@ const submit = handleSubmit((values) => emit('submit', values))
         </div>
 
         <div class="flex items-center justify-between border-t border-border pt-4">
-          <span class="text-sm text-muted-foreground">Tổng đơn hàng</span>
+          <span class="text-sm text-muted-foreground">{{ t('checkout.review.total') }}</span>
           <span class="text-xl font-bold tabular-nums">{{ formatCurrency(totalAmount) }}</span>
         </div>
       </div>
@@ -444,15 +452,15 @@ const submit = handleSubmit((values) => emit('submit', values))
       <div class="grid content-start gap-5 lg:border-l lg:border-border lg:pl-7">
         <div>
           <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            02 / Giao hàng
+            {{ t('checkout.delivery.step') }}
           </p>
-          <h3 class="mt-1 text-lg font-bold">Bạn muốn nhận hàng ở đâu?</h3>
+          <h3 class="mt-1 text-lg font-bold">{{ t('checkout.delivery.title') }}</h3>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="grid gap-1.5 sm:col-span-2">
             <span class="text-sm font-semibold"
-              >Tên khách hàng <span class="text-destructive">*</span></span
+              >{{ t('checkout.fields.fullName') }} <span class="text-destructive">*</span></span
             >
             <Input
               id="checkout-full-name"
@@ -469,7 +477,10 @@ const submit = handleSubmit((values) => emit('submit', values))
           </label>
           <label class="grid gap-1.5">
             <span class="text-sm font-semibold"
-              >Email <span class="font-normal text-muted-foreground">(không bắt buộc)</span></span
+              >{{ t('checkout.fields.email') }}
+              <span class="font-normal text-muted-foreground">{{
+                t('checkout.fields.optional')
+              }}</span></span
             >
             <Input
               id="checkout-email"
@@ -487,8 +498,10 @@ const submit = handleSubmit((values) => emit('submit', values))
           </label>
           <label class="grid gap-1.5">
             <span class="text-sm font-semibold"
-              >Số điện thoại khách hàng
-              <span class="font-normal text-muted-foreground">(không bắt buộc)</span></span
+              >{{ t('checkout.fields.customerPhone') }}
+              <span class="font-normal text-muted-foreground">{{
+                t('checkout.fields.optional')
+              }}</span></span
             >
             <Input
               id="checkout-customer-phone"
@@ -505,7 +518,7 @@ const submit = handleSubmit((values) => emit('submit', values))
           </label>
           <label class="grid gap-1.5 sm:col-span-2">
             <span class="text-sm font-semibold"
-              >Tên người nhận <span class="text-destructive">*</span></span
+              >{{ t('checkout.fields.receiverName') }} <span class="text-destructive">*</span></span
             >
             <Input
               id="checkout-receiver-name"
@@ -522,7 +535,8 @@ const submit = handleSubmit((values) => emit('submit', values))
           </label>
           <label class="grid gap-1.5">
             <span class="text-sm font-semibold"
-              >Số điện thoại người nhận <span class="text-destructive">*</span></span
+              >{{ t('checkout.fields.receiverPhone') }}
+              <span class="text-destructive">*</span></span
             >
             <Input
               id="checkout-receiver-phone"
@@ -539,7 +553,7 @@ const submit = handleSubmit((values) => emit('submit', values))
           </label>
           <label class="grid gap-1.5">
             <span class="text-sm font-semibold"
-              >Tỉnh/Thành phố <span class="text-destructive">*</span></span
+              >{{ t('checkout.fields.city') }} <span class="text-destructive">*</span></span
             >
             <Input
               id="checkout-city"
@@ -556,7 +570,7 @@ const submit = handleSubmit((values) => emit('submit', values))
           </label>
           <label class="grid gap-1.5 sm:col-span-2">
             <span class="text-sm font-semibold"
-              >Địa chỉ <span class="text-destructive">*</span></span
+              >{{ t('checkout.fields.address') }} <span class="text-destructive">*</span></span
             >
             <Input
               id="checkout-address"
@@ -573,8 +587,10 @@ const submit = handleSubmit((values) => emit('submit', values))
           </label>
           <label class="grid gap-1.5 sm:col-span-2">
             <span class="text-sm font-semibold"
-              >Quận/Huyện
-              <span class="font-normal text-muted-foreground">(không bắt buộc)</span></span
+              >{{ t('checkout.fields.district') }}
+              <span class="font-normal text-muted-foreground">{{
+                t('checkout.fields.optional')
+              }}</span></span
             >
             <Input
               id="checkout-district"
@@ -593,15 +609,15 @@ const submit = handleSubmit((values) => emit('submit', values))
 
         <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
           <p class="max-w-xs text-xs leading-relaxed text-muted-foreground">
-            Thanh toán được mô phỏng ở bước tiếp theo. Đơn hàng hiện chỉ hỗ trợ thẻ.
+            {{ t('checkout.footNote') }}
           </p>
           <Button
             type="submit"
             size="lg"
             :disabled="props.submitting || hasUnavailableLine || props.lines.length === 0"
           >
-            <span v-if="props.submitting">Đang tạo đơn hàng…</span>
-            <span v-else>Đặt hàng</span>
+            <span v-if="props.submitting">{{ t('checkout.submitting') }}</span>
+            <span v-else>{{ t('checkout.submit') }}</span>
             <IconArrowUpRight
               v-if="!props.submitting"
               :size="18"
