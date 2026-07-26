@@ -17,7 +17,7 @@ class InventoryService {
   List<InventoryResponse> getInventory() {
     return jdbcTemplate.query(
         """
-        SELECT p.id AS product_id, p.name AS product_name,
+        SELECT p.id AS product_id, p.name AS product_name, p.low_stock_threshold,
                COALESCE(i.on_hand_stock, 0) AS on_hand_stock,
                COALESCE(i.reserved_stock, 0) AS reserved_stock
         FROM shopflow.products p
@@ -29,7 +29,8 @@ class InventoryService {
                 resultSet.getLong("product_id"),
                 resultSet.getString("product_name"),
                 resultSet.getInt("on_hand_stock"),
-                resultSet.getInt("reserved_stock")));
+                resultSet.getInt("reserved_stock"),
+                resultSet.getObject("low_stock_threshold", Integer.class)));
   }
 
   @Transactional
@@ -75,15 +76,51 @@ class InventoryService {
         request.delta(),
         request.reason().strip());
 
-    return response(product.id(), product.name(), (int) newOnHand, inventory.reservedStock());
+    return response(
+        product.id(),
+        product.name(),
+        (int) newOnHand,
+        inventory.reservedStock(),
+        product.lowStockThreshold());
+  }
+
+  @Transactional
+  InventoryResponse updateThreshold(Long productId, LowStockThresholdRequest request) {
+    ProductRow product = findProductForUpdate(productId);
+    if (product == null) {
+      throw new InventoryNotFoundException();
+    }
+
+    jdbcTemplate.update(
+        """
+        UPDATE shopflow.products
+        SET low_stock_threshold = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        """,
+        request.lowStockThreshold(),
+        productId);
+    InventoryRow inventory = findInventoryForUpdate(productId);
+    if (inventory == null) {
+      inventory = new InventoryRow(0, 0);
+    }
+
+    return response(
+        productId,
+        product.name(),
+        inventory.onHandStock(),
+        inventory.reservedStock(),
+        request.lowStockThreshold());
   }
 
   private ProductRow findProductForUpdate(Long productId) {
     List<ProductRow> products =
         jdbcTemplate.query(
-            "SELECT id, name FROM shopflow.products WHERE id = ? FOR UPDATE",
+            "SELECT id, name, low_stock_threshold FROM shopflow.products WHERE id = ? FOR UPDATE",
             (resultSet, rowNumber) ->
-                new ProductRow(resultSet.getLong("id"), resultSet.getString("name")),
+                new ProductRow(
+                    resultSet.getLong("id"),
+                    resultSet.getString("name"),
+                    resultSet.getObject("low_stock_threshold", Integer.class)),
             productId);
     return products.isEmpty() ? null : products.getFirst();
   }
@@ -105,16 +142,27 @@ class InventoryService {
   }
 
   private InventoryResponse response(
-      Long productId, String productName, int onHandStock, int reservedStock) {
+      Long productId,
+      String productName,
+      int onHandStock,
+      int reservedStock,
+      Integer lowStockThreshold) {
+    int availableStock = onHandStock - reservedStock;
     return new InventoryResponse(
-        productId, productName, onHandStock, reservedStock, onHandStock - reservedStock);
+        productId,
+        productName,
+        onHandStock,
+        reservedStock,
+        availableStock,
+        lowStockThreshold,
+        lowStockThreshold != null && availableStock <= lowStockThreshold);
   }
 
   private InventoryConflictException conflict() {
     return new InventoryConflictException("Adjustment violates inventory constraints");
   }
 
-  private record ProductRow(Long id, String name) {}
+  private record ProductRow(Long id, String name, Integer lowStockThreshold) {}
 
   private record InventoryRow(int onHandStock, int reservedStock) {}
 }

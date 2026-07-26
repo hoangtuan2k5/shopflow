@@ -6,6 +6,8 @@ type InventoryItem = {
   onHandStock: number
   reservedStock: number
   availableStock: number
+  lowStockThreshold: number | null
+  lowStock: boolean
 }
 
 function inventoryItem(overrides: Partial<InventoryItem> = {}): InventoryItem {
@@ -15,6 +17,8 @@ function inventoryItem(overrides: Partial<InventoryItem> = {}): InventoryItem {
     onHandStock: 10,
     reservedStock: 2,
     availableStock: 8,
+    lowStockThreshold: null,
+    lowStock: false,
     ...overrides,
   }
 }
