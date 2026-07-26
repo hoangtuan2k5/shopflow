@@ -41,6 +41,16 @@ export const roleRoutes: RoleRoute[] = [
     },
   },
   {
+    path: 'warehouse/returns',
+    name: 'warehouse-returns',
+    component: () => import('@/views/returns/ReturnsView.vue'),
+    meta: {
+      role: 'warehouse',
+      title: 'Return management',
+      description: 'Process customer returns and restock approved items.',
+    },
+  },
+  {
     path: 'shop-owner',
     name: 'shop-owner',
     component: () => import('@/views/delivery/DeliveryView.vue'),
@@ -48,6 +58,16 @@ export const roleRoutes: RoleRoute[] = [
       role: 'shop-owner',
       title: 'Delivery management',
       description: 'Review and advance paid-order deliveries.',
+    },
+  },
+  {
+    path: 'shop-owner/returns',
+    name: 'shop-owner-returns',
+    component: () => import('@/views/returns/ReturnsView.vue'),
+    meta: {
+      role: 'shop-owner',
+      title: 'Return management',
+      description: 'Review customer returns for delivered orders.',
     },
   },
 ]
