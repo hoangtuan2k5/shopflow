@@ -31,9 +31,20 @@ export const httpClient = axios.create({
   withCredentials: true,
 })
 
+let unauthorizedHandler: (() => void) | null = null
+
+/**
+ * Tách rời để httpClient không phải phụ thuộc ngược vào router hay store; ứng dụng tự nối lại khi
+ * khởi động.
+ */
+export function onUnauthorized(handler: () => void) {
+  unauthorizedHandler = handler
+}
+
 httpClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError<unknown>) => {
+    if (error.response?.status === 401) unauthorizedHandler?.()
     throw toApiClientError(error)
   },
 )
