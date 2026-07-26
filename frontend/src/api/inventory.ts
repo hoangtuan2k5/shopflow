@@ -6,11 +6,17 @@ export interface InventoryItem {
   onHandStock: number
   reservedStock: number
   availableStock: number
+  lowStockThreshold: number | null
+  lowStock: boolean
 }
 
 export interface StockAdjustmentRequest {
   delta: number
   reason: string
+}
+
+export interface LowStockThresholdRequest {
+  lowStockThreshold: number | null
 }
 
 export interface InventoryErrorDetails {
@@ -31,5 +37,13 @@ export function adjustStock(productId: number, adjustment: StockAdjustmentReques
     method: 'POST',
     url: `/inventory/${productId}/adjustments`,
     data: adjustment,
+  })
+}
+
+export function updateLowStockThreshold(productId: number, threshold: LowStockThresholdRequest) {
+  return request<InventoryItem>({
+    method: 'PUT',
+    url: `/inventory/${productId}/threshold`,
+    data: threshold,
   })
 }

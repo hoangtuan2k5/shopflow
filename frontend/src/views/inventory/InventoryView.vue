@@ -3,6 +3,7 @@ import {
   IconAdjustmentsHorizontal,
   IconAlertTriangle,
   IconArrowBackUp,
+  IconBell,
   IconBox,
   IconCheck,
   IconRefresh,
@@ -17,6 +18,7 @@ import {
   ApiClientError,
   createReceiving,
   getInventory,
+  updateLowStockThreshold,
   type InventoryErrorDetails,
   type InventoryItem,
   type ReceivingErrorDetails,
@@ -43,6 +45,9 @@ const receivingQuantity = ref<string | number>('')
 const supplierName = ref('')
 const receivingNote = ref('')
 const receivingFormErrors = ref<Record<string, string>>({})
+const thresholdItem = ref<InventoryItem | null>(null)
+const thresholdValue = ref<string | number>('')
+const thresholdFormErrors = ref<Record<string, string>>({})
 const successMessage = ref('')
 
 const adjustmentSchema = z.object({
@@ -77,10 +82,23 @@ const receivingSchema = z.object({
     .refine((value) => value.trim().length <= 500, 'Use 500 characters or fewer.'),
 })
 
+const thresholdSchema = z
+  .number({
+    invalid_type_error: 'Enter a whole-number threshold.',
+  })
+  .int('Enter a whole-number threshold.')
+  .min(0, 'Threshold cannot be negative.')
+  .max(2_147_483_647, 'Threshold is too large.')
+  .nullable()
+
 const inventoryQuery = useQuery({
   queryKey: inventoryKey,
   queryFn: getInventory,
 })
+
+const lowStockCount = computed(
+  () => inventoryQuery.data.value?.filter((item) => item.lowStock).length ?? 0,
+)
 
 const adjustmentMutation = useMutation({
   mutationFn: ({ productId, change }: { productId: number; change: number }) =>
@@ -106,11 +124,13 @@ const receivingMutation = useMutation({
       items?.map((item) =>
         item.productId === received.productId
           ? {
-              productId: received.productId,
-              productName: received.productName,
+              ...item,
               onHandStock: received.onHandStock,
               reservedStock: received.reservedStock,
               availableStock: received.availableStock,
+              lowStock:
+                item.lowStockThreshold !== null &&
+                received.availableStock <= item.lowStockThreshold,
             }
           : item,
       ),
@@ -121,8 +141,31 @@ const receivingMutation = useMutation({
   },
 })
 
+const thresholdMutation = useMutation({
+  mutationFn: ({ productId, threshold }: { productId: number; threshold: number | null }) =>
+    updateLowStockThreshold(productId, { lowStockThreshold: threshold }),
+  onSuccess: (updated) => {
+    queryClient.setQueryData<InventoryItem[]>(inventoryKey, (items) =>
+      items?.map((item) => (item.productId === updated.productId ? updated : item)),
+    )
+    successMessage.value =
+      updated.lowStockThreshold === null
+        ? `${updated.productName} low stock alert removed.`
+        : `${updated.productName} alerts when available stock is ${updated.lowStockThreshold} or less.`
+    thresholdItem.value = null
+  },
+})
+
 const adjustmentError = computed(() => {
   const error = adjustmentMutation.error.value
+  if (error instanceof ApiClientError && isInventoryErrorDetails(error.details)) {
+    return error.details
+  }
+  return null
+})
+
+const thresholdError = computed(() => {
+  const error = thresholdMutation.error.value
   if (error instanceof ApiClientError && isInventoryErrorDetails(error.details)) {
     return error.details
   }
@@ -166,6 +209,33 @@ function openReceiving(item: InventoryItem) {
 
 function closeReceiving() {
   if (!receivingMutation.isPending.value) receivingItem.value = null
+}
+
+function openThreshold(item: InventoryItem) {
+  thresholdItem.value = item
+  thresholdValue.value = item.lowStockThreshold ?? ''
+  thresholdFormErrors.value = {}
+  thresholdMutation.reset()
+}
+
+function closeThreshold() {
+  if (!thresholdMutation.isPending.value) thresholdItem.value = null
+}
+
+function submitThreshold() {
+  const raw = String(thresholdValue.value).trim()
+  const result = thresholdSchema.safeParse(raw === '' ? null : Number(raw))
+
+  if (!result.success) {
+    thresholdFormErrors.value = { lowStockThreshold: result.error.issues[0]!.message }
+    return
+  }
+
+  thresholdFormErrors.value = {}
+  thresholdMutation.mutate({
+    productId: thresholdItem.value!.productId,
+    threshold: result.data,
+  })
 }
 
 function submitAdjustment() {
@@ -264,6 +334,16 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
       {{ successMessage }}
     </p>
 
+    <p
+      v-if="lowStockCount > 0"
+      class="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive-muted px-4 py-3 text-sm text-destructive"
+      role="alert"
+    >
+      <IconBell :size="18" :stroke-width="1.8" aria-hidden="true" />
+      {{ lowStockCount }} {{ lowStockCount === 1 ? 'product is' : 'products are' }} low on stock.
+      Receive supplier stock to restore availability.
+    </p>
+
     <div v-if="inventoryQuery.isPending.value" class="overflow-hidden rounded-lg border bg-card">
       <div
         v-for="index in 4"
@@ -320,8 +400,21 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
           class="grid gap-4 p-5 lg:grid-cols-[minmax(12rem,2fr)_repeat(3,minmax(6rem,1fr))_auto] lg:items-center"
         >
           <div class="min-w-0">
-            <p class="truncate font-semibold text-primary">{{ item.productName }}</p>
-            <p class="text-xs text-muted-foreground">Product #{{ item.productId }}</p>
+            <p class="flex items-center gap-2 font-semibold text-primary">
+              <span class="truncate">{{ item.productName }}</span>
+              <span
+                v-if="item.lowStock"
+                class="shrink-0 rounded-full bg-destructive-muted px-2 py-0.5 text-xs font-semibold text-destructive"
+              >
+                Low stock
+              </span>
+            </p>
+            <p class="text-xs text-muted-foreground">
+              Product #{{ item.productId
+              }}<template v-if="item.lowStockThreshold !== null">
+                · Alerts at ≤ {{ item.lowStockThreshold }}</template
+              >
+            </p>
           </div>
           <dl class="grid grid-cols-3 gap-3 lg:contents">
             <div>
@@ -350,6 +443,10 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
             <Button class="w-full lg:w-auto" variant="outline" @click="openAdjustment(item)">
               <IconAdjustmentsHorizontal :size="18" :stroke-width="1.8" aria-hidden="true" />
               Adjust
+            </Button>
+            <Button class="w-full lg:w-auto" variant="outline" @click="openThreshold(item)">
+              <IconBell :size="18" :stroke-width="1.8" aria-hidden="true" />
+              Set alert
             </Button>
           </div>
         </li>
@@ -537,6 +634,75 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
             </Button>
             <Button type="submit" :disabled="receivingMutation.isPending.value">
               {{ receivingMutation.isPending.value ? 'Receiving…' : 'Receive stock' }}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog :open="thresholdItem !== null" @update:open="(open) => !open && closeThreshold()">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Low stock alert for {{ thresholdItem?.productName }}</DialogTitle>
+          <DialogDescription>
+            Alert when available stock is at or below the threshold. Leave the field empty to stop
+            tracking this product.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form class="grid gap-4" novalidate @submit.prevent="submitThreshold">
+          <div class="grid gap-1.5">
+            <label for="low-stock-threshold" class="text-sm font-medium">Alert threshold</label>
+            <Input
+              id="low-stock-threshold"
+              v-model="thresholdValue"
+              type="number"
+              step="1"
+              inputmode="numeric"
+              min="0"
+              placeholder="For example: 5"
+              :aria-invalid="
+                Boolean(
+                  thresholdFormErrors.lowStockThreshold ||
+                    thresholdError?.fieldErrors?.lowStockThreshold,
+                )
+              "
+              aria-describedby="low-stock-threshold-error"
+            />
+            <p
+              v-if="
+                thresholdFormErrors.lowStockThreshold ||
+                thresholdError?.fieldErrors?.lowStockThreshold
+              "
+              id="low-stock-threshold-error"
+              class="text-sm text-destructive"
+            >
+              {{
+                thresholdFormErrors.lowStockThreshold ||
+                thresholdError?.fieldErrors?.lowStockThreshold
+              }}
+            </p>
+          </div>
+
+          <p
+            v-if="thresholdMutation.isError.value && thresholdError"
+            class="rounded-md bg-destructive-muted px-3 py-2 text-sm text-destructive"
+            role="alert"
+          >
+            {{ thresholdError.message }}
+          </p>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              :disabled="thresholdMutation.isPending.value"
+              @click="closeThreshold"
+            >
+              Cancel
+            </Button>
+            <Button type="submit" :disabled="thresholdMutation.isPending.value">
+              {{ thresholdMutation.isPending.value ? 'Saving…' : 'Save alert' }}
             </Button>
           </DialogFooter>
         </form>
