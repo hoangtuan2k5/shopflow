@@ -1,8 +1,8 @@
 # ShopFlow Software Requirements Specification
 
-**Phiên bản:** 1.3
+**Phiên bản:** 1.4
 
-**Ngày cập nhật:** 17/07/2026
+**Ngày cập nhật:** 26/07/2026
 
 **Trạng thái:** Baseline yêu cầu MVP
 
@@ -74,12 +74,14 @@ stock, qua đó giảm nguy cơ nhận đơn vượt quá lượng hàng có th�
 - Xử lý return và restock có điều kiện.
 - Đánh dấu low stock theo ngưỡng của từng product.
 - Audit cơ bản cho thay đổi inventory và delivery status.
+- Đăng nhập bằng tài khoản có sẵn và nhận diện vai trò của người đang dùng.
 
 **Ngoài phạm vi:**
 
 - Payment gateway, đối soát, refund hoặc kế toán thật.
 - Shipping provider, tracking API hoặc tính cước vận chuyển thật.
-- Authentication và authorization production.
+- Đăng ký tự phục vụ, quên mật khẩu, xác thực nhiều lớp và SSO.
+- Giới hạn số lần đăng nhập sai và khóa tài khoản tạm thời.
 - Loyalty, promotion, cart phức tạp, thuế và báo cáo doanh thu nâng cao.
 - Điều phối tồn kho phân tán, queue hoặc mục tiêu hiệu năng được phê duyệt cho
   tải tranh chấp cao. Dù vậy, các request tạo order đồng thời vẫn phải bảo toàn
@@ -98,8 +100,10 @@ stock, qua đó giảm nguy cơ nhận đơn vượt quá lượng hàng có th�
 | Chủ shop      | Theo dõi hoạt động bán hàng   | Theo dõi order/inventory, cập nhật delivery, xử lý return và low-stock alert |
 | Hệ thống      | Bảo đảm tính nhất quán        | Tính stock, validate transition, lưu snapshot và audit movement              |
 
-Các actor xác định quyền nghiệp vụ của MVP, không tuyên bố có cơ chế
-authentication hoặc authorization production.
+Từ FR-09, mỗi actor người dùng tương ứng với một vai trò tài khoản
+(`CUSTOMER`, `WAREHOUSE`, `SHOP_OWNER`) và được nhận diện qua đăng nhập. Việc
+chặn truy cập theo vai trò trên từng endpoint được định nghĩa riêng và chưa
+thuộc baseline này.
 
 ---
 
@@ -313,6 +317,28 @@ Nguồn: [SF-9](https://tuanwork.atlassian.net/browse/SF-9),
 - **FR-08.4:** Trạng thái low stock được suy ra từ dữ liệu hiện tại; MVP không
   yêu cầu lưu một cờ độc lập hoặc gửi notification ra ngoài hệ thống.
 
+### 5.9 FR-09 - Xác thực người dùng
+
+Nguồn: [SF-70](https://tuanwork.atlassian.net/browse/SF-70),
+[SF-72](https://tuanwork.atlassian.net/browse/SF-72),
+[SF-77](https://tuanwork.atlassian.net/browse/SF-77).
+
+- **FR-09.1:** Mỗi tài khoản BẮT BUỘC có định danh đăng nhập duy nhất, mật khẩu
+  được lưu dưới dạng băm, tên hiển thị, đúng một vai trò và trạng thái hoạt động.
+- **FR-09.2:** Vai trò hợp lệ là CUSTOMER, WAREHOUSE hoặc SHOP_OWNER.
+- **FR-09.3:** Khi định danh và mật khẩu khớp một tài khoản đang hoạt động, hệ
+  thống BẮT BUỘC thiết lập một phiên và trả về tên hiển thị cùng vai trò.
+- **FR-09.4:** Khi định danh không tồn tại, mật khẩu sai, hoặc tài khoản không
+  hoạt động, hệ thống BẮT BUỘC từ chối bằng cùng một phản hồi cho cả ba trường
+  hợp và KHÔNG cho biết phần nào của thông tin đăng nhập là sai.
+- **FR-09.5:** Hệ thống BẮT BUỘC cung cấp thao tác đọc phiên hiện tại; trạng
+  thái chưa đăng nhập là một phản hồi hợp lệ, không phải lỗi.
+- **FR-09.6:** Đăng xuất BẮT BUỘC vô hiệu phiên phía server; các request sau đó
+  được coi là ẩn danh. Thao tác này idempotent.
+- **FR-09.7:** Phiên BẮT BUỘC hết hạn sau một khoảng không hoạt động xác định.
+- **FR-09.8:** MVP không có đăng ký tự phục vụ, quên mật khẩu hay đổi mật khẩu;
+  tài khoản được cung cấp sẵn qua migration.
+
 ---
 
 ## 6. Quy tắc nghiệp vụ
@@ -334,6 +360,7 @@ Nguồn: [SF-9](https://tuanwork.atlassian.net/browse/SF-9),
 | BR-13 | Mọi nghiệp vụ thay đổi stock phải có stock movement tương ứng                                                |
 | BR-14 | Low stock được xác định từ available stock và threshold của product                                          |
 | BR-15 | Thông tin product, giá, khách hàng và địa chỉ trên order là snapshot lịch sử                                 |
+| BR-16 | Một tài khoản gắn đúng một vai trò; nhiều vai trò cho một tài khoản không thuộc MVP                          |
 
 ---
 
@@ -519,6 +546,13 @@ trong ShopFlow.
   và KHÔNG được ghi toàn bộ vào application log thông thường.
 - **NFR-08:** Credential vận hành KHÔNG được nhúng trong source, client bundle
   hoặc application log.
+- **NFR-09:** Mật khẩu người dùng BẮT BUỘC được lưu dưới dạng băm bằng thuật
+  toán băm mật khẩu có salt; KHÔNG lưu, log hay trả về dạng đọc được.
+- **NFR-10:** Phản hồi từ chối đăng nhập KHÔNG được cho phép phân biệt tài khoản
+  tồn tại với tài khoản không tồn tại, kể cả qua nội dung lỗi lẫn thời gian
+  phản hồi.
+- **NFR-11:** Định danh phiên BẮT BUỘC không đọc được bằng JavaScript phía
+  client và không đi kèm request khởi phát từ origin khác.
 
 ### 10.4 Hiệu năng và khả dụng
 
@@ -555,6 +589,9 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 | AC-22 | Tạo order với `paymentMethod=COD`                                               | Từ chối 400; không tạo order, reservation hoặc movement                        |
 | AC-23 | Hiển thị price/amount trong catalog và order                                    | Dùng VND, hiển thị không có phần lẻ và không tự làm tròn giá trị               |
 | AC-24 | Customer tìm product, chọn item rồi tiếp tục duyệt catalog                      | Kết quả lọc đúng theo tên; selection và số lượng item đã chọn được giữ nguyên  |
+| AC-25 | Đăng nhập bằng tài khoản đang hoạt động với đúng mật khẩu                       | Phiên được thiết lập; phản hồi có tên hiển thị và vai trò, không có mật khẩu   |
+| AC-26 | Sai mật khẩu, định danh không tồn tại, hoặc tài khoản không hoạt động           | Cả ba trả cùng status và cùng message; không thiết lập phiên                   |
+| AC-27 | Đọc phiên khi chưa đăng nhập, và đăng xuất khi chưa đăng nhập                   | Đọc phiên trả trạng thái ẩn danh; đăng xuất thành công và không đổi dữ liệu    |
 
 ---
 
@@ -573,6 +610,7 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 | SF-8, SF-17, SF-18, SF-19, SF-63               | FR-07, BR-08 đến BR-10, BR-13, NFR-01, NFR-04           | Customer Return                          |
 | SF-9, SF-64, SF-65, SF-66                      | FR-08, BR-14                                            | Low-stock Alert                          |
 | SF-47                                          | FR-01.7, IR-04, AC-24                                   | Customer Storefront UX                   |
+| SF-70, SF-72, SF-77                            | FR-09, BR-16, NFR-09 đến NFR-11, AC-25 đến AC-27        | Xác thực người dùng                      |
 
 ---
 
@@ -584,6 +622,12 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 - Low-stock alert là indicator trong hệ thống, không phải outbound notification.
 - Yêu cầu performance định lượng sẽ được bổ sung khi stakeholder phê duyệt mục
   tiêu đo được.
+- FR-09 chỉ xác định người dùng là ai. Việc chặn từng endpoint theo vai trò chưa
+  thuộc baseline này; trước khi có yêu cầu đó, mọi endpoint vẫn mở như hiện tại.
+- Tài khoản demo được seed qua migration nên mật khẩu của chúng là thông tin
+  công khai trong repository; chúng chỉ bảo vệ dữ liệu demo.
+- Endpoint đăng nhập chưa có giới hạn brute-force; đây là khoảng trống đã biết
+  cần xử lý trước khi phục vụ người dùng thật.
 
 ---
 
@@ -591,6 +635,7 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 
 | Phiên bản | Ngày       | Thay đổi                                                                                                                 |
 | --------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 1.4       | 26/07/2026 | Bổ sung FR-09 xác thực người dùng, BR-16, NFR-09 đến NFR-11 và AC-25 đến AC-27                                           |
 | 1.3       | 17/07/2026 | Chuyển currency baseline từ USD sang VND; quy định giá/amount là số nguyên và giữ payment schema tương thích             |
 | 1.2       | 17/07/2026 | Chốt CARD-only/USD, mã hóa yêu cầu dữ liệu/giao diện và hòa giải payment schema với MVP                                  |
 | 1.1       | 16/07/2026 | Tách roadmap, quy trình phát triển, stack và thiết kế vật lý khỏi SRS; làm rõ validation, lifecycle và integrity tồn kho |
