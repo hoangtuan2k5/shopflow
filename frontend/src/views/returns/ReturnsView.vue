@@ -9,6 +9,7 @@ import {
 } from '@tabler/icons-vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink, useRoute } from 'vue-router'
 import {
   ApiClientError,
@@ -36,10 +37,13 @@ const returnsKey = ['returns'] as const
 const returnableOrdersKey = ['returnable-orders'] as const
 const inventoryKey = ['inventory'] as const
 
+const { t, locale } = useI18n()
 const route = useRoute()
 const queryClient = useQueryClient()
 const isWarehouse = computed(() => route.meta.role === 'warehouse')
-const roleLabel = computed(() => (isWarehouse.value ? 'Warehouse operations' : 'Shop owner'))
+const roleLabel = computed(() =>
+  isWarehouse.value ? t('common.warehouseOperations') : t('common.shopOwner'),
+)
 const deliveriesPath = computed(() => (isWarehouse.value ? '/warehouse/deliveries' : '/shop-owner'))
 
 const createOpen = ref(false)
@@ -52,12 +56,12 @@ const decideRestockable = ref<'yes' | 'no'>('yes')
 const restockTarget = ref<ReturnRequest | null>(null)
 const successMessage = ref('')
 
-const statusLabels: Record<ReturnStatus, string> = {
-  REQUESTED: 'Requested',
-  APPROVED: 'Approved',
-  RESTOCKED: 'Restocked',
-  REJECTED: 'Rejected',
-}
+const statusLabels = computed<Record<ReturnStatus, string>>(() => ({
+  REQUESTED: t('returns.status.REQUESTED'),
+  APPROVED: t('returns.status.APPROVED'),
+  RESTOCKED: t('returns.status.RESTOCKED'),
+  REJECTED: t('returns.status.REJECTED'),
+}))
 
 const statusClasses: Record<ReturnStatus, string> = {
   REQUESTED: 'bg-muted text-muted-foreground',
@@ -72,7 +76,13 @@ const currency = new Intl.NumberFormat('vi-VN', {
   maximumFractionDigits: 0,
 })
 
-const dateTime = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' })
+const dateTime = computed(
+  () =>
+    new Intl.DateTimeFormat(locale.value === 'vi' ? 'vi-VN' : 'en-GB', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }),
+)
 
 const returnsQuery = useQuery({
   queryKey: returnsKey,
@@ -86,7 +96,8 @@ const ordersQuery = useQuery({
 
 const selectedOrder = computed(
   () =>
-    ordersQuery.data.value?.find((order) => String(order.orderId) === selectedOrderId.value) ?? null,
+    ordersQuery.data.value?.find((order) => String(order.orderId) === selectedOrderId.value) ??
+    null,
 )
 
 watch(selectedOrderId, () => {
@@ -97,7 +108,10 @@ watch(selectedOrderId, () => {
 const createMutation = useMutation({
   mutationFn: createReturn,
   onSuccess: async (created) => {
-    successMessage.value = `Return #${created.id} requested for order #${created.orderId}.`
+    successMessage.value = t('returns.successCreated', {
+      id: created.id,
+      orderId: created.orderId,
+    })
     closeCreate(true)
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: returnsKey }),
@@ -113,7 +127,10 @@ const updateMutation = useMutation({
     queryClient.setQueryData<ReturnRequest[]>(returnsKey, (returns) =>
       returns?.map((item) => (item.id === updated.id ? updated : item)),
     )
-    successMessage.value = `Return #${updated.id} is now ${statusLabels[updated.status].toLowerCase()}.`
+    successMessage.value = t('returns.successUpdated', {
+      id: updated.id,
+      status: statusLabels.value[updated.status].toLocaleLowerCase(),
+    })
     decideTarget.value = null
     restockTarget.value = null
     await queryClient.invalidateQueries({ queryKey: returnableOrdersKey })
@@ -135,7 +152,7 @@ const createError = computed(() => {
 const createErrorMessage = computed(() => {
   if (createError.value) return createError.value.message
   const error = createMutation.error.value
-  return error instanceof Error ? error.message : 'Return could not be saved. Try again.'
+  return error instanceof Error ? error.message : t('returns.createDialog.fallbackError')
 })
 
 const updateError = computed(() => {
@@ -143,7 +160,7 @@ const updateError = computed(() => {
   if (error instanceof ApiClientError && isReturnErrorDetails(error.details)) {
     return error.details.message
   }
-  return error ? 'Return could not be updated. Try again.' : ''
+  return error ? t('returns.fallbackUpdateError') : ''
 })
 
 function openCreate() {
@@ -181,7 +198,7 @@ function closeRestock() {
 function submitCreate() {
   const order = selectedOrder.value
   if (!order) {
-    createFormErrors.value = { order: 'Choose a delivered order.' }
+    createFormErrors.value = { order: t('returns.form.chooseOrder') }
     return
   }
 
@@ -192,12 +209,14 @@ function submitCreate() {
     if (raw === '') continue
     const quantity = Number(raw)
     if (!Number.isInteger(quantity) || quantity < 0) {
-      errors[`quantity-${item.orderItemId}`] = 'Enter a whole-number quantity.'
+      errors[`quantity-${item.orderItemId}`] = t('returns.form.wholeQuantity')
       continue
     }
     if (quantity === 0) continue
     if (quantity > item.returnableQuantity) {
-      errors[`quantity-${item.orderItemId}`] = `At most ${item.returnableQuantity} can be returned.`
+      errors[`quantity-${item.orderItemId}`] = t('returns.form.atMost', {
+        max: item.returnableQuantity,
+      })
       continue
     }
     items.push({ orderItemId: item.orderItemId, quantity })
@@ -205,10 +224,10 @@ function submitCreate() {
 
   const reasonText = returnReason.value.trim()
   if (reasonText.length > 500) {
-    errors.reason = 'Use 500 characters or fewer.'
+    errors.reason = t('common.max500')
   }
   if (Object.keys(errors).length === 0 && items.length === 0) {
-    errors.items = 'Enter a quantity for at least one item.'
+    errors.items = t('returns.form.atLeastOne')
   }
   if (Object.keys(errors).length > 0) {
     createFormErrors.value = errors
@@ -242,7 +261,7 @@ function confirmRestock() {
 }
 
 function formatDate(value: string) {
-  return dateTime.format(new Date(value))
+  return dateTime.value.format(new Date(value))
 }
 
 function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
@@ -259,9 +278,9 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
     >
       <div class="space-y-2">
         <p class="text-xs font-bold uppercase text-success">{{ roleLabel }}</p>
-        <h1 class="text-3xl font-semibold text-primary">Return management</h1>
+        <h1 class="text-3xl font-semibold text-primary">{{ t('returns.title') }}</h1>
         <p class="max-w-2xl text-sm text-muted-foreground">
-          Register returns for delivered orders, review each request and restock approved items.
+          {{ t('returns.subtitle') }}
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
@@ -271,11 +290,11 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
           :class="buttonVariants({ variant: 'outline' })"
         >
           <IconBox :size="18" :stroke-width="1.8" aria-hidden="true" />
-          Manage inventory
+          {{ t('common.manageInventory') }}
         </RouterLink>
         <RouterLink :to="deliveriesPath" :class="buttonVariants({ variant: 'outline' })">
           <IconTruckDelivery :size="18" :stroke-width="1.8" aria-hidden="true" />
-          Manage deliveries
+          {{ t('common.manageDeliveries') }}
         </RouterLink>
         <Button
           variant="outline"
@@ -283,11 +302,11 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
           @click="returnsQuery.refetch()"
         >
           <IconRefresh :size="18" :stroke-width="1.8" aria-hidden="true" />
-          Refresh
+          {{ t('common.refresh') }}
         </Button>
         <Button @click="openCreate">
           <IconArrowBackUp :size="18" :stroke-width="1.8" aria-hidden="true" />
-          New return
+          {{ t('returns.newReturn') }}
         </Button>
       </div>
     </header>
@@ -304,7 +323,7 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
 
     <div
       v-if="returnsQuery.isPending.value"
-      aria-label="Loading returns"
+      :aria-label="t('returns.loadingLabel')"
       class="overflow-hidden rounded-lg border bg-card"
     >
       <div
@@ -328,9 +347,11 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
           :stroke-width="1.8"
           aria-hidden="true"
         />
-        <h2 class="text-lg font-semibold">Returns could not be loaded</h2>
-        <p class="text-sm text-muted-foreground">Check the connection and try again.</p>
-        <Button variant="outline" @click="returnsQuery.refetch()">Try again</Button>
+        <h2 class="text-lg font-semibold">{{ t('returns.loadErrorTitle') }}</h2>
+        <p class="text-sm text-muted-foreground">{{ t('common.checkConnection') }}</p>
+        <Button variant="outline" @click="returnsQuery.refetch()">
+          {{ t('common.tryAgain') }}
+        </Button>
       </div>
     </div>
 
@@ -345,14 +366,14 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
           :stroke-width="1.8"
           aria-hidden="true"
         />
-        <h2 class="text-lg font-semibold">No return requests</h2>
+        <h2 class="text-lg font-semibold">{{ t('returns.emptyTitle') }}</h2>
         <p class="text-sm text-muted-foreground">
-          Returns will appear once a delivered order is registered for return.
+          {{ t('returns.emptyHint') }}
         </p>
       </div>
     </div>
 
-    <ul v-else aria-label="Return requests" class="grid gap-4">
+    <ul v-else :aria-label="t('returns.listLabel')" class="grid gap-4">
       <li
         v-for="item in returnsQuery.data.value"
         :key="item.id"
@@ -360,8 +381,12 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
       >
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="min-w-0">
-            <p class="font-semibold text-primary">Return #{{ item.id }} · Order #{{ item.orderId }}</p>
-            <p class="text-xs text-muted-foreground">Requested {{ formatDate(item.createdAt) }}</p>
+            <p class="font-semibold text-primary">
+              {{ t('returns.itemTitle', { id: item.id, orderId: item.orderId }) }}
+            </p>
+            <p class="text-xs text-muted-foreground">
+              {{ t('returns.requestedAt', { date: formatDate(item.createdAt) }) }}
+            </p>
           </div>
           <span
             class="rounded-full px-3 py-1 text-xs font-semibold"
@@ -371,7 +396,7 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
           </span>
         </div>
 
-        <ul class="grid gap-1 text-sm" :aria-label="`Return #${item.id} items`">
+        <ul class="grid gap-1 text-sm" :aria-label="t('returns.itemsLabel', { id: item.id })">
           <li
             v-for="returnItem in item.items"
             :key="returnItem.orderItemId"
@@ -382,12 +407,14 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
           </li>
         </ul>
 
-        <p v-if="item.reason" class="text-sm text-muted-foreground">Reason: {{ item.reason }}</p>
+        <p v-if="item.reason" class="text-sm text-muted-foreground">
+          {{ t('returns.reason', { reason: item.reason }) }}
+        </p>
         <p
           v-if="item.status === 'APPROVED' && !item.restockable"
           class="text-sm text-muted-foreground"
         >
-          Approved without restocking. Inventory stays unchanged.
+          {{ t('returns.approvedNoRestock') }}
         </p>
 
         <div
@@ -395,19 +422,19 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
           class="flex flex-wrap gap-2"
         >
           <Button v-if="item.status === 'REQUESTED'" variant="outline" @click="openDecision(item)">
-            Review request
+            {{ t('returns.reviewRequest') }}
           </Button>
           <Button
             v-if="isWarehouse && item.status === 'APPROVED' && item.restockable"
             @click="openRestock(item)"
           >
-            Restock items
+            {{ t('returns.restockItems') }}
           </Button>
           <p
             v-if="!isWarehouse && item.status === 'APPROVED' && item.restockable"
             class="self-center text-sm text-muted-foreground"
           >
-            Waiting for warehouse restock.
+            {{ t('returns.waitingRestock') }}
           </p>
         </div>
       </li>
@@ -416,15 +443,17 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
     <Dialog :open="createOpen" @update:open="(open) => !open && closeCreate()">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New return request</DialogTitle>
+          <DialogTitle>{{ t('returns.createDialog.title') }}</DialogTitle>
           <DialogDescription>
-            Choose a delivered order and enter the quantity to return for each item.
+            {{ t('returns.createDialog.description') }}
           </DialogDescription>
         </DialogHeader>
 
         <form class="grid gap-4" novalidate @submit.prevent="submitCreate">
           <div class="grid gap-1.5">
-            <label for="return-order" class="text-sm font-medium">Delivered order</label>
+            <label for="return-order" class="text-sm font-medium">
+              {{ t('returns.createDialog.orderLabel') }}
+            </label>
             <select
               id="return-order"
               v-model="selectedOrderId"
@@ -432,29 +461,38 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
               :aria-invalid="Boolean(createFormErrors.order)"
               aria-describedby="return-order-error"
             >
-              <option value="" disabled>Select an order</option>
+              <option value="" disabled>{{ t('returns.createDialog.orderPlaceholder') }}</option>
               <option
                 v-for="order in ordersQuery.data.value"
                 :key="order.orderId"
                 :value="String(order.orderId)"
               >
-                Order #{{ order.orderId }} · {{ order.receiverName }} ·
-                {{ currency.format(order.totalAmount) }}
+                {{
+                  t('returns.createDialog.orderOption', {
+                    orderId: order.orderId,
+                    receiver: order.receiverName,
+                    total: currency.format(order.totalAmount),
+                  })
+                }}
               </option>
             </select>
-            <p v-if="createFormErrors.order" id="return-order-error" class="text-sm text-destructive">
+            <p
+              v-if="createFormErrors.order"
+              id="return-order-error"
+              class="text-sm text-destructive"
+            >
               {{ createFormErrors.order }}
             </p>
             <p
               v-if="!ordersQuery.isPending.value && ordersQuery.data.value?.length === 0"
               class="text-sm text-muted-foreground"
             >
-              No delivered orders are available for return yet.
+              {{ t('returns.createDialog.noOrders') }}
             </p>
           </div>
 
           <div v-if="selectedOrder" class="grid gap-3">
-            <p class="text-sm font-medium">Items to return</p>
+            <p class="text-sm font-medium">{{ t('returns.createDialog.itemsTitle') }}</p>
             <div
               v-for="item in selectedOrder.items"
               :key="item.orderItemId"
@@ -463,7 +501,12 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
               <div class="flex items-center justify-between gap-3 text-sm">
                 <span class="truncate font-medium">{{ item.productName }}</span>
                 <span class="text-muted-foreground">
-                  {{ item.returnableQuantity }} of {{ item.quantity }} returnable
+                  {{
+                    t('returns.createDialog.returnable', {
+                      returnable: item.returnableQuantity,
+                      quantity: item.quantity,
+                    })
+                  }}
                 </span>
               </div>
               <Input
@@ -475,7 +518,7 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
                 :max="item.returnableQuantity"
                 :disabled="item.returnableQuantity === 0"
                 placeholder="0"
-                :aria-label="`Quantity for ${item.productName}`"
+                :aria-label="t('returns.createDialog.quantityFor', { product: item.productName })"
                 :aria-invalid="Boolean(createFormErrors[`quantity-${item.orderItemId}`])"
               />
               <p
@@ -491,13 +534,15 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
           </div>
 
           <div class="grid gap-1.5">
-            <label for="return-reason" class="text-sm font-medium">Reason (optional)</label>
+            <label for="return-reason" class="text-sm font-medium">
+              {{ t('returns.createDialog.reasonLabel') }}
+            </label>
             <textarea
               id="return-reason"
               v-model="returnReason"
               rows="3"
               class="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
-              placeholder="Why is the customer returning these items?"
+              :placeholder="t('returns.createDialog.reasonPlaceholder')"
               :aria-invalid="Boolean(createFormErrors.reason || createError?.fieldErrors?.reason)"
               aria-describedby="return-reason-error"
             />
@@ -525,10 +570,14 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
               :disabled="createMutation.isPending.value"
               @click="closeCreate()"
             >
-              Cancel
+              {{ t('common.cancel') }}
             </Button>
             <Button type="submit" :disabled="createMutation.isPending.value">
-              {{ createMutation.isPending.value ? 'Requesting…' : 'Request return' }}
+              {{
+                createMutation.isPending.value
+                  ? t('returns.createDialog.submitting')
+                  : t('returns.createDialog.submit')
+              }}
             </Button>
           </DialogFooter>
         </form>
@@ -538,22 +587,23 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
     <Dialog :open="decideTarget !== null" @update:open="(open) => !open && closeDecision()">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Review return #{{ decideTarget?.id }}</DialogTitle>
+          <DialogTitle>{{ t('returns.decideDialog.title', { id: decideTarget?.id }) }}</DialogTitle>
           <DialogDescription>
-            Approve the request after inspecting the items, or reject it. Approving requires a
-            restock decision; inventory only changes after a warehouse restock confirmation.
+            {{ t('returns.decideDialog.description') }}
           </DialogDescription>
         </DialogHeader>
 
         <fieldset class="grid gap-2">
-          <legend class="text-sm font-medium">Can the items go back to stock?</legend>
+          <legend class="text-sm font-medium">
+            {{ t('returns.decideDialog.restockQuestion') }}
+          </legend>
           <label class="flex items-center gap-2 text-sm">
             <input v-model="decideRestockable" type="radio" value="yes" name="restockable" />
-            Yes, items are restockable
+            {{ t('returns.decideDialog.restockYes') }}
           </label>
           <label class="flex items-center gap-2 text-sm">
             <input v-model="decideRestockable" type="radio" value="no" name="restockable" />
-            No, items cannot be resold
+            {{ t('returns.decideDialog.restockNo') }}
           </label>
         </fieldset>
 
@@ -572,7 +622,7 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
             :disabled="updateMutation.isPending.value"
             @click="closeDecision"
           >
-            Cancel
+            {{ t('common.cancel') }}
           </Button>
           <Button
             type="button"
@@ -580,10 +630,14 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
             :disabled="updateMutation.isPending.value"
             @click="reject"
           >
-            Reject
+            {{ t('returns.decideDialog.reject') }}
           </Button>
           <Button type="button" :disabled="updateMutation.isPending.value" @click="approve">
-            {{ updateMutation.isPending.value ? 'Saving…' : 'Approve' }}
+            {{
+              updateMutation.isPending.value
+                ? t('common.saving')
+                : t('returns.decideDialog.approve')
+            }}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -592,10 +646,11 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
     <Dialog :open="restockTarget !== null" @update:open="(open) => !open && closeRestock()">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Restock return #{{ restockTarget?.id }}</DialogTitle>
+          <DialogTitle>{{
+            t('returns.restockDialog.title', { id: restockTarget?.id })
+          }}</DialogTitle>
           <DialogDescription>
-            Confirm the items are back in the warehouse. On-hand stock increases for every returned
-            item and each movement is recorded.
+            {{ t('returns.restockDialog.description') }}
           </DialogDescription>
         </DialogHeader>
 
@@ -625,10 +680,14 @@ function isReturnErrorDetails(value: unknown): value is ReturnErrorDetails {
             :disabled="updateMutation.isPending.value"
             @click="closeRestock"
           >
-            Cancel
+            {{ t('common.cancel') }}
           </Button>
           <Button type="button" :disabled="updateMutation.isPending.value" @click="confirmRestock">
-            {{ updateMutation.isPending.value ? 'Restocking…' : 'Confirm restock' }}
+            {{
+              updateMutation.isPending.value
+                ? t('returns.restockDialog.submitting')
+                : t('returns.restockDialog.confirm')
+            }}
           </Button>
         </DialogFooter>
       </DialogContent>
