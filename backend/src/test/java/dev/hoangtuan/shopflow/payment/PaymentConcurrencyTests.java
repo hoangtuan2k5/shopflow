@@ -49,13 +49,14 @@ class PaymentConcurrencyTests {
     insertInventory(productId);
     long orderId = insertOrder();
     insertOrderItem(orderId, productId);
+    String orderRef = orderRef(orderId);
     CreatePaymentRequest request = new CreatePaymentRequest(SimulatedPaymentResult.SUCCESS, null);
     CyclicBarrier start = new CyclicBarrier(2);
     ExecutorService executor = Executors.newFixedThreadPool(2);
 
     try {
-      Future<PaymentResponse> first = submit(executor, start, orderId, request);
-      Future<PaymentResponse> second = submit(executor, start, orderId, request);
+      Future<PaymentResponse> first = submit(executor, start, orderRef, request);
+      Future<PaymentResponse> second = submit(executor, start, orderRef, request);
 
       int successfulPayments = 0;
       int conflicts = 0;
@@ -84,11 +85,14 @@ class PaymentConcurrencyTests {
   }
 
   private Future<PaymentResponse> submit(
-      ExecutorService executor, CyclicBarrier start, long orderId, CreatePaymentRequest request) {
+      ExecutorService executor,
+      CyclicBarrier start,
+      String orderRef,
+      CreatePaymentRequest request) {
     return executor.submit(
         () -> {
           start.await(15, TimeUnit.SECONDS);
-          return paymentService.createPayment(orderId, request);
+          return paymentService.createPayment(orderRef, request);
         });
   }
 
@@ -136,6 +140,11 @@ class PaymentConcurrencyTests {
         orderId,
         productId,
         new BigDecimal("2190000"));
+  }
+
+  private String orderRef(long orderId) {
+    return jdbcTemplate.queryForObject(
+        "SELECT order_ref FROM shopflow.orders WHERE id = ?", String.class, orderId);
   }
 
   private String orderStatus(long orderId) {

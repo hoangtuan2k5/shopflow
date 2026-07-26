@@ -119,8 +119,8 @@ const cartTotal = computed(() =>
 
 const orderMutation = useMutation({ mutationFn: createOrder })
 const paymentMutation = useMutation({
-  mutationFn: ({ orderId, result }: { orderId: number; result: SimulatedPaymentResult }) =>
-    createPayment(orderId, {
+  mutationFn: ({ orderRef, result }: { orderRef: string; result: SimulatedPaymentResult }) =>
+    createPayment(orderRef, {
       result,
       ...(result === 'SUCCESS'
         ? {}
@@ -231,7 +231,7 @@ function submitOrder(values: CheckoutFormValues) {
 function simulatePayment(result: SimulatedPaymentResult) {
   if (!createdOrder.value) return
   paymentMutation.reset()
-  paymentMutation.mutate({ orderId: createdOrder.value.id, result })
+  paymentMutation.mutate({ orderRef: createdOrder.value.orderRef, result })
 }
 
 function startOver() {
