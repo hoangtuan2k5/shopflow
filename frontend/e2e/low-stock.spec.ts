@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
+import { mockSession } from './session'
 
 type InventoryItem = {
   productId: number
@@ -39,6 +40,10 @@ function collectBrowserErrors(page: Page) {
   })
   return errors
 }
+
+test.beforeEach(async ({ page }) => {
+  await mockSession(page, 'WAREHOUSE')
+})
 
 test('Warehouse sees low stock alerts and configures a threshold', async ({ page }) => {
   const browserErrors = collectBrowserErrors(page)
@@ -93,10 +98,7 @@ test('Clearing the threshold removes the alert and rejects invalid values', asyn
   await page.route('**/api/inventory', (route) => fulfillJson(route, [trackedItem]))
   await page.route('**/api/inventory/7/threshold', async (route) => {
     expect(route.request().postDataJSON()).toEqual({ lowStockThreshold: null })
-    await fulfillJson(
-      route,
-      inventoryItem({ onHandStock: 3, reservedStock: 0, availableStock: 3 }),
-    )
+    await fulfillJson(route, inventoryItem({ onHandStock: 3, reservedStock: 0, availableStock: 3 }))
   })
 
   await page.goto('/warehouse')

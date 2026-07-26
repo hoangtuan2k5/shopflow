@@ -12,6 +12,25 @@ export const en = {
       'shop-owner': { label: 'Shop Owner', description: 'Management' },
     },
   },
+  auth: {
+    kicker: 'Sign in',
+    title: 'Welcome back',
+    subtitle: 'Sign in to reach warehouse and shop owner operations.',
+    fields: {
+      username: 'Username',
+      password: 'Password',
+    },
+    form: {
+      usernameRequired: 'Enter your username.',
+      passwordRequired: 'Enter your password.',
+    },
+    rejected: 'Invalid username or password.',
+    submit: 'Sign in',
+    submitting: 'Signing in…',
+    signIn: 'Sign in',
+    signOut: 'Sign out',
+    guestHint: 'Browsing and ordering do not require an account.',
+  },
   common: {
     cancel: 'Cancel',
     refresh: 'Refresh',
