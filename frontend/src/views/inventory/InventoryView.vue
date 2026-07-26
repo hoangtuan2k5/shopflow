@@ -414,9 +414,9 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
       </div>
     </div>
 
-    <div v-else class="overflow-hidden rounded-lg border bg-card shadow-sm">
+    <div v-else class="overflow-x-auto rounded-lg border bg-card shadow-sm">
       <div
-        class="hidden grid-cols-[minmax(12rem,2fr)_repeat(3,minmax(6rem,1fr))_auto] gap-4 border-b bg-muted/60 px-5 py-3 text-xs font-bold uppercase text-muted-foreground lg:grid"
+        class="hidden grid-cols-[minmax(10rem,2fr)_repeat(3,minmax(4rem,1fr))_21rem] gap-4 lg:min-w-[50rem] border-b bg-muted/60 px-5 py-3 text-xs font-bold uppercase text-muted-foreground lg:grid"
       >
         <span>{{ t('inventory.columns.product') }}</span>
         <span>{{ t('inventory.columns.onHand') }}</span>
@@ -424,11 +424,11 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
         <span>{{ t('inventory.columns.available') }}</span>
         <span class="sr-only">{{ t('inventory.columns.action') }}</span>
       </div>
-      <ul :aria-label="t('inventory.listLabel')" class="divide-y">
+      <ul :aria-label="t('inventory.listLabel')" class="divide-y lg:min-w-[50rem]">
         <li
           v-for="item in inventoryQuery.data.value"
           :key="item.productId"
-          class="grid gap-4 p-5 lg:grid-cols-[minmax(12rem,2fr)_repeat(3,minmax(6rem,1fr))_auto] lg:items-center"
+          class="grid gap-4 p-5 lg:grid-cols-[minmax(10rem,2fr)_repeat(3,minmax(4rem,1fr))_21rem] lg:items-center"
         >
           <div class="min-w-0">
             <p class="flex items-center gap-2 font-semibold text-primary">
@@ -472,7 +472,7 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
               </dd>
             </div>
           </dl>
-          <div class="grid gap-2 sm:grid-cols-2 lg:flex">
+          <div class="grid gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:justify-end">
             <Button class="w-full lg:w-auto" @click="openReceiving(item)">
               <IconBox :size="18" :stroke-width="1.8" aria-hidden="true" />
               {{ t('inventory.receiveStock') }}
