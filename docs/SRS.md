@@ -1,6 +1,6 @@
 # ShopFlow Software Requirements Specification
 
-**Phiên bản:** 1.4
+**Phiên bản:** 1.5
 
 **Ngày cập nhật:** 26/07/2026
 
@@ -101,9 +101,12 @@ stock, qua đó giảm nguy cơ nhận đơn vượt quá lượng hàng có th�
 | Hệ thống      | Bảo đảm tính nhất quán        | Tính stock, validate transition, lưu snapshot và audit movement              |
 
 Từ FR-09, mỗi actor người dùng tương ứng với một vai trò tài khoản
-(`CUSTOMER`, `WAREHOUSE`, `SHOP_OWNER`) và được nhận diện qua đăng nhập. Việc
-chặn truy cập theo vai trò trên từng endpoint được định nghĩa riêng và chưa
-thuộc baseline này.
+(`CUSTOMER`, `WAREHOUSE`, `SHOP_OWNER`) và được nhận diện qua đăng nhập. FR-10
+quy định thao tác nào thuộc vai trò nào; ma trận quyền theo từng endpoint nằm
+trong [api-authorization-spec.md](./api-authorization-spec.md).
+
+Khách vãng lai không có tài khoản vẫn là actor hợp lệ: xem catalog, tạo đơn và
+thanh toán cho chính đơn vừa tạo.
 
 ---
 
@@ -339,6 +342,32 @@ Nguồn: [SF-70](https://tuanwork.atlassian.net/browse/SF-70),
 - **FR-09.8:** MVP không có đăng ký tự phục vụ, quên mật khẩu hay đổi mật khẩu;
   tài khoản được cung cấp sẵn qua migration.
 
+### 5.10 FR-10 - Phân quyền theo vai trò
+
+Nguồn: [SF-73](https://tuanwork.atlassian.net/browse/SF-73),
+[SF-81](https://tuanwork.atlassian.net/browse/SF-81).
+
+- **FR-10.1:** Hệ thống BẮT BUỘC đóng mặc định: mọi thao tác yêu cầu vai trò trừ
+  những thao tác được liệt kê công khai.
+- **FR-10.2:** Xem catalog và tạo đơn hàng BẮT BUỘC mở cho khách vãng lai không
+  có tài khoản.
+- **FR-10.3:** Khách vãng lai BẮT BUỘC thanh toán được cho chính đơn vừa tạo mà
+  không cần đăng nhập; khả năng này đến từ tham chiếu đơn hàng không đoán được
+  chứ không từ vai trò.
+- **FR-10.4:** Khách vãng lai KHÔNG được xem lịch sử đơn hàng, quản lý tài
+  khoản, lưu địa chỉ giao hàng hay quản lý thông tin cá nhân.
+- **FR-10.5:** Nhân viên kho BẮT BUỘC chỉ thực hiện được thao tác vận hành hàng
+  hoá và KHÔNG được quản lý sản phẩm, khách hàng, tài khoản, giá bán, không xác
+  nhận hoặc huỷ đơn, không hoàn tiền, không xem doanh thu, không đổi cấu hình.
+- **FR-10.6:** Chủ shop BẮT BUỘC có toàn bộ quyền của nhân viên kho cộng thêm
+  quyền quản trị.
+- **FR-10.7:** Yêu cầu không có phiên hợp lệ BẮT BUỘC bị từ chối với `401`; yêu
+  cầu có phiên nhưng sai vai trò BẮT BUỘC bị từ chối với `403`.
+- **FR-10.8:** Yêu cầu bị từ chối vì thiếu quyền BẮT BUỘC không làm thay đổi dữ
+  liệu.
+- **FR-10.9:** Với yêu cầu đổi trả, chuyển sang `RESTOCKED` thuộc nhân viên kho;
+  chuyển sang `APPROVED` hoặc `REJECTED` BẮT BUỘC chỉ thuộc chủ shop.
+
 ---
 
 ## 6. Quy tắc nghiệp vụ
@@ -361,6 +390,8 @@ Nguồn: [SF-70](https://tuanwork.atlassian.net/browse/SF-70),
 | BR-14 | Low stock được xác định từ available stock và threshold của product                                          |
 | BR-15 | Thông tin product, giá, khách hàng và địa chỉ trên order là snapshot lịch sử                                 |
 | BR-16 | Một tài khoản gắn đúng một vai trò; nhiều vai trò cho một tài khoản không thuộc MVP                          |
+| BR-17 | Quyền của chủ shop bao trùm toàn bộ quyền của nhân viên kho                                                  |
+| BR-18 | Khả năng thanh toán một đơn đến từ việc giữ tham chiếu đơn đó, không từ vai trò                              |
 
 ---
 
@@ -592,6 +623,9 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 | AC-25 | Đăng nhập bằng tài khoản đang hoạt động với đúng mật khẩu                       | Phiên được thiết lập; phản hồi có tên hiển thị và vai trò, không có mật khẩu   |
 | AC-26 | Sai mật khẩu, định danh không tồn tại, hoặc tài khoản không hoạt động           | Cả ba trả cùng status và cùng message; không thiết lập phiên                   |
 | AC-27 | Đọc phiên khi chưa đăng nhập, và đăng xuất khi chưa đăng nhập                   | Đọc phiên trả trạng thái ẩn danh; đăng xuất thành công và không đổi dữ liệu    |
+| AC-28 | Gọi thao tác vận hành khi ẩn danh, và khi đăng nhập sai vai trò                 | Lần lượt trả 401 và 403; không bản ghi nào được tạo hoặc thay đổi              |
+| AC-29 | Khách vãng lai xem catalog, đặt hàng rồi thanh toán bằng tham chiếu đơn         | Cả ba thao tác thành công mà không cần tài khoản                               |
+| AC-30 | Nhân viên kho chuyển return sang RESTOCKED, rồi thử sang APPROVED               | Nhập kho thành công; duyệt bị từ chối 403 và trạng thái return không đổi       |
 
 ---
 
@@ -611,6 +645,8 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 | SF-9, SF-64, SF-65, SF-66                      | FR-08, BR-14                                            | Low-stock Alert                          |
 | SF-47                                          | FR-01.7, IR-04, AC-24                                   | Customer Storefront UX                   |
 | SF-70, SF-72, SF-77                            | FR-09, BR-16, NFR-09 đến NFR-11, AC-25 đến AC-27        | Xác thực người dùng                      |
+| SF-73, SF-81                                   | FR-10, BR-17, BR-18, AC-28 đến AC-30                    | Phân quyền theo vai trò                  |
+| SF-85                                          | FR-10.3, BR-18                                          | Tham chiếu đơn hàng cho thanh toán guest |
 
 ---
 
@@ -622,8 +658,11 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 - Low-stock alert là indicator trong hệ thống, không phải outbound notification.
 - Yêu cầu performance định lượng sẽ được bổ sung khi stakeholder phê duyệt mục
   tiêu đo được.
-- FR-09 chỉ xác định người dùng là ai. Việc chặn từng endpoint theo vai trò chưa
-  thuộc baseline này; trước khi có yêu cầu đó, mọi endpoint vẫn mở như hiện tại.
+- Vai trò CUSTOMER hiện chỉ là một danh tính đăng nhập được: đơn hàng là guest
+  order và không có liên kết tới tài khoản, nên các quyền bổ sung của khách đã
+  đăng nhập chưa có thao tác nào tương ứng.
+- Nhiều quyền trong mô hình phân quyền chưa có thao tác tương ứng trong hệ thống;
+  danh sách đầy đủ nằm trong `api-authorization-spec.md`.
 - Tài khoản demo được seed qua migration nên mật khẩu của chúng là thông tin
   công khai trong repository; chúng chỉ bảo vệ dữ liệu demo.
 - Endpoint đăng nhập chưa có giới hạn brute-force; đây là khoảng trống đã biết
@@ -635,6 +674,7 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 
 | Phiên bản | Ngày       | Thay đổi                                                                                                                 |
 | --------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 1.5       | 26/07/2026 | Bổ sung FR-10 phân quyền theo vai trò, BR-17, BR-18 và AC-28 đến AC-30                                                   |
 | 1.4       | 26/07/2026 | Bổ sung FR-09 xác thực người dùng, BR-16, NFR-09 đến NFR-11 và AC-25 đến AC-27                                           |
 | 1.3       | 17/07/2026 | Chuyển currency baseline từ USD sang VND; quy định giá/amount là số nguyên và giữ payment schema tương thích             |
 | 1.2       | 17/07/2026 | Chốt CARD-only/USD, mã hóa yêu cầu dữ liệu/giao diện và hòa giải payment schema với MVP                                  |
