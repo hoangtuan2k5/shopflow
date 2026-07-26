@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   IconAlertTriangle,
+  IconArrowBackUp,
   IconArrowRight,
   IconBox,
   IconCheck,
@@ -72,12 +73,15 @@ const deliveryQuery = useQuery({
 const transitionMutation = useMutation({
   mutationFn: ({ orderId, toStatus }: { orderId: number; toStatus: DeliveryStatus }) =>
     updateDelivery(orderId, toStatus),
-  onSuccess: (updated) => {
+  onSuccess: async (updated) => {
     queryClient.setQueryData<DeliveryOrder[]>(deliveryKey, (orders) =>
       orders?.map((order) => (order.orderId === updated.orderId ? updated : order)),
     )
     successMessage.value = `Order #${updated.orderId} is now ${statusLabels[updated.deliveryStatus].toLowerCase()}.`
     selectedOrder.value = null
+    if (updated.deliveryStatus === 'DELIVERED') {
+      await queryClient.invalidateQueries({ queryKey: ['returnable-orders'] })
+    }
   },
   onError: () => queryClient.invalidateQueries({ queryKey: deliveryKey }),
 })
@@ -180,6 +184,13 @@ function isDeliveryErrorDetails(value: unknown): value is DeliveryErrorDetails {
         >
           <IconBox :size="18" :stroke-width="1.8" aria-hidden="true" />
           Inventory
+        </RouterLink>
+        <RouterLink
+          :to="isWarehouse ? '/warehouse/returns' : '/shop-owner/returns'"
+          :class="buttonVariants({ variant: 'outline' })"
+        >
+          <IconArrowBackUp :size="18" :stroke-width="1.8" aria-hidden="true" />
+          Manage returns
         </RouterLink>
         <Button
           variant="outline"

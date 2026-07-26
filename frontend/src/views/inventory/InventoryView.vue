@@ -2,6 +2,7 @@
 import {
   IconAdjustmentsHorizontal,
   IconAlertTriangle,
+  IconArrowBackUp,
   IconBox,
   IconCheck,
   IconRefresh,
@@ -237,6 +238,10 @@ function isReceivingErrorDetails(value: unknown): value is ReceivingErrorDetails
         <RouterLink to="/warehouse/deliveries" :class="buttonVariants({ variant: 'outline' })">
           <IconTruckDelivery :size="18" :stroke-width="1.8" aria-hidden="true" />
           Manage deliveries
+        </RouterLink>
+        <RouterLink to="/warehouse/returns" :class="buttonVariants({ variant: 'outline' })">
+          <IconArrowBackUp :size="18" :stroke-width="1.8" aria-hidden="true" />
+          Manage returns
         </RouterLink>
         <Button
           variant="outline"
