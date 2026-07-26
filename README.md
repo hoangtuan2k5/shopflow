@@ -71,13 +71,14 @@ shopflow/
 |---|---|---|---|
 | **Sprint 1** | 18/05/2026 → 13/06/2026 | Closed | Foundation: monorepo + CI, bootstrap backend/frontend, process docs. Phạm vi nghiệp vụ (catalog, order, payment, inventory baseline) một phần chuyển sang sprint sau. |
 | **Sprint 2** | 15/06/2026 → 29/06/2026 | Closed | Goal ban đầu: operational flows. Thực tế hoàn thành domain model (SF-10), Product Catalog end-to-end (SF-2, SF-36–39), SRS baseline, release **v0.3.0** / **v0.4.0**. Issue chưa xong chuyển sang Sprint 3. |
-| **Sprint 3** | 17/07/2026 → 31/07/2026 | **Active** | Carry-over unfinished MVP: Create Customer Order (SF-3), payment simulation (SF-4), inventory (SF-6), delivery (SF-5), supplier receiving (SF-7), customer return (SF-8), low-stock alert (SF-9). Toàn bộ story đã Done; release **v0.5.0** → **v0.7.0**. |
+| **Sprint 3** | 17/07/2026 → 31/07/2026 | Closed | Carry-over unfinished MVP: Create Customer Order (SF-3), payment simulation (SF-4), inventory (SF-6), delivery (SF-5), supplier receiving (SF-7), customer return (SF-8), low-stock alert (SF-9), song ngữ Anh/Việt (SF-69). Toàn bộ story đã Done; release **v0.5.0** → **v0.8.0**. |
+| **Sprint 4** | 27/07/2026 → 10/08/2026 | Planned | Post-MVP (epic SF-70): đăng nhập và phân quyền theo vai trò, ảnh sản phẩm trên AWS S3, chatbot tư vấn khách hàng dùng Qdrant với Gemini Embedding 2. |
 
 Chi tiết backlog và board trên Jira project [`SF`](https://tuanwork.atlassian.net/browse/SF) (Shopflow).
 
 ## Tiến độ hiện tại
 
-Cập nhật theo Jira board và repo (2026-07-26). Release mới nhất: **v0.7.0**.
+Cập nhật theo Jira board và repo (2026-07-26). Release mới nhất: **v0.8.0**.
 
 | Hạng mục | Jira | Trạng thái | Ghi chú |
 |---|---|---|---|
@@ -94,8 +95,12 @@ Cập nhật theo Jira board và repo (2026-07-26). Release mới nhất: **v0.7
 | Process Customer Return | SF-8 (SF-17…19, SF-63) | Done | API contract, backend, shared Warehouse/Shop Owner UI và verification |
 | Send Low Stock Alert | SF-9 (SF-64…66) | Done | API contract, ngưỡng theo product, alert trong Inventory UI và verification |
 | Return & alert hardening | SF-67 | Done | Thứ tự khóa khi restock, scope truy vấn returnable, phản hồi lỗi threshold |
+| Song ngữ Anh/Việt | SF-69 | Done | vue-i18n, bộ chọn ngôn ngữ, mặc định theo trình duyệt và ghi nhớ lựa chọn |
 
 Toàn bộ phạm vi nghiệp vụ MVP (FR-01 đến FR-08) đã được triển khai và kiểm thử.
+
+Hướng phát triển tiếp theo nằm ở epic SF-70: đăng nhập và phân quyền, ảnh sản phẩm trên AWS S3,
+và chatbot tư vấn khách hàng dựa trên vector search.
 
 ## Cách chạy local
 
