@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-07-26
+
+### Fixed
+- **Storefront**:
+  - Added a way into the workspace from the storefront header. The sign-in control only rendered on routes that require a session, so a visitor landing on the storefront had no link to the login page at all (SF-87).
+
 ## [0.9.0] - 2026-07-26
 
 ### Added

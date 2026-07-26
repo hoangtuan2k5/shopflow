@@ -78,7 +78,7 @@ Chi tiết backlog và board trên Jira project [`SF`](https://tuanwork.atlassia
 
 ## Tiến độ hiện tại
 
-Cập nhật theo Jira board và repo (2026-07-26). Release mới nhất: **v0.9.0**.
+Cập nhật theo Jira board và repo (2026-07-26). Release mới nhất: **v0.9.1**.
 
 | Hạng mục | Jira | Trạng thái | Ghi chú |
 |---|---|---|---|
@@ -99,6 +99,7 @@ Cập nhật theo Jira board và repo (2026-07-26). Release mới nhất: **v0.9
 | Đăng nhập | SF-72 (SF-77…80) | Done | Tài khoản, phiên cookie HttpOnly, màn hình đăng nhập, từ chối không phân biệt được nguyên nhân |
 | Phân quyền theo vai trò | SF-73 (SF-81…84) | Done | Đóng mặc định, guest vẫn mua hàng, guard router, CSRF |
 | Tham chiếu đơn hàng khi thanh toán | SF-85 | Done | Chặn dò id tuần tự để phá đơn hoặc đánh dấu đã trả tiền |
+| Lối vào khu vực làm việc từ storefront | SF-87 | Done | Storefront trước đó không có liên kết nào tới trang đăng nhập |
 
 Toàn bộ phạm vi nghiệp vụ MVP (FR-01 đến FR-08) đã được triển khai và kiểm thử.
 
