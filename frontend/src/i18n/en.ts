@@ -29,6 +29,7 @@ export const en = {
     submitting: 'Signing in…',
     signIn: 'Sign in',
     signOut: 'Sign out',
+    workspace: 'Workspace',
     guestHint: 'Browsing and ordering do not require an account.',
   },
   common: {
