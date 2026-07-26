@@ -13,9 +13,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -41,10 +40,14 @@ import org.springframework.web.context.WebApplicationContext;
 @ActiveProfiles("test")
 @SpringBootTest
 @AutoConfigureMockMvc
-// Context phải sạch: .with(csrf()) thay CsrfTokenRepository ngay trên bean CsrfFilter dùng chung,
-// và context được cache nên một class chạy trước đã đủ làm repository thật biến mất khỏi cả JVM —
-// khi đó không response nào phát cookie XSRF-TOKEN nữa và vòng lặp ở đây mất thứ để kiểm.
-@DirtiesContext(classMode = ClassMode.BEFORE_CLASS)
+// Context riêng, database riêng. .with(csrf()) thay CsrfTokenRepository ngay trên bean CsrfFilter
+// dùng chung, và context được cache nên một class chạy trước đã đủ làm repository thật biến mất
+// khỏi cả JVM. Cách chữa bằng @DirtiesContext lại phá context dùng chung giữa chừng và làm class
+// chạy sau đó đỏ, nên ở đây đổi cache key bằng một datasource URL riêng: context này nằm cạnh
+// context chung chứ không thay thế nó.
+@TestPropertySource(
+    properties =
+        "spring.datasource.url=jdbc:h2:mem:csrfroundtrip;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE")
 class CsrfTokenRoundTripTests {
 
   @Autowired private WebApplicationContext webApplicationContext;

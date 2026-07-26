@@ -35,10 +35,14 @@ gửi token. Mọi test khác dùng `.with(csrf())`, thứ không đi qua
 đứng toàn bộ đường ghi. Scenario 6a–6d bịt khoảng trống đó bằng vòng cookie
 thật. Hai chi tiết cần biết khi đọc `CsrfTokenRoundTripTests`:
 
-- Class này khai báo `@DirtiesContext(BEFORE_CLASS)`. `.with(csrf())` thay
+- Class này chạy trên context và database riêng, tách ra bằng một
+  `@TestPropertySource` đổi datasource URL. Lý do: `.with(csrf())` thay
   `CsrfTokenRepository` ngay trên bean `CsrfFilter` dùng chung, mà Spring cache
-  context giữa các class test — nên chỉ cần một class chạy trước là repository
-  thật biến mất khỏi cả JVM và không response nào còn phát cookie `XSRF-TOKEN`.
+  context giữa các class test — chỉ cần một class chạy trước là repository thật
+  biến mất khỏi cả JVM và không response nào còn phát cookie `XSRF-TOKEN`. Cách
+  chữa bằng `@DirtiesContext` đã thử và bị loại: nó phá context dùng chung giữa
+  chừng, làm class chạy ngay sau đó đỏ với `chk_orders_status` — chỉ lộ ra khi
+  đổi thứ tự chạy, nên phải kiểm bằng cả ba `surefire.runOrder`.
 - Thiếu token trả `401`, sai token trả `403`. `CsrfConfigurer` map
   `MissingCsrfTokenException` sang authentication entry point vì thiếu token
   thường nghĩa là phiên đã hết hạn.
