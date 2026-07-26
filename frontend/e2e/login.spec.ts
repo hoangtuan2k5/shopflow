@@ -121,3 +121,71 @@ test('The login form is available in Vietnamese', async ({ page }) => {
   await expect(page.getByLabel('Tên đăng nhập')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Đăng nhập' })).toBeVisible()
 })
+
+test('An anonymous visitor is sent to sign in and returns to where they were headed', async ({
+  page,
+}) => {
+  await mockSession(page, null)
+  await page.route('**/api/inventory', (route) => fulfillJson(route, []))
+  await page.route('**/api/auth/login', async (route) => {
+    await mockSession(page, 'WAREHOUSE')
+    await fulfillJson(route, WAREHOUSE_USER)
+  })
+
+  await page.goto('/warehouse/deliveries')
+
+  await expect(page).toHaveURL(/\/login\?redirect=\/warehouse\/deliveries$/)
+
+  await page.getByLabel('Username').fill('warehouse')
+  await page.getByLabel('Password').fill('Warehouse@2026')
+  await page.getByRole('button', { name: 'Sign in' }).click()
+
+  await expect(page).toHaveURL(/\/warehouse\/deliveries$/)
+})
+
+test('Warehouse staff cannot reach shop owner screens and see no link to them', async ({
+  page,
+}) => {
+  await mockSession(page, 'WAREHOUSE')
+  await page.route('**/api/inventory', (route) => fulfillJson(route, []))
+  await page.route('**/api/deliveries', (route) => fulfillJson(route, []))
+
+  await page.goto('/shop-owner')
+
+  await expect(page).toHaveURL(/\/warehouse$/)
+  await expect(page.getByRole('link', { name: /Shop Owner/ })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /Warehouse/ })).toBeVisible()
+})
+
+test('A shop owner reaches warehouse screens because their role covers them', async ({ page }) => {
+  await mockSession(page, 'SHOP_OWNER')
+  await page.route('**/api/inventory', (route) => fulfillJson(route, []))
+
+  await page.goto('/warehouse')
+
+  await expect(page).toHaveURL(/\/warehouse$/)
+  await expect(page.getByRole('heading', { name: 'Inventory management' })).toBeVisible()
+})
+
+test('The storefront stays open to guests', async ({ page }) => {
+  await mockSession(page, null)
+  await page.route('**/api/products', (route) => fulfillJson(route, []))
+
+  await page.goto('/customer')
+
+  await expect(page).toHaveURL(/\/customer$/)
+  await expect(page.getByRole('heading', { name: 'Products for you' })).toBeVisible()
+})
+
+test('A session that expires mid-use lands the operator back on the sign in page', async ({
+  page,
+}) => {
+  await mockSession(page, 'WAREHOUSE')
+  await page.route('**/api/inventory', (route) =>
+    fulfillJson(route, { message: 'Unauthorized', status: 401, fieldErrors: {} }, 401),
+  )
+
+  await page.goto('/warehouse')
+
+  await expect(page).toHaveURL(/\/login\?redirect=\/warehouse$/)
+})

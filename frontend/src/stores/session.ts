@@ -43,6 +43,12 @@ export const useSessionStore = defineStore('session', () => {
     return user.value
   }
 
+  /** Xoá phiên phía client khi server đã coi nó không còn hợp lệ; không gọi lại API. */
+  function forget() {
+    user.value = null
+    resolved.value = true
+  }
+
   async function signOut() {
     try {
       await logoutRequest()
@@ -52,5 +58,5 @@ export const useSessionStore = defineStore('session', () => {
     }
   }
 
-  return { user, resolved, isAuthenticated, roleKey, homePath, restore, signIn, signOut }
+  return { user, resolved, isAuthenticated, roleKey, homePath, restore, signIn, signOut, forget }
 })

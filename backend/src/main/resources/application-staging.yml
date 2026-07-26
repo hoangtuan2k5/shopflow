@@ -9,3 +9,11 @@ server:
     session:
       cookie:
         secure: true
+
+# Tài liệu API là bản đồ tấn công miễn phí. Tắt hẳn thay vì chặn bằng luật bảo mật:
+# endpoint đã tắt thì không thể cấu hình nhầm thành mở.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
