@@ -1,8 +1,8 @@
 # ShopFlow — Inventory Management API Specification
 
-**Phiên bản:** 1.0
+**Phiên bản:** 1.1
 
-**Ngày cập nhật:** 21/07/2026
+**Ngày cập nhật:** 26/07/2026
 
 **Liên quan:**
 
@@ -40,7 +40,9 @@ reserved stock.
   "productName": "iPhone 15",
   "onHandStock": 10,
   "reservedStock": 3,
-  "availableStock": 7
+  "availableStock": 7,
+  "lowStockThreshold": 5,
+  "lowStock": false
 }
 ```
 
@@ -51,6 +53,11 @@ reserved stock.
 | `onHandStock` | integer | `inventory_items.on_hand_stock` | Không âm |
 | `reservedStock` | integer | `inventory_items.reserved_stock` | Không âm và không lớn hơn on-hand |
 | `availableStock` | integer | computed | `onHandStock - reservedStock`; không lưu DB |
+| `lowStockThreshold` | integer, nullable | `products.low_stock_threshold` | Không âm; `null` nghĩa là không theo dõi cảnh báo |
+| `lowStock` | boolean | computed | `lowStockThreshold != null && availableStock <= lowStockThreshold`; luôn `false` khi threshold `null` |
+
+Hai field cảnh báo và endpoint cập nhật threshold được đặc tả đầy đủ trong
+[`api-low-stock-alert-spec.md`](./api-low-stock-alert-spec.md) (SF-9).
 
 Product chưa có `inventory_items` được đọc như `0/0/0`. Inventory Management
 hiển thị cả product active và inactive vì trạng thái bán hàng không làm mất nhu
@@ -71,7 +78,9 @@ Trả một JSON array sắp xếp tăng dần theo `productId`:
     "productName": "iPhone 15",
     "onHandStock": 10,
     "reservedStock": 3,
-    "availableStock": 7
+    "availableStock": 7,
+    "lowStockThreshold": 5,
+    "lowStock": false
   }
 ]
 ```
@@ -183,3 +192,4 @@ transaction. Các request đồng thời không được làm mất update hoặ
 | Version | Date | Changes |
 | --- | --- | --- |
 | 1.0 | 2026-07-21 | Chốt stock fields, endpoints, adjustment rules và error semantics |
+| 1.1 | 2026-07-26 | Bổ sung `lowStockThreshold` và `lowStock` vào read model (SF-65) |

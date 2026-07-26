@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-07-26
+
+### Added
+- **Customer Returns**:
+  - Added the customer return API contract covering the `REQUESTED` → `APPROVED`/`REJECTED` → `RESTOCKED` lifecycle (SF-18).
+  - Added return creation for delivered orders with partial quantities, a purchased-quantity cap across non-rejected returns, and transactional restock that raises on-hand stock and writes a `RETURN_RESTOCK` movement per item (SF-17).
+  - Added the shared Warehouse and Shop Owner return management UI with review, restock decision and restock confirmation (SF-63).
+  - Added controller, PostgreSQL concurrency and browser scenario coverage with QA evidence (SF-19).
+- **Low Stock Alerts**:
+  - Added the low stock alert contract deriving `lowStock` from the per-product threshold at read time (SF-64).
+  - Added `lowStockThreshold` and `lowStock` to the inventory read model, a threshold update endpoint, and the alert banner, badge and threshold dialog in the Inventory UI (SF-65).
+  - Added controller and browser scenario coverage with QA evidence (SF-66).
+
+### Fixed
+- **Customer Returns**:
+  - Lock the product row before restocking so the lazy inventory insert is serialised and the lock order matches every other stock path, removing a PostgreSQL deadlock against the threshold endpoint (SF-67).
+  - Scope the returnable-items aggregate by order so return lookups stop summing every non-rejected return item row per delivered order (SF-67).
+- **Inventory**:
+  - Always report a low stock threshold failure, including network errors that carry no error body (SF-67).
+
 ## [0.6.1] - 2026-07-22
 
 ### Added

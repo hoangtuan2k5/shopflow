@@ -268,7 +268,9 @@ Nguồn: [SF-7](https://tuanwork.atlassian.net/browse/SF-7).
 
 Nguồn: [SF-8](https://tuanwork.atlassian.net/browse/SF-8),
 [SF-17](https://tuanwork.atlassian.net/browse/SF-17),
-[SF-18](https://tuanwork.atlassian.net/browse/SF-18).
+[SF-18](https://tuanwork.atlassian.net/browse/SF-18),
+[SF-19](https://tuanwork.atlassian.net/browse/SF-19),
+[SF-63](https://tuanwork.atlassian.net/browse/SF-63).
 
 - **FR-07.1:** Return chỉ được tạo cho order có delivery status DELIVERED.
 - **FR-07.2:** Return BẮT BUỘC chỉ tham chiếu order item thuộc chính order đó và
@@ -297,7 +299,10 @@ xác nhận đã nhập lại kho.
 
 ### 5.8 FR-08 - Low-stock alert
 
-Nguồn: [SF-9](https://tuanwork.atlassian.net/browse/SF-9).
+Nguồn: [SF-9](https://tuanwork.atlassian.net/browse/SF-9),
+[SF-64](https://tuanwork.atlassian.net/browse/SF-64),
+[SF-65](https://tuanwork.atlassian.net/browse/SF-65),
+[SF-66](https://tuanwork.atlassian.net/browse/SF-66).
 
 - **FR-08.1:** Mỗi product có thể cấu hình lowStockThreshold là số nguyên không
   âm; giá trị null nghĩa là không theo dõi cảnh báo.
@@ -565,8 +570,8 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 | SF-5, SF-49, SF-50, SF-51, SF-52               | FR-04, BR-06, BR-07, NFR-01, NFR-04 đến NFR-06          | Delivery Status                          |
 | SF-6, SF-14, SF-15, SF-16                      | FR-05, BR-01, BR-02, BR-12, BR-13, NFR-01 đến NFR-02    | Inventory Management                     |
 | SF-7, SF-55, SF-56, SF-57, SF-58               | FR-06, BR-11, BR-13, NFR-01                             | Supplier Receiving                       |
-| SF-8, SF-17, SF-18, SF-19                      | FR-07, BR-08 đến BR-10, BR-13, NFR-01, NFR-04           | Customer Return                          |
-| SF-9                                           | FR-08, BR-14                                            | Low-stock Alert                          |
+| SF-8, SF-17, SF-18, SF-19, SF-63               | FR-07, BR-08 đến BR-10, BR-13, NFR-01, NFR-04           | Customer Return                          |
+| SF-9, SF-64, SF-65, SF-66                      | FR-08, BR-14                                            | Low-stock Alert                          |
 | SF-47                                          | FR-01.7, IR-04, AC-24                                   | Customer Storefront UX                   |
 
 ---
