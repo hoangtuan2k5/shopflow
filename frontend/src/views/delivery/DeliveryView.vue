@@ -369,7 +369,7 @@ function isDeliveryErrorDetails(value: unknown): value is DeliveryErrorDetails {
                     :class="stageReached(order, stage) ? 'bg-brand' : 'bg-border'"
                   />
                   <span
-                    class="relative mx-auto grid size-6 place-items-center rounded-full border-2 bg-card text-[0.65rem] font-bold"
+                    class="relative z-10 mx-auto grid size-6 place-items-center rounded-full border-2 bg-card text-[0.65rem] font-bold"
                     :class="
                       stageReached(order, stage)
                         ? 'border-brand text-success'

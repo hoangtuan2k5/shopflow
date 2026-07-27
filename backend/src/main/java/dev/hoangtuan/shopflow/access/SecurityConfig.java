@@ -15,7 +15,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 @Configuration
@@ -97,11 +96,15 @@ class SecurityConfig {
             handling ->
                 handling.authenticationEntryPoint(
                     new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
-        // Cookie đọc được bằng JavaScript là chủ ý: axios tự đọc XSRF-TOKEN và gửi lại
-        // X-XSRF-TOKEN. Token này chống CSRF, không phải bí mật cần giấu khỏi trang của mình.
+        // spa() thay cho việc chỉ đặt CookieCsrfTokenRepository: nó kèm luôn
+        // SpaCsrfTokenRequestHandler. Handler mặc định là XorCsrfTokenRequestAttributeHandler, đọc
+        // header bằng Base64.getUrlDecoder() rồi XOR, trong khi cookie chứa token thô — axios gửi
+        // lại đúng giá trị trong cookie nên không bao giờ khớp và mọi request ghi bị chặn.
+        // Cookie đọc được bằng JavaScript là chủ ý: token này chống CSRF, không phải bí mật cần
+        // giấu khỏi trang của mình.
         .csrf(
             csrf ->
-                csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                csrf.spa()
                     // Người gọi chưa có phiên thì chưa có gì để giả mạo.
                     .ignoringRequestMatchers(
                         PathPatternRequestMatcher.withDefaults()
