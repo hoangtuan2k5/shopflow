@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - 2026-07-27
+
+### Fixed
+- **Access**:
+  - The browser can complete state-changing requests again. Since 0.9.0 the CSRF configuration named the token store but not the token reader, so Spring Security's default handler demanded a masked header while the cookie carried the raw token. Guest checkout answered 401 and every staff write answered 403, with the whole test suite green throughout (SF-101).
+  - A read request now issues the CSRF cookie, so a visitor's first write no longer has to fail once to obtain a token (SF-101).
+- **Warehouse screens**:
+  - Realigned the stock table headings with their data and stopped the card clipping its third action, which was unreachable in Vietnamese (SF-88).
+  - The delivery stepper no longer draws its connecting line across the neighbouring circle and through its tick (SF-88).
+
+### Changed
+- **Testing**:
+  - Added a regression test that completes the CSRF cookie-to-header round trip the way a browser does. The existing authorization tests use a helper that bypasses the configured token handler, so they pass against a configuration that rejects every real request (SF-101).
+
 ## [0.9.1] - 2026-07-26
 
 ### Fixed
