@@ -63,7 +63,8 @@ class LoginRateLimiter {
     private final long retryAfterSeconds;
 
     RateLimitExceededException(Duration retryAfter) {
-      this.retryAfterSeconds = Math.max(1, retryAfter.toSeconds());
+      this.retryAfterSeconds =
+          Math.max(1, retryAfter.getSeconds() + (retryAfter.getNano() == 0 ? 0 : 1));
     }
 
     long retryAfterSeconds() {

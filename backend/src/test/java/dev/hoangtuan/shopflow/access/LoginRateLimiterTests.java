@@ -1,5 +1,6 @@
 package dev.hoangtuan.shopflow.access;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -24,7 +25,18 @@ class LoginRateLimiterTests {
     assertThatThrownBy(() -> limiter.acquire("keeper"))
         .isInstanceOf(LoginRateLimiter.RateLimitExceededException.class);
 
-    clock.advance(Duration.ofMinutes(15));
+    clock.advance(Duration.ofMillis(500));
+
+    assertThatThrownBy(() -> limiter.acquire("keeper"))
+        .isInstanceOf(LoginRateLimiter.RateLimitExceededException.class)
+        .satisfies(
+            exception ->
+                assertThat(
+                        ((LoginRateLimiter.RateLimitExceededException) exception)
+                            .retryAfterSeconds())
+                    .isEqualTo(900));
+
+    clock.advance(Duration.ofMinutes(15).minusMillis(500));
 
     assertThatCode(() -> limiter.acquire("keeper")).doesNotThrowAnyException();
   }
