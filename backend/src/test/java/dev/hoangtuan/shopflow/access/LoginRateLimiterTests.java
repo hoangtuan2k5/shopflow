@@ -18,28 +18,27 @@ class LoginRateLimiterTests {
     LoginRateLimiter limiter = new LoginRateLimiter(clock);
 
     for (int attempt = 0; attempt < 5; attempt++) {
-      limiter.recordFailure("keeper");
+      limiter.acquire("keeper");
     }
 
-    assertThatThrownBy(() -> limiter.check("keeper"))
+    assertThatThrownBy(() -> limiter.acquire("keeper"))
         .isInstanceOf(LoginRateLimiter.RateLimitExceededException.class);
 
     clock.advance(Duration.ofMinutes(15));
 
-    assertThatCode(() -> limiter.check("keeper")).doesNotThrowAnyException();
+    assertThatCode(() -> limiter.acquire("keeper")).doesNotThrowAnyException();
   }
 
   @Test
-  void clearsFailuresAfterASuccessfulLogin() {
+  void reservesOnlyFiveAttemptsBeforeAuthenticationCompletes() {
     LoginRateLimiter limiter = new LoginRateLimiter();
 
-    for (int attempt = 0; attempt < 4; attempt++) {
-      limiter.recordFailure("keeper");
+    for (int attempt = 0; attempt < 5; attempt++) {
+      limiter.acquire("keeper");
     }
-    limiter.clear("keeper");
-    limiter.recordFailure("keeper");
 
-    assertThatCode(() -> limiter.check("keeper")).doesNotThrowAnyException();
+    assertThatThrownBy(() -> limiter.acquire("keeper"))
+        .isInstanceOf(LoginRateLimiter.RateLimitExceededException.class);
   }
 
   private static final class MutableClock extends Clock {

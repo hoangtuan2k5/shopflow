@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.SecurityContextRepository;
@@ -28,22 +29,25 @@ class AuthService {
   }
 
   /**
-   * Ném {@link org.springframework.security.core.AuthenticationException} cho mọi trường hợp từ
-   * chối; bộ xử lý lỗi quy chúng về một phản hồi duy nhất.
+   * Authenticates credentials and establishes a server-side session.
+   *
+   * <p><b>Contract:</b> reserves one rate-limit slot before authentication; rejection keeps the
+   * slot, while success clears every slot for the username.
+   *
+   * @param request validated credentials
+   * @param httpRequest current servlet request
+   * @param httpResponse current servlet response
+   * @return authenticated account exposed to the client
+   * @throws AuthenticationException if the credentials are rejected
+   * @throws LoginRateLimiter.RateLimitExceededException if the username has no attempt available
    */
   AuthenticatedUser login(
       LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
-    loginRateLimiter.check(request.username());
-    Authentication authentication;
-    try {
-      authentication =
-          authenticationManager.authenticate(
-              UsernamePasswordAuthenticationToken.unauthenticated(
-                  request.username(), request.password()));
-    } catch (org.springframework.security.core.AuthenticationException exception) {
-      loginRateLimiter.recordFailure(request.username());
-      throw exception;
-    }
+    loginRateLimiter.acquire(request.username());
+    Authentication authentication =
+        authenticationManager.authenticate(
+            UsernamePasswordAuthenticationToken.unauthenticated(
+                request.username(), request.password()));
     loginRateLimiter.clear(request.username());
 
     // Đổi session id sau khi xác thực để chặn session fixation.

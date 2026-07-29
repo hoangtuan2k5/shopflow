@@ -1,6 +1,6 @@
 # ShopFlow — Authentication API Specification
 
-**Phiên bản:** 1.2
+**Phiên bản:** 1.3
 
 **Ngày cập nhật:** 29/07/2026
 
@@ -170,9 +170,11 @@ hiện một phép so khớp BCrypt giả để tránh timing attack.
 Sau 5 lần xác thực thất bại trong cửa sổ 15 phút, định danh đăng nhập đó bị giới
 hạn tạm thời. `429` không cho biết định danh có tồn tại hay không; client dùng
 `Retry-After` để biết khi nào có thể thử lại. Đăng nhập thành công trước ngưỡng
-sẽ xoá bộ đếm. Bộ đếm hiện lưu trong một backend process, nên bị xoá khi deploy;
-khi chạy nhiều backend phải thay bằng Redis có TTL. Giới hạn theo IP được đặt ở
-edge sau khi chuỗi proxy đã tin cậy IP khách thật.
+sẽ xoá bộ đếm. Mỗi request giữ chỗ trong bộ đếm trước khi xác thực, nên các
+request đồng thời không thể cùng vượt qua ngưỡng. Bộ đếm hiện lưu trong một
+backend process, nên bị xoá khi deploy; khi chạy nhiều backend phải thay bằng
+Redis có TTL. Giới hạn theo IP được đặt ở edge sau khi chuỗi proxy đã tin cậy IP
+khách thật.
 
 ## 5. POST /auth/logout
 
@@ -262,11 +264,13 @@ Những phần sau KHÔNG thuộc MVP và không được ngầm hiểu là đã
 11. Lần sai thứ sáu của cùng username trong 15 phút → `429` kèm `Retry-After`.
 12. Khi đủ 15 phút, định danh được thử lại; đăng nhập đúng trước ngưỡng xoá bộ đếm lỗi.
 13. Sau khi bị giới hạn, định danh có thật và không tồn tại trả cùng body `429`.
+14. Khi 5 lượt đang chờ xác thực, lượt thứ sáu của cùng username bị từ chối.
 
 ## 11. Version History
 
 | Phiên bản | Ngày | Thay đổi |
 | --- | --- | --- |
+| 1.3 | 29/07/2026 | Giữ chỗ nguyên tử trước xác thực để chặn burst đồng thời vượt ngưỡng. |
 | 1.2 | 29/07/2026 | Bổ sung kiểm thử hết hạn, xoá bộ đếm và chống dò tài khoản của rate limit. |
 | 1.1 | 29/07/2026 | Thêm rate limit theo định danh cho đăng nhập (5 lần sai / 15 phút). |
 | 1.0 | 26/07/2026 | Contract đầu tiên cho xác thực (SF-77). |

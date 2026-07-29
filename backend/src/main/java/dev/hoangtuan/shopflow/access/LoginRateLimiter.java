@@ -35,24 +35,16 @@ class LoginRateLimiter {
     this.clock = clock;
   }
 
-  synchronized void check(String username) {
-    FailureWindow failureWindow = failures.get(key(username));
-    Instant now = clock.instant();
-    if (failureWindow == null || !failureWindow.expiresAt().isAfter(now)) {
-      return;
-    }
-    if (failureWindow.failures() >= MAX_FAILURES) {
-      throw new RateLimitExceededException(Duration.between(now, failureWindow.expiresAt()));
-    }
-  }
-
-  synchronized void recordFailure(String username) {
+  synchronized void acquire(String username) {
     String key = key(username);
     FailureWindow failureWindow = failures.get(key);
     Instant now = clock.instant();
     if (failureWindow == null || !failureWindow.expiresAt().isAfter(now)) {
       failures.put(key, new FailureWindow(1, now.plus(WINDOW)));
       return;
+    }
+    if (failureWindow.failures() >= MAX_FAILURES) {
+      throw new RateLimitExceededException(Duration.between(now, failureWindow.expiresAt()));
     }
     failures.put(key, new FailureWindow(failureWindow.failures() + 1, failureWindow.expiresAt()));
   }

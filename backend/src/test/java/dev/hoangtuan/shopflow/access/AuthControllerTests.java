@@ -131,6 +131,22 @@ class AuthControllerTests {
   }
 
   @Test
+  void successfulLoginClearsPreviousFailures() throws Exception {
+    insertAccount("test-rate-reset", "Str0ng@Pass", "Đặt lại", "WAREHOUSE", true);
+
+    for (int attempt = 0; attempt < 4; attempt++) {
+      mockMvc.perform(login("test-rate-reset", "WrongPass")).andExpect(status().isUnauthorized());
+    }
+
+    mockMvc.perform(login("test-rate-reset", "Str0ng@Pass")).andExpect(status().isOk());
+
+    for (int attempt = 0; attempt < 5; attempt++) {
+      mockMvc.perform(login("test-rate-reset", "WrongPass")).andExpect(status().isUnauthorized());
+    }
+    mockMvc.perform(login("test-rate-reset", "WrongPass")).andExpect(status().isTooManyRequests());
+  }
+
+  @Test
   void rejectsMalformedCredentialsRequests() throws Exception {
     mockMvc
         .perform(login("", "Str0ng@Pass"))

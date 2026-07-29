@@ -19,8 +19,10 @@ khẩu và màn hình đăng nhập.
 | 8 | Mật khẩu tài khoản demo lưu dạng BCrypt, không phải plaintext | `storesSeededDemoPasswordsOnlyAsBcryptHashes` | Pass |
 | 9 | Ba tài khoản demo đăng nhập được với đúng vai trò | `signsInEachSeededDemoAccountWithItsDocumentedRole` | Pass |
 | 10 | Lần sai thứ sáu theo cùng username, không phân biệt hoa thường, trả `429` kèm `Retry-After` | `limitsRepeatedFailuresForTheSameUsername` | Pass |
-| 11 | Hết đúng cửa sổ 15 phút thì được thử lại; đăng nhập đúng xoá số lần sai trước đó | `LoginRateLimiterTests` | Pass |
+| 11 | Hết đúng cửa sổ 15 phút thì định danh được thử lại | `allowsAttemptsWhenTheFailureWindowExpires` | Pass |
 | 12 | Khi đã bị giới hạn, tài khoản có thật và định danh không tồn tại trả cùng body `429` | `limitsKnownAndUnknownAccountsWithoutRevealingWhichExists` | Pass |
+| 13 | Login đúng qua API xoá số lần sai trước đó | `successfulLoginClearsPreviousFailures` | Pass |
+| 14 | Năm lượt đang xác thực giữ đủ năm chỗ; lượt thứ sáu bị chặn | `reservesOnlyFiveAttemptsBeforeAuthenticationCompletes` | Pass |
 
 Scenario 2 là điểm dễ bỏ sót: nếu ba trường hợp trả lỗi khác nhau thì kẻ tấn
 công dò được tài khoản nào có thật. Ngoài nội dung lỗi, thời gian phản hồi cũng
@@ -42,7 +44,7 @@ và `DaoAuthenticationProvider` vẫn chạy một phép so khớp giả.
 
 ```bash
 cd backend && bash ./mvnw -B spotless:check clean verify
-# Tests run: 115, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS
+# Tests run: 116, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS
 
 cd frontend && npx playwright test
 # 28 passed
