@@ -16,12 +16,15 @@ class AuthService {
 
   private final AuthenticationManager authenticationManager;
   private final SecurityContextRepository securityContextRepository;
+  private final LoginRateLimiter loginRateLimiter;
 
   AuthService(
       AuthenticationManager authenticationManager,
-      SecurityContextRepository securityContextRepository) {
+      SecurityContextRepository securityContextRepository,
+      LoginRateLimiter loginRateLimiter) {
     this.authenticationManager = authenticationManager;
     this.securityContextRepository = securityContextRepository;
+    this.loginRateLimiter = loginRateLimiter;
   }
 
   /**
@@ -30,10 +33,18 @@ class AuthService {
    */
   AuthenticatedUser login(
       LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
-    Authentication authentication =
-        authenticationManager.authenticate(
-            UsernamePasswordAuthenticationToken.unauthenticated(
-                request.username(), request.password()));
+    loginRateLimiter.check(request.username());
+    Authentication authentication;
+    try {
+      authentication =
+          authenticationManager.authenticate(
+              UsernamePasswordAuthenticationToken.unauthenticated(
+                  request.username(), request.password()));
+    } catch (org.springframework.security.core.AuthenticationException exception) {
+      loginRateLimiter.recordFailure(request.username());
+      throw exception;
+    }
+    loginRateLimiter.clear(request.username());
 
     // Đổi session id sau khi xác thực để chặn session fixation.
     HttpSession existingSession = httpRequest.getSession(false);

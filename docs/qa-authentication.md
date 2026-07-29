@@ -1,6 +1,6 @@
 # Authentication QA Checklist
 
-**Ngày kiểm tra:** 26/07/2026
+**Ngày kiểm tra:** 29/07/2026
 
 **Scope:** `POST /auth/login`, `POST /auth/logout`, `GET /auth/session`, lưu mật
 khẩu và màn hình đăng nhập.
@@ -18,6 +18,9 @@ khẩu và màn hình đăng nhập.
 | 7 | Đăng xuất khi chưa đăng nhập vẫn trả `204` | `treatsLogoutWithoutASessionAsSuccess` | Pass |
 | 8 | Mật khẩu tài khoản demo lưu dạng BCrypt, không phải plaintext | `storesSeededDemoPasswordsOnlyAsBcryptHashes` | Pass |
 | 9 | Ba tài khoản demo đăng nhập được với đúng vai trò | `signsInEachSeededDemoAccountWithItsDocumentedRole` | Pass |
+| 10 | Lần sai thứ sáu theo cùng username, không phân biệt hoa thường, trả `429` kèm `Retry-After` | `limitsRepeatedFailuresForTheSameUsername` | Pass |
+| 11 | Hết đúng cửa sổ 15 phút thì được thử lại; đăng nhập đúng xoá số lần sai trước đó | `LoginRateLimiterTests` | Pass |
+| 12 | Khi đã bị giới hạn, tài khoản có thật và định danh không tồn tại trả cùng body `429` | `limitsKnownAndUnknownAccountsWithoutRevealingWhichExists` | Pass |
 
 Scenario 2 là điểm dễ bỏ sót: nếu ba trường hợp trả lỗi khác nhau thì kẻ tấn
 công dò được tài khoản nào có thật. Ngoài nội dung lỗi, thời gian phản hồi cũng
@@ -39,7 +42,7 @@ và `DaoAuthenticationProvider` vẫn chạy một phép so khớp giả.
 
 ```bash
 cd backend && bash ./mvnw -B spotless:check clean verify
-# Tests run: 107, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS
+# Tests run: 115, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS
 
 cd frontend && npx playwright test
 # 28 passed
@@ -49,5 +52,6 @@ cd frontend && npx playwright test
 
 - Phiên lưu trong bộ nhớ tiến trình: mỗi lần deploy là mọi người phải đăng nhập
   lại. Đường nâng cấp là Spring Session JDBC trên chính PostgreSQL đang có.
-- Endpoint đăng nhập chưa có giới hạn brute-force.
+- Rate limit đăng nhập cũng lưu trong bộ nhớ một backend process và reset khi deploy; khi chạy
+  nhiều backend, thay bằng Redis có TTL. Rate limit theo IP thuộc edge sau khi proxy tin cậy IP khách.
 - Mật khẩu tài khoản demo nằm trong migration nên là thông tin công khai.

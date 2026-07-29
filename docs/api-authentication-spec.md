@@ -1,14 +1,14 @@
 # ShopFlow — Authentication API Specification
 
-**Phiên bản:** 1.0
+**Phiên bản:** 1.2
 
-**Ngày cập nhật:** 26/07/2026
+**Ngày cập nhật:** 29/07/2026
 
 **Liên quan:**
 
 - [SF-72: Log In to ShopFlow](https://tuanwork.atlassian.net/browse/SF-72)
 - [SF-77: Define Authentication Rules and API Contract](https://tuanwork.atlassian.net/browse/SF-77)
-- [`SRS.md`](./SRS.md) — FR-09, BR-16, NFR-09 đến NFR-11
+- [`SRS.md`](./SRS.md) — FR-09, BR-16, NFR-09 đến NFR-12
 - [`database-schema.md`](./database-schema.md) — bảng `users`
 
 ---
@@ -159,12 +159,20 @@ mật khẩu hay hash.
 | Tài khoản không tồn tại | `401` | thông báo chung |
 | Sai mật khẩu | `401` | thông báo chung |
 | Tài khoản `active = false` | `401` | thông báo chung |
+| Có từ 5 lần đăng nhập sai trong 15 phút với cùng định danh | `429` | thông báo chung và header `Retry-After` |
 
 Ba trường hợp `401` BẮT BUỘC trả **cùng một status và cùng một message**. Nếu
 phân biệt được, kẻ tấn công dò ra tài khoản nào tồn tại (NFR-10).
 
 Thời gian phản hồi cũng không nên tiết lộ: khi username không tồn tại, vẫn thực
 hiện một phép so khớp BCrypt giả để tránh timing attack.
+
+Sau 5 lần xác thực thất bại trong cửa sổ 15 phút, định danh đăng nhập đó bị giới
+hạn tạm thời. `429` không cho biết định danh có tồn tại hay không; client dùng
+`Retry-After` để biết khi nào có thể thử lại. Đăng nhập thành công trước ngưỡng
+sẽ xoá bộ đếm. Bộ đếm hiện lưu trong một backend process, nên bị xoá khi deploy;
+khi chạy nhiều backend phải thay bằng Redis có TTL. Giới hạn theo IP được đặt ở
+edge sau khi chuỗi proxy đã tin cậy IP khách thật.
 
 ## 5. POST /auth/logout
 
@@ -234,10 +242,7 @@ Những phần sau KHÔNG thuộc MVP và không được ngầm hiểu là đã
 - Đăng ký tự phục vụ, quên mật khẩu, đổi mật khẩu.
 - Xác thực nhiều lớp, SSO, OAuth, đăng nhập mạng xã hội.
 - Nhiều vai trò cho một tài khoản, phân quyền chi tiết theo từng thao tác.
-- Giới hạn số lần đăng nhập sai và khóa tài khoản tạm thời. Đây là **khoảng
-  trống đã biết**: endpoint login hiện không có phòng thủ brute-force. Đường
-  nâng cấp là rate limit theo IP và theo tài khoản trước khi hệ thống phục vụ
-  người dùng thật.
+- Khóa tài khoản cố định hoặc theo cấp số nhân.
 - Ghi audit cho hành vi đăng nhập/đăng xuất.
 
 ## 10. Test cases tối thiểu
@@ -254,9 +259,14 @@ Những phần sau KHÔNG thuộc MVP và không được ngầm hiểu là đã
 9. Đọc bản ghi `users` trong database → `password_hash` là chuỗi BCrypt, không
    phải plaintext.
 10. Username so khớp không phân biệt hoa thường.
+11. Lần sai thứ sáu của cùng username trong 15 phút → `429` kèm `Retry-After`.
+12. Khi đủ 15 phút, định danh được thử lại; đăng nhập đúng trước ngưỡng xoá bộ đếm lỗi.
+13. Sau khi bị giới hạn, định danh có thật và không tồn tại trả cùng body `429`.
 
 ## 11. Version History
 
 | Phiên bản | Ngày | Thay đổi |
 | --- | --- | --- |
+| 1.2 | 29/07/2026 | Bổ sung kiểm thử hết hạn, xoá bộ đếm và chống dò tài khoản của rate limit. |
+| 1.1 | 29/07/2026 | Thêm rate limit theo định danh cho đăng nhập (5 lần sai / 15 phút). |
 | 1.0 | 26/07/2026 | Contract đầu tiên cho xác thực (SF-77). |
