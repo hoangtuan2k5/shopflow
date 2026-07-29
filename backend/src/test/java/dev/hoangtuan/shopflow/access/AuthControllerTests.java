@@ -93,6 +93,60 @@ class AuthControllerTests {
   }
 
   @Test
+  void limitsRepeatedFailuresForTheSameUsername() throws Exception {
+    for (int attempt = 0; attempt < 5; attempt++) {
+      mockMvc.perform(login("test-rate-limited", "WrongPass")).andExpect(status().isUnauthorized());
+    }
+
+    mockMvc
+        .perform(login("TEST-RATE-LIMITED", "WrongPass"))
+        .andExpect(status().isTooManyRequests())
+        .andExpect(jsonPath("$.message").value("Too many sign-in attempts"))
+        .andExpect(
+            result -> assertThat(result.getResponse().getHeader("Retry-After")).isNotBlank());
+  }
+
+  @Test
+  void limitsKnownAndUnknownAccountsWithoutRevealingWhichExists() throws Exception {
+    insertAccount("test-rate-known", "Str0ng@Pass", "Có thật", "WAREHOUSE", true);
+
+    for (int attempt = 0; attempt < 5; attempt++) {
+      mockMvc.perform(login("test-rate-known", "WrongPass")).andExpect(status().isUnauthorized());
+      mockMvc.perform(login("test-rate-unknown", "WrongPass")).andExpect(status().isUnauthorized());
+    }
+
+    MvcResult known =
+        mockMvc
+            .perform(login("test-rate-known", "WrongPass"))
+            .andExpect(status().isTooManyRequests())
+            .andReturn();
+    MvcResult unknown =
+        mockMvc
+            .perform(login("test-rate-unknown", "WrongPass"))
+            .andExpect(status().isTooManyRequests())
+            .andReturn();
+
+    assertThat(known.getResponse().getContentAsString())
+        .isEqualTo(unknown.getResponse().getContentAsString());
+  }
+
+  @Test
+  void successfulLoginClearsPreviousFailures() throws Exception {
+    insertAccount("test-rate-reset", "Str0ng@Pass", "Đặt lại", "WAREHOUSE", true);
+
+    for (int attempt = 0; attempt < 4; attempt++) {
+      mockMvc.perform(login("test-rate-reset", "WrongPass")).andExpect(status().isUnauthorized());
+    }
+
+    mockMvc.perform(login("test-rate-reset", "Str0ng@Pass")).andExpect(status().isOk());
+
+    for (int attempt = 0; attempt < 5; attempt++) {
+      mockMvc.perform(login("test-rate-reset", "WrongPass")).andExpect(status().isUnauthorized());
+    }
+    mockMvc.perform(login("test-rate-reset", "WrongPass")).andExpect(status().isTooManyRequests());
+  }
+
+  @Test
   void rejectsMalformedCredentialsRequests() throws Exception {
     mockMvc
         .perform(login("", "Str0ng@Pass"))

@@ -39,6 +39,14 @@ class AuthErrorHandler {
     return response(HttpStatus.UNAUTHORIZED, REJECTED, Map.of());
   }
 
+  @ExceptionHandler(LoginRateLimiter.RateLimitExceededException.class)
+  ResponseEntity<ErrorResponse> handleRateLimit(
+      LoginRateLimiter.RateLimitExceededException exception) {
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+        .header("Retry-After", Long.toString(exception.retryAfterSeconds()))
+        .body(new ErrorResponse("Too many sign-in attempts", 429, Map.of()));
+  }
+
   private ResponseEntity<ErrorResponse> response(
       HttpStatus status, String message, Map<String, String> fieldErrors) {
     return ResponseEntity.status(status)
