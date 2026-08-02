@@ -12,11 +12,24 @@ services:
     volumes:
       - shopflow_prod_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "PGPASSWORD=\"$${POSTGRES_PASSWORD}\" psql --host=postgres --username=\"$${POSTGRES_USER}\" --dbname=\"$${POSTGRES_DB}\" --command=\"SELECT 1\" >/dev/null"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  flyway:
+    image: flyway/flyway:11.14.1
+    profiles:
+      - validation
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-shopflow}
+      FLYWAY_USER: ${DB_USERNAME:?DB_USERNAME is required}
+      FLYWAY_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      FLYWAY_SCHEMAS: shopflow
+      FLYWAY_DEFAULT_SCHEMA: shopflow
+    volumes:
+      - ./backend/src/main/resources/db/migration:/flyway/sql:ro
 
   backend:
     build:
@@ -43,6 +56,7 @@ services:
     build:
       context: ./frontend
     restart: unless-stopped
+    init: true
     ports:
       - "80:80"
       - "443:443"
@@ -53,7 +67,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     healthcheck:
-      test: ["CMD", "wget", "--spider", "--quiet", "--no-check-certificate", "https://shopflow.hoangtuan.dev/healthz"]
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:2019/config/"]
       interval: 10s
       timeout: 5s
       retries: 6

@@ -107,8 +107,12 @@ jobs:
           git checkout -B main origin/main
           git reset --hard origin/main
           test -f .env
+          if docker compose --env-file .env -f docker-compose.prod.yml ps --status running -q postgres | grep -q .; then
+            docker compose --env-file .env -f docker-compose.prod.yml --profile validation run --rm --no-deps flyway validate
+          fi
           docker compose --env-file .env -f docker-compose.prod.yml up -d --build --remove-orphans --wait
-          docker compose --env-file .env -f docker-compose.prod.yml exec -T frontend wget --spider --quiet --no-check-certificate https://shopflow.hoangtuan.dev/healthz
+          curl --fail --silent --show-error --connect-timeout 5 --max-time 10 https://shopflow.hoangtuan.dev/healthz >/dev/null
+          docker compose --env-file .env -f docker-compose.prod.yml exec -T frontend wget --spider --quiet http://127.0.0.1:2019/config/
           docker compose --env-file .env -f docker-compose.prod.yml exec -T backend curl --fail --silent http://127.0.0.1:8080/actuator/health >/dev/null
           docker compose --env-file .env -f docker-compose.prod.yml ps
           REMOTE
