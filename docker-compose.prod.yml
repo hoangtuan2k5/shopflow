@@ -12,7 +12,7 @@ services:
     volumes:
       - shopflow_prod_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "PGPASSWORD=\"$${POSTGRES_PASSWORD}\" psql --host=postgres --username=\"$${POSTGRES_USER}\" --dbname=\"$${POSTGRES_DB}\" --command=\"SELECT 1\" >/dev/null"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -43,6 +43,7 @@ services:
     build:
       context: ./frontend
     restart: unless-stopped
+    init: true
     ports:
       - "80:80"
       - "443:443"
@@ -53,7 +54,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     healthcheck:
-      test: ["CMD", "wget", "--spider", "--quiet", "--no-check-certificate", "https://shopflow.hoangtuan.dev/healthz"]
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:2019/config/"]
       interval: 10s
       timeout: 5s
       retries: 6
