@@ -104,7 +104,7 @@ jobs:
             git remote add origin https://github.com/hoangtuan2k5/shopflow.git
           fi
           git fetch --prune origin main
-          git checkout -B main origin/main
+          git checkout -B main -f origin/main
           git reset --hard origin/main
           test -f .env
           if docker compose --env-file .env -f docker-compose.prod.yml ps --status running -q postgres | grep -q .; then
