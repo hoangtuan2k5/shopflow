@@ -125,7 +125,7 @@ jobs:
               flyway/flyway:11.14.1 validate
           fi
           docker compose --env-file .env -f docker-compose.prod.yml up -d --build --remove-orphans --wait
-          curl --fail --silent --show-error https://shopflow.hoangtuan.dev/healthz >/dev/null
+          curl --fail --silent --show-error --connect-timeout 5 --max-time 10 https://shopflow.hoangtuan.dev/healthz >/dev/null
           docker compose --env-file .env -f docker-compose.prod.yml exec -T frontend wget --spider --quiet http://127.0.0.1:2019/config/
           docker compose --env-file .env -f docker-compose.prod.yml exec -T backend curl --fail --silent http://127.0.0.1:8080/actuator/health >/dev/null
           docker compose --env-file .env -f docker-compose.prod.yml ps
