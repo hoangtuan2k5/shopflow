@@ -1,8 +1,8 @@
 # ShopFlow Software Requirements Specification
 
-**Phiên bản:** 1.5
+**Phiên bản:** 1.6
 
-**Ngày cập nhật:** 26/07/2026
+**Ngày cập nhật:** 29/07/2026
 
 **Trạng thái:** Baseline yêu cầu MVP
 
@@ -81,7 +81,7 @@ stock, qua đó giảm nguy cơ nhận đơn vượt quá lượng hàng có th�
 - Payment gateway, đối soát, refund hoặc kế toán thật.
 - Shipping provider, tracking API hoặc tính cước vận chuyển thật.
 - Đăng ký tự phục vụ, quên mật khẩu, xác thực nhiều lớp và SSO.
-- Giới hạn số lần đăng nhập sai và khóa tài khoản tạm thời.
+- Khóa tài khoản cố định hoặc theo cấp số nhân.
 - Loyalty, promotion, cart phức tạp, thuế và báo cáo doanh thu nâng cao.
 - Điều phối tồn kho phân tán, queue hoặc mục tiêu hiệu năng được phê duyệt cho
   tải tranh chấp cao. Dù vậy, các request tạo order đồng thời vẫn phải bảo toàn
@@ -341,6 +341,9 @@ Nguồn: [SF-70](https://tuanwork.atlassian.net/browse/SF-70),
 - **FR-09.7:** Phiên BẮT BUỘC hết hạn sau một khoảng không hoạt động xác định.
 - **FR-09.8:** MVP không có đăng ký tự phục vụ, quên mật khẩu hay đổi mật khẩu;
   tài khoản được cung cấp sẵn qua migration.
+- **FR-09.9:** Sau 5 lần xác thực thất bại trong 15 phút với cùng định danh, hệ
+  thống BẮT BUỘC từ chối tạm thời bằng `429` và `Retry-After`; phản hồi không
+  được tiết lộ định danh có tồn tại hay không.
 
 ### 5.10 FR-10 - Phân quyền theo vai trò
 
@@ -584,6 +587,8 @@ trong ShopFlow.
   phản hồi.
 - **NFR-11:** Định danh phiên BẮT BUỘC không đọc được bằng JavaScript phía
   client và không đi kèm request khởi phát từ origin khác.
+- **NFR-12:** Hệ thống BẮT BUỘC giới hạn các lần đăng nhập thất bại để giảm nguy
+  cơ brute-force; giới hạn không được tạo khóa tài khoản vĩnh viễn.
 
 ### 10.4 Hiệu năng và khả dụng
 
@@ -665,8 +670,9 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
   danh sách đầy đủ nằm trong `api-authorization-spec.md`.
 - Tài khoản demo được seed qua migration nên mật khẩu của chúng là thông tin
   công khai trong repository; chúng chỉ bảo vệ dữ liệu demo.
-- Endpoint đăng nhập chưa có giới hạn brute-force; đây là khoảng trống đã biết
-  cần xử lý trước khi phục vụ người dùng thật.
+- Rate limit đăng nhập hiện nằm trong một backend process; khi scale ngang, cần
+  một store dùng chung có TTL. Rate limit theo IP chỉ được bật sau khi origin
+  tin cậy IP khách từ proxy.
 
 ---
 
@@ -674,6 +680,7 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 
 | Phiên bản | Ngày       | Thay đổi                                                                                                                 |
 | --------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 1.6       | 29/07/2026 | Bổ sung FR-09.9 và NFR-12: rate limit đăng nhập theo định danh.                                                        |
 | 1.5       | 26/07/2026 | Bổ sung FR-10 phân quyền theo vai trò, BR-17, BR-18 và AC-28 đến AC-30                                                   |
 | 1.4       | 26/07/2026 | Bổ sung FR-09 xác thực người dùng, BR-16, NFR-09 đến NFR-11 và AC-25 đến AC-27                                           |
 | 1.3       | 17/07/2026 | Chuyển currency baseline từ USD sang VND; quy định giá/amount là số nguyên và giữ payment schema tương thích             |
