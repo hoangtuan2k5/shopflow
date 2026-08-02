@@ -108,7 +108,7 @@ jobs:
           git reset --hard origin/main
           test -f .env
           if docker compose --env-file .env -f docker-compose.prod.yml ps --status running -q postgres | grep -q .; then
-            docker compose --env-file .env -f docker-compose.prod.yml --profile validation run --rm --no-deps flyway validate
+            docker compose --env-file .env -f docker-compose.prod.yml --profile validation run --rm --no-deps flyway validate -ignoreMigrationPatterns='*:pending'
           fi
           docker compose --env-file .env -f docker-compose.prod.yml up -d --build --remove-orphans --wait
           curl --fail --silent --show-error --connect-timeout 5 --max-time 10 https://shopflow.hoangtuan.dev/healthz >/dev/null
