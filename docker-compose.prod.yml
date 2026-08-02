@@ -18,6 +18,19 @@ services:
       retries: 10
       start_period: 10s
 
+  flyway:
+    image: flyway/flyway:11.14.1
+    profiles:
+      - validation
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-shopflow}
+      FLYWAY_USER: ${DB_USERNAME:?DB_USERNAME is required}
+      FLYWAY_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      FLYWAY_SCHEMAS: shopflow
+      FLYWAY_DEFAULT_SCHEMA: shopflow
+    volumes:
+      - ./backend/src/main/resources/db/migration:/flyway/sql:ro
+
   backend:
     build:
       context: ./backend

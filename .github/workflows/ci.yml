@@ -108,21 +108,7 @@ jobs:
           git reset --hard origin/main
           test -f .env
           if docker compose --env-file .env -f docker-compose.prod.yml ps --status running -q postgres | grep -q .; then
-            set -a
-            . ./.env
-            set +a
-            export FLYWAY_URL="jdbc:postgresql://postgres:5432/${DB_NAME:-shopflow}"
-            export FLYWAY_USER="$DB_USERNAME"
-            export FLYWAY_PASSWORD="$DB_PASSWORD"
-            docker run --rm \
-              --network shopflow_default \
-              --env FLYWAY_URL \
-              --env FLYWAY_USER \
-              --env FLYWAY_PASSWORD \
-              --env FLYWAY_SCHEMAS=shopflow \
-              --env FLYWAY_DEFAULT_SCHEMA=shopflow \
-              --volume "$PWD/backend/src/main/resources/db/migration:/flyway/sql:ro" \
-              flyway/flyway:11.14.1 validate
+            docker compose --env-file .env -f docker-compose.prod.yml --profile validation run --rm --no-deps flyway validate
           fi
           docker compose --env-file .env -f docker-compose.prod.yml up -d --build --remove-orphans --wait
           curl --fail --silent --show-error --connect-timeout 5 --max-time 10 https://shopflow.hoangtuan.dev/healthz >/dev/null
