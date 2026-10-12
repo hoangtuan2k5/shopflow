@@ -1,7 +1,7 @@
 # ShopFlow — Customer Order API Specification
 
-**Phiên bản:** 1.4
-**Ngày cập nhật:** 20/07/2026
+**Phiên bản:** 1.5
+**Ngày cập nhật:** 12/10/2026
 **Liên quan:**
 - [SF-3: Create Customer Order](https://tuanwork.atlassian.net/browse/SF-3)
 - [SF-46: Fix Customer Order Validation and Payment Handoff Gaps](https://tuanwork.atlassian.net/browse/SF-46)
@@ -11,7 +11,6 @@
 - [SF-35: Implement Order Creation Flow](https://tuanwork.atlassian.net/browse/SF-35)
 - [SF-43: Implement Order Creation Frontend](https://tuanwork.atlassian.net/browse/SF-43)
 - [SF-13: Verify Customer Order Scenarios](https://tuanwork.atlassian.net/browse/SF-13)
-- [Confluence: Customer Order API Specification](https://tuanwork.atlassian.net/wiki/spaces/SF/pages/9109505)
 - [`database-schema.md`](./database-schema.md) — Database schema reference
 - [`database-schema.sql`](./database-schema.sql) — DDL PostgreSQL
 - [`SRS.md`](./SRS.md) — FR-02, BR-01 đến BR-04, BR-15
@@ -38,6 +37,26 @@
 Cung cấp API tạo customer order — khách hàng gửi danh sách sản phẩm và thông tin
 giao hàng; hệ thống kiểm tra available stock, tạo order `PENDING_PAYMENT`, snapshot
 giá/tên, và reserve inventory theo quantity (all-or-nothing).
+
+Tài liệu này là API contract được duy trì trong repository. Kết quả kiểm tra
+và lệnh chạy nằm trong [QA Customer Order](./qa-customer-order.md).
+
+### Quyền truy cập và CSRF
+
+- Guest và mọi vai trò đăng nhập đều được tạo đơn; không yêu cầu tài khoản.
+- `POST /orders` vẫn yêu cầu cookie `XSRF-TOKEN` và header `X-XSRF-TOKEN`
+  chứa cùng giá trị. Thiếu token trả `401` trước khi tạo đơn; token sai trả `403`.
+- Client gọi `GET /auth/session` trước khi gửi đơn và giữ cookie được cấp. Nếu
+  chưa có cookie token, response từ chối request ghi thiếu token cũng cấp
+  `XSRF-TOKEN`; client giữ cookie rồi gửi lại với header đúng. Vòng cookie/header
+  được kiểm tra trong [QA Authorization](./qa-authorization.md).
+- Frontend cùng origin dùng Axios để gửi cookie/header. Token phải được lấy
+  lại sau khi đăng nhập hoặc đăng xuất; xem [xác thực](./api-authentication-spec.md)
+  và [phân quyền](./api-authorization-spec.md).
+- Backend local dùng URL bên dưới; qua frontend production dùng
+  `POST /api/orders`. Lỗi CSRF không dùng error shape nghiệp vụ ở mục 5.
+
+### Phạm vi nghiệp vụ
 
 Giá và amount là số nguyên theo đơn vị VND. Các field khai báo integer không
 chấp nhận số có phần lẻ hoặc số được gửi dưới dạng JSON string.
@@ -106,15 +125,15 @@ Tạo order mới từ danh sách product và thông tin giao hàng.
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `customer` | object | yes | Snapshot khách hàng lúc đặt |
-| `customer.fullName` | string | yes | → `orders.customer_name`; non-blank |
-| `customer.email` | string or omit/null | no | → `orders.customer_email` |
-| `customer.phone` | string or omit/null | no | → `orders.customer_phone` |
+| `customer.fullName` | string | yes | → `orders.customer_name`; non-blank, tối đa 255 ký tự |
+| `customer.email` | string or omit/null | no | → `orders.customer_email`; đúng định dạng email, tối đa 255 ký tự |
+| `customer.phone` | string or omit/null | no | → `orders.customer_phone`; tối đa 20 ký tự |
 | `shippingAddress` | object | yes | Địa chỉ giao |
-| `shippingAddress.receiverName` | string | yes | → `orders.receiver_name`; non-blank |
-| `shippingAddress.phone` | string | yes | → `orders.receiver_phone`; non-blank |
-| `shippingAddress.addressLine` | string | yes | → `orders.address_line`; non-blank |
-| `shippingAddress.district` | string or omit/null | no | → `orders.district` |
-| `shippingAddress.city` | string | yes | → `orders.city`; non-blank |
+| `shippingAddress.receiverName` | string | yes | → `orders.receiver_name`; non-blank, tối đa 255 ký tự |
+| `shippingAddress.phone` | string | yes | → `orders.receiver_phone`; non-blank, tối đa 20 ký tự |
+| `shippingAddress.addressLine` | string | yes | → `orders.address_line`; non-blank, tối đa 500 ký tự |
+| `shippingAddress.district` | string or omit/null | no | → `orders.district`; tối đa 100 ký tự |
+| `shippingAddress.city` | string | yes | → `orders.city`; non-blank, tối đa 100 ký tự |
 | `paymentMethod` | string enum | yes | Chỉ `CARD` → `orders.payment_method`; `COD` bị từ chối trong MVP. |
 | `items` | array | yes | Ít nhất 1 phần tử |
 | `items[].productId` | number (long) | yes | JSON integer; không nhận fraction/string; `products.id`; mỗi `productId` chỉ xuất hiện **một lần** trong `items` |
@@ -172,7 +191,8 @@ Tạo order mới từ danh sách product và thông tin giao hàng.
 
 | Field | Type | Source | Notes |
 |---|---|---|---|
-| `id` | number (long) | `orders.id` | BIGSERIAL PK; dùng làm order identifier cho payment |
+| `id` | number (long) | `orders.id` | BIGSERIAL PK; định danh nội bộ, không dùng cho đường thanh toán |
+| `orderRef` | string (UUID) | `orders.order_ref` | Tham chiếu không đoán được, dùng cho payment |
 | `status` | string enum | `orders.status` | Luôn `PENDING_PAYMENT` khi create thành công |
 | `deliveryStatus` | string enum | `orders.delivery_status` | Luôn `NONE` khi create |
 | `paymentMethod` | string enum | `orders.payment_method` | Luôn là `CARD` khi create thành công |
@@ -188,7 +208,7 @@ Tạo order mới từ danh sách product và thông tin giao hàng.
 
 **Side effects khi 201 (cùng một DB transaction):**
 
-1. Insert `orders` (`status = PENDING_PAYMENT`, `delivery_status = NONE`).
+1. Insert `orders` (`status = PENDING_PAYMENT`, `delivery_status = NONE`), sinh `order_ref` UUID.
 2. Insert `order_items` với snapshot name/price.
 3. Với mỗi item: `inventory_items.reserved_stock += quantity`.
 4. Với mỗi item: insert `stock_movements` (`type = ORDER_RESERVED`, `reference_type = ORDER`, `reference_id = order.id`).
@@ -326,6 +346,7 @@ Body không parse được JSON: framework default hoặc:
 | Column | Type | Value khi create |
 |---|---|---|
 | `id` | BIGSERIAL | Generated |
+| `order_ref` | VARCHAR(36) | UUID dạng chuỗi; generated; UNIQUE NOT NULL; migration `V4__add_order_ref.sql` |
 | `customer_id` | BIGINT nullable | `NULL` (guest MVP) |
 | `customer_name` | VARCHAR(255) | `customer.fullName` |
 | `customer_phone` | VARCHAR(20) | `customer.phone` hoặc null |
@@ -454,6 +475,7 @@ export interface CreateOrderRequest {
 
 export interface OrderResponse {
   id: number
+  orderRef: string
   status: 'PENDING_PAYMENT'
   deliveryStatus: 'NONE'
   paymentMethod: PaymentMethod
@@ -492,7 +514,9 @@ export function createOrder(body: CreateOrderRequest) {
 - Map `ApiClientError` / 400 `insufficientItems` thành thông báo per product
 - Map `fieldErrors` vào đúng input và giữ nguyên dữ liệu/form khi request bị từ chối
 - Sau 201: chuyển sang payment-simulation handoff hiển thị chính xác `order.id`, `status`
-  và `totalAmount`; chưa gọi payment API (SF-4)
+  và `totalAmount`; giữ `orderRef` để gọi `POST /orders/{orderRef}/payments`
+  theo [Payment Simulation API](./api-payment-simulation-spec.md). Không dùng
+  `order.id` thay cho `orderRef`; chi tiết thanh toán nằm ở contract riêng (SF-4).
 
 ### Out of scope
 
@@ -533,6 +557,7 @@ export function createOrder(body: CreateOrderRequest) {
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.5 | 2026-10-12 | Duy trì contract trong repository; bổ sung CSRF, giới hạn field, orderRef và liên kết QA/payment (SF-125) |
 | 1.4 | 2026-07-26 | Bổ sung `orderRef` vào response; đây là định danh dùng cho đường thanh toán |
 | 1.3 | 2026-07-20 | Chặn numeric coercion, thêm field errors, total boundary và payment handoff |
 | 1.2 | 2026-07-17 | Chuyển currency baseline sang VND và giữ contract CARD-only/COD rejection |

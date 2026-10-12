@@ -29,7 +29,22 @@ shopflow/
 - `backend/`: Spring Boot service, Java 21, Maven, PostgreSQL, Flyway, OpenAPI.
 - `frontend/`: Vue 3 + Vite + TypeScript, Vue Router, Pinia, TanStack Query,
   VeeValidate, Zod, ESLint, Oxlint, Prettier.
-- `docs/`: tài liệu database schema và các ghi chú kỹ thuật.
+- `docs/`: tài liệu yêu cầu, API contract, database schema và kết quả kiểm tra.
+
+Tài liệu chuẩn của dự án được lưu và review ngay trong repository:
+
+- [SRS](docs/SRS.md): phạm vi, yêu cầu và quy tắc nghiệp vụ.
+- Các file `docs/api-*-spec.md`: request/response, validation và lỗi của từng API;
+  bắt đầu từ [Product Catalog](docs/api-product-catalog-spec.md) và
+  [Customer Order](docs/api-customer-order-spec.md).
+- [Database schema](docs/database-schema.md) và [DDL](docs/database-schema.sql):
+  thiết kế dữ liệu; migration thực thi nằm trong `backend/src/main/resources/db/migration/`.
+- Các file `docs/qa-*.md`: scenario, lệnh kiểm tra và kết quả tại ngày ghi trong tài liệu.
+- [Deployment](docs/deployment.md): cách triển khai và kiểm tra môi trường production.
+
+Khi thay đổi behavior, cập nhật tài liệu liên quan trong cùng PR theo
+[CONTRIBUTING.md](CONTRIBUTING.md). Jira dùng để theo dõi công việc; nội dung
+contract phải đọc được từ repository mà không cần truy cập wiki bên ngoài.
 
 ## Tech stack
 

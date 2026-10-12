@@ -1,14 +1,13 @@
 # ShopFlow — Product Catalog API Specification
 
-**Phiên bản:** 1.2
-**Ngày cập nhật:** 17/07/2026
+**Phiên bản:** 1.3
+**Ngày cập nhật:** 11/10/2026
 **Liên quan:**
 - [SF-2: Browse Product Catalog](https://tuanwork.atlassian.net/browse/SF-2)
 - [SF-36: Define Product Catalog API Contract](https://tuanwork.atlassian.net/browse/SF-36)
 - [SF-37: Implement Backend Product Catalog](https://tuanwork.atlassian.net/browse/SF-37)
 - [SF-38: Implement Frontend Product Catalog](https://tuanwork.atlassian.net/browse/SF-38)
 - [SF-39: Verify Product Catalog](https://tuanwork.atlassian.net/browse/SF-39)
-- [Confluence: Product Catalog API Specification](https://tuanwork.atlassian.net/wiki/spaces/SF/pages/2097414)
 - [`database-schema.md`](./database-schema.md) — Database schema reference
 - [`database-schema.sql`](./database-schema.sql) — DDL PostgreSQL
 
@@ -30,6 +29,14 @@
 ## 1. Tổng quan
 
 Cung cấp API read-only cho Product Catalog — khách hàng xem danh sách sản phẩm đang bán và chi tiết từng sản phẩm.
+
+Tài liệu này là API contract được duy trì trong repository. Yêu cầu nghiệp vụ nằm
+trong [SRS](./SRS.md) (FR-01); kết quả kiểm tra và lệnh chạy nằm trong
+[QA Product Catalog](./qa-product-catalog.md).
+
+Hai endpoint đều công khai, không yêu cầu đăng nhập hay CSRF token và không
+thay đổi dữ liệu. Backend local dùng URL bên dưới; qua frontend production,
+thêm prefix `/api` (ví dụ `GET /api/products`).
 
 Giá trả về là số nguyên theo đơn vị VND; API không nhận hoặc phát sinh phần lẻ.
 
@@ -266,6 +273,7 @@ export function getProductById(id: number) {
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.3 | 2026-10-11 | Duy trì contract trong repository; bổ sung quyền truy cập và liên kết SRS/QA (SF-125) |
 | 1.2 | 2026-07-17 | Chuyển currency baseline sang VND và quy định price là số nguyên |
 | 1.1 | 2026-07-17 | Clarify USD as the single MVP currency |
 | 1.0 | 2026-06-15 | Initial API spec: GET /products, GET /products/{id}, stockStatus spec |
