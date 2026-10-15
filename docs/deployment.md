@@ -49,6 +49,55 @@ healthcheck child processes. Application traffic still uses the SPA and
 `/api/*` routes. The deploy job separately verifies the public HTTPS endpoint
 from the VPS host with normal TLS validation.
 
+## TLS verification (SF-106, SF-119, SF-120)
+
+PR [#103](https://github.com/hoangtuan2k5/shopflow/pull/103) removed the
+certificate-verification bypass and separated two checks:
+
+- Docker checks Caddy's loopback HTTP admin endpoint. This checks the local
+  process without depending on DNS, Cloudflare or a public certificate.
+- After rollout, the deploy job runs `curl --fail --silent --show-error
+  --connect-timeout 5 --max-time 10 https://shopflow.hoangtuan.dev/healthz`.
+  Certificate verification remains enabled; an untrusted certificate or a
+  hostname mismatch returns a non-zero exit code and fails the deploy job.
+
+This replaces SF-106's original proposal to make container health depend on
+public TLS. A TLS failure does **not** make the container unhealthy. The HTTPS
+check runs after rollout, so failure reports an unsuccessful deployment but
+neither prevents that rollout nor automatically rolls it back. It is not a
+scheduled certificate monitor. With Cloudflare proxying enabled, the public
+probe validates the edge certificate; it does not directly inspect Caddy's
+origin certificate. Keep Cloudflare in Full (strict) mode for origin validation.
+
+### Repeatable local verification
+
+From the repository root, with Python 3, OpenSSL and curl installed:
+
+```bash
+python3 scripts/test-deploy-tls.py
+```
+
+The test reads the HTTPS probe arguments from the deployment workflow and uses
+an ephemeral TLS server bound to `127.0.0.1`. Certificates and private keys are
+generated in a temporary directory and removed afterwards. No production
+configuration, certificate or data is changed. The valid case explicitly trusts
+the temporary certificate; the invalid cases never disable certificate checks.
+
+Results on 2026-10-15: **4 tests passed**.
+
+| Scenario | Expected and observed result |
+| --- | --- |
+| Production configuration | HTTPS probe keeps `--fail`; no `-k`/`--insecure`; no `--no-check-certificate` in workflow or production Compose |
+| Trusted certificate, matching hostname | curl exits `0` and receives `ok` |
+| Untrusted self-signed certificate | curl exits `60`; request is rejected |
+| Trusted certificate, wrong hostname | curl exits `60`; request is rejected |
+
+The backend CI job runs this check before the Java build. These tests verify
+local curl certificate rejection and the configured probe, not production
+DNS, Cloudflare settings, Caddy certificate renewal or expiry handling by an
+actual expired certificate. The existing successful production deployment is
+recorded in [run 30922577367](https://github.com/hoangtuan2k5/shopflow/actions/runs/30922577367).
+
 ## Persistent database volume and migrations
 
 `POSTGRES_USER` and `POSTGRES_PASSWORD` initialize a PostgreSQL role only when
