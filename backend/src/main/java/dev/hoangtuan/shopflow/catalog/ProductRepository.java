@@ -12,7 +12,7 @@ interface ProductRepository extends JpaRepository<Product, Long> {
   @Query(
       value =
           """
-          SELECT p.id, p.name, p.description, p.price,
+          SELECT p.id, p.name, p.description, p.price, p.image_key,
                  CASE WHEN COALESCE(i.on_hand_stock - i.reserved_stock, 0) > 0
                       THEN 'IN_STOCK' ELSE 'OUT_OF_STOCK' END AS stock_status
           FROM shopflow.products p
@@ -26,7 +26,7 @@ interface ProductRepository extends JpaRepository<Product, Long> {
   @Query(
       value =
           """
-          SELECT p.id, p.name, p.description, p.price,
+          SELECT p.id, p.name, p.description, p.price, p.image_key,
                  CASE WHEN COALESCE(i.on_hand_stock - i.reserved_stock, 0) > 0
                       THEN 'IN_STOCK' ELSE 'OUT_OF_STOCK' END AS stock_status
           FROM shopflow.products p
@@ -36,7 +36,14 @@ interface ProductRepository extends JpaRepository<Product, Long> {
       nativeQuery = true)
   Optional<ProductView> findActiveById(@Param("id") Long id);
 
+  @Query(
+      value = "SELECT * FROM shopflow.products WHERE id = :id AND active = TRUE FOR UPDATE",
+      nativeQuery = true)
+  Optional<Product> findActiveForUpdate(@Param("id") Long id);
+
   interface ProductView {
+    String getImageKey();
+
     Long getId();
 
     String getName();

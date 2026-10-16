@@ -91,6 +91,47 @@ class CsrfTokenRoundTripTests {
   }
 
   @Test
+  void protectsImageUploadsWithTheRealCookieRoundTrip() throws Exception {
+    MockHttpSession session =
+        (MockHttpSession)
+            mockMvc
+                .perform(
+                    post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"owner\",\"password\":\"Owner@2026\"}"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getRequest()
+                .getSession(false);
+    MvcResult rejected =
+        mockMvc
+            .perform(
+                org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart(
+                        "/products/1/image")
+                    .session(session))
+            .andExpect(status().isForbidden())
+            .andReturn();
+    Cookie token = rejected.getResponse().getCookie("XSRF-TOKEN");
+    assertThat(token).isNotNull();
+    mockMvc
+        .perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart(
+                    "/products/1/image")
+                .session(session)
+                .cookie(token)
+                .header("X-XSRF-TOKEN", token.getValue()))
+        .andExpect(status().isBadRequest());
+    mockMvc
+        .perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart(
+                    "/products/1/image")
+                .session(session)
+                .cookie(token)
+                .header("X-XSRF-TOKEN", "wrong"))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
   void keepsSignInExemptSoTheFirstTokenCanBeObtained() throws Exception {
     mockMvc
         .perform(

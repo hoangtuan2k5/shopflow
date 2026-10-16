@@ -1,4 +1,8 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
   application:
     name: shopflow-backend
   profiles:
@@ -36,6 +40,12 @@ springdoc:
     tags-sorter: alpha
 
 shopflow:
+  r2:
+    endpoint: ${R2_ENDPOINT:http://localhost:9}
+    access-key-id: ${R2_ACCESS_KEY_ID:}
+    secret-access-key: ${R2_SECRET_ACCESS_KEY:}
+    bucket: ${R2_BUCKET:dev-products}
+    public-base-url: ${R2_PUBLIC_BASE_URL:https://media.example.invalid}
   openapi:
     version: 0.0.1-SNAPSHOT
 

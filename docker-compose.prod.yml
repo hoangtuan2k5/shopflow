@@ -37,6 +37,11 @@ services:
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: staging
+      R2_ENDPOINT: ${R2_ENDPOINT:?R2_ENDPOINT is required}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:?R2_ACCESS_KEY_ID is required}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:?R2_SECRET_ACCESS_KEY is required}
+      R2_BUCKET: ${R2_BUCKET:?R2_BUCKET is required}
+      R2_PUBLIC_BASE_URL: ${R2_PUBLIC_BASE_URL:?R2_PUBLIC_BASE_URL is required}
       DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-shopflow}
       DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}

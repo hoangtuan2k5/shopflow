@@ -17,3 +17,11 @@ springdoc:
     enabled: false
   swagger-ui:
     enabled: false
+
+shopflow:
+  r2:
+    endpoint: ${R2_ENDPOINT}
+    access-key-id: ${R2_ACCESS_KEY_ID}
+    secret-access-key: ${R2_SECRET_ACCESS_KEY}
+    bucket: ${R2_BUCKET}
+    public-base-url: ${R2_PUBLIC_BASE_URL}

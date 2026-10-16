@@ -125,3 +125,22 @@ Use temporary values when validating the Compose file locally:
 DB_USERNAME=test DB_PASSWORD=test docker compose -f docker-compose.prod.yml config
 docker compose -f docker-compose.prod.yml build
 ```
+
+## Product image storage (SF-74 / SF-90)
+
+Set `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` and
+`R2_PUBLIC_BASE_URL` in `/opt/shopflow/.env`. Use the account S3 API endpoint
+for `R2_ENDPOINT` and the HTTPS custom domain for `R2_PUBLIC_BASE_URL`.
+The staging profile and production Compose require all five values. Never
+commit credentials or expose them through frontend environment variables.
+
+Use a dedicated public product-image bucket, a bucket-scoped Object Read & Write
+API token and a custom domain; disable the development `r2.dev` URL. Keep backup
+buckets private with separate credentials. The Java S3 client uses region `auto`,
+path style and disabled chunked encoding. Dev starts without credentials; upload
+requires configured storage. CI uses a shared mock client and never calls R2.
+
+Migration V6 adds nullable `products.image_key`; existing products keep their
+placeholder. See [the image contract](./api-product-image-spec.md) for limits,
+permissions and replacement/rollback behavior. This change does not deploy itself:
+production deployment still requires the release workflow from `develop` to `main`.
