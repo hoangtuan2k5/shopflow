@@ -7,6 +7,7 @@ export interface ProductListItem {
   id: number
   name: string
   price: number
+  imageUrl: string | null
   stockStatus: StockStatus
 }
 
@@ -24,4 +25,10 @@ export async function getProductById(id: number) {
   const product = await request<ProductDetail>({ method: 'GET', url: `/products/${id}` })
 
   return validateProductPrice(product)
+}
+
+export function uploadProductImage(id: number, file: File) {
+  const data = new FormData()
+  data.append('file', file)
+  return request<{ imageUrl: string }>({ method: 'POST', url: `/products/${id}/image`, data })
 }

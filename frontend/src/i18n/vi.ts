@@ -34,7 +34,22 @@ export const vi: typeof en = {
     workspace: 'Khu vực làm việc',
     guestHint: 'Xem hàng và đặt hàng không cần tài khoản.',
   },
+  productImages: {
+    title: 'Ảnh sản phẩm',
+    subtitle:
+      'Chọn một ảnh cho từng sản phẩm. Ảnh hiện tại được giữ cho đến khi tải lên thành công.',
+    hint: 'Ảnh JPEG hoặc PNG, tối đa 2 MiB và 16 triệu điểm ảnh.',
+    choose: 'Chọn ảnh cho {name}',
+    upload: 'Tải ảnh lên',
+    uploading: 'Đang tải ảnh…',
+    success: 'Đã cập nhật ảnh cho {name}.',
+    error: 'Chưa tải được ảnh. Vui lòng thử lại.',
+    loadError: 'Chưa tải được danh sách sản phẩm.',
+    empty: 'Chưa có sản phẩm đang bán.',
+    back: 'Về quản lý cửa hàng',
+  },
   common: {
+    manageProductImages: 'Ảnh sản phẩm',
     cancel: 'Hủy',
     refresh: 'Tải lại',
     tryAgain: 'Thử lại',

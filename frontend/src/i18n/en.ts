@@ -32,7 +32,22 @@ export const en = {
     workspace: 'Workspace',
     guestHint: 'Browsing and ordering do not require an account.',
   },
+  productImages: {
+    title: 'Product images',
+    subtitle:
+      'Choose one image for each product. Existing images stay visible until the upload succeeds.',
+    hint: 'JPEG or PNG, up to 2 MiB and 16 megapixels.',
+    choose: 'Choose an image for {name}',
+    upload: 'Upload image',
+    uploading: 'Uploading…',
+    success: 'Image updated for {name}.',
+    error: 'The image could not be uploaded. Please try again.',
+    loadError: 'Products could not be loaded.',
+    empty: 'No active products.',
+    back: 'Back to shop management',
+  },
   common: {
+    manageProductImages: 'Product images',
     cancel: 'Cancel',
     refresh: 'Refresh',
     tryAgain: 'Try again',
