@@ -6,10 +6,16 @@ public final class ProductDto {
 
   private ProductDto() {}
 
-  public record ListItem(Long id, String name, BigDecimal price, StockStatus stockStatus) {}
+  public record ListItem(
+      Long id, String name, BigDecimal price, StockStatus stockStatus, String imageUrl) {}
 
   public record Detail(
-      Long id, String name, String description, BigDecimal price, StockStatus stockStatus) {}
+      Long id,
+      String name,
+      String description,
+      BigDecimal price,
+      StockStatus stockStatus,
+      String imageUrl) {}
 
   public enum StockStatus {
     IN_STOCK,

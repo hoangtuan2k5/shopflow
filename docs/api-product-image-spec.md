@@ -2,7 +2,7 @@
 
 **Phiên bản:** 1.0
 **Ngày cập nhật:** 16/10/2026
-**Trạng thái:** Contract cho SF-74; triển khai backend/frontend ở SF-90/SF-91.
+**Trạng thái:** Backend triển khai ở SF-90; frontend theo SF-91.
 
 **Liên quan:** [SF-74](https://tuanwork.atlassian.net/browse/SF-74),
 [SF-89](https://tuanwork.atlassian.net/browse/SF-89),
@@ -72,8 +72,8 @@ Lỗi nghiệp vụ dùng `{message, status}`; lỗi security do Spring Security
 | Status | Trường hợp | Message |
 | --- | --- | --- |
 | 400 | Thiếu/rỗng/nhiều file | `Exactly one non-empty image is required` |
-| 401 | Chưa đăng nhập hoặc thiếu CSRF | Theo security |
-| 403 | Sai vai trò hoặc sai CSRF | Theo security |
+| 401 | Chưa đăng nhập | Theo security |
+| 403 | Sai vai trò; phiên đã đăng nhập thiếu hoặc sai CSRF | Theo security |
 | 404 | Product missing/inactive | `Product not found` |
 | 413 | File quá 2 MiB hoặc request vượt giới hạn multipart | `Image exceeds 2 MiB limit` |
 | 415 | Sai định dạng, ảnh hỏng hoặc quá 16 triệu pixel | `Only valid JPEG or PNG images up to 16 megapixels are supported` |

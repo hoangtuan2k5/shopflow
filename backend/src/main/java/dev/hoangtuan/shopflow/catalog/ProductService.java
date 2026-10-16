@@ -8,7 +8,10 @@ class ProductService {
 
   private final ProductRepository productRepository;
 
-  ProductService(ProductRepository productRepository) {
+  private final ProductImageStorage imageStorage;
+
+  ProductService(ProductRepository productRepository, ProductImageStorage imageStorage) {
+    this.imageStorage = imageStorage;
     this.productRepository = productRepository;
   }
 
@@ -20,7 +23,8 @@ class ProductService {
                     product.getId(),
                     product.getName(),
                     product.getPrice(),
-                    ProductDto.StockStatus.valueOf(product.getStockStatus())))
+                    ProductDto.StockStatus.valueOf(product.getStockStatus()),
+                    imageStorage.url(product.getImageKey())))
         .toList();
   }
 
@@ -34,7 +38,8 @@ class ProductService {
                     product.getName(),
                     product.getDescription(),
                     product.getPrice(),
-                    ProductDto.StockStatus.valueOf(product.getStockStatus())))
+                    ProductDto.StockStatus.valueOf(product.getStockStatus()),
+                    imageStorage.url(product.getImageKey())))
         .orElseThrow(ProductNotFoundException::new);
   }
 }

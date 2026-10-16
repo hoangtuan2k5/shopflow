@@ -13,4 +13,14 @@ class Product {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
+
+  private String imageKey;
+
+  String getImageKey() {
+    return imageKey;
+  }
+
+  void setImageKey(String imageKey) {
+    this.imageKey = imageKey;
+  }
 }

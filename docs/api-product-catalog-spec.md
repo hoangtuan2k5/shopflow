@@ -38,8 +38,7 @@ Hai endpoint đều công khai, không yêu cầu đăng nhập hay CSRF token v
 thay đổi dữ liệu. Backend local dùng URL bên dưới; qua frontend production,
 thêm prefix `/api` (ví dụ `GET /api/products`).
 
-Theo contract SF-89, list/detail bổ sung `imageUrl: string | null` khi SF-90
-được triển khai; xem [Product Image API](./api-product-image-spec.md). Thiếu ảnh
+SF-90 triển khai `imageUrl: string | null` cho list/detail; xem [Product Image API](./api-product-image-spec.md). Thiếu ảnh
 trả `null`, frontend dùng placeholder; các field hiện có giữ nguyên.
 
 Giá trả về là số nguyên theo đơn vị VND; API không nhận hoặc phát sinh phần lẻ.
@@ -64,13 +63,15 @@ Trả về danh sách product đang active, kèm trạng thái còn hàng.
     "id": 1,
     "name": "iPhone 15",
     "price": 19990000,
-    "stockStatus": "IN_STOCK"
+    "stockStatus": "IN_STOCK",
+    "imageUrl": null
   },
   {
     "id": 2,
     "name": "MacBook Air M4",
     "price": 29990000,
-    "stockStatus": "OUT_OF_STOCK"
+    "stockStatus": "OUT_OF_STOCK",
+    "imageUrl": null
   }
 ]
 ```
@@ -82,7 +83,7 @@ Trả về danh sách product đang active, kèm trạng thái còn hàng.
 | `id` | `number` (long) | `products.id` | BIGSERIAL PK |
 | `name` | `string` | `products.name` | VARCHAR(255), NOT NULL |
 | `price` | `number` | `products.price` | NUMERIC(12,2), ≥ 0, số nguyên VND |
-| `imageUrl` | `string` or `null` | `products.image_key` | URL đọc ảnh R2; null nếu chưa có (SF-89 contract) |
+| `imageUrl` | `string` or `null` | `products.image_key` | URL đọc ảnh R2; null nếu chưa có |
 | `stockStatus` | `string` enum | Computed | `IN_STOCK` hoặc `OUT_OF_STOCK` |
 
 **Query behavior:**
@@ -109,7 +110,8 @@ Trả về chi tiết 1 product.
   "name": "iPhone 15",
   "description": "Apple iPhone 15 128GB — phiên bản mới nhất với Dynamic Island, cổng USB-C và camera 48MP.",
   "price": 19990000,
-  "stockStatus": "IN_STOCK"
+  "stockStatus": "IN_STOCK",
+  "imageUrl": null
 }
 ```
 
@@ -121,7 +123,7 @@ Trả về chi tiết 1 product.
 | `name` | `string` | `products.name` | |
 | `description` | `string` or `null` | `products.description` | TEXT, nullable |
 | `price` | `number` | `products.price` | NUMERIC(12,2), số nguyên VND |
-| `imageUrl` | `string` or `null` | `products.image_key` | URL đọc ảnh R2; null nếu chưa có (SF-89 contract) |
+| `imageUrl` | `string` or `null` | `products.image_key` | URL đọc ảnh R2; null nếu chưa có |
 | `stockStatus` | `string` enum | Computed | `IN_STOCK` hoặc `OUT_OF_STOCK` |
 
 **Error responses:**
