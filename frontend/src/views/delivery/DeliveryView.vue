@@ -190,6 +190,14 @@ function isDeliveryErrorDetails(value: unknown): value is DeliveryErrorDetails {
       </div>
       <div class="flex flex-wrap gap-2">
         <RouterLink
+          v-if="!isWarehouse"
+          to="/shop-owner/products"
+          :class="buttonVariants({ variant: 'outline' })"
+        >
+          <IconBox :size="18" :stroke-width="1.8" aria-hidden="true" />
+          {{ t('common.manageProductImages') }}
+        </RouterLink>
+        <RouterLink
           v-if="isWarehouse"
           to="/warehouse"
           :class="buttonVariants({ variant: 'outline' })"

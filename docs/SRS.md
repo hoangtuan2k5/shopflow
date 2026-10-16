@@ -1,8 +1,8 @@
 # ShopFlow Software Requirements Specification
 
-**Phiên bản:** 1.6
+**Phiên bản:** 1.7
 
-**Ngày cập nhật:** 29/07/2026
+**Ngày cập nhật:** 16/10/2026
 
 **Trạng thái:** Baseline yêu cầu MVP
 
@@ -373,6 +373,22 @@ Nguồn: [SF-73](https://tuanwork.atlassian.net/browse/SF-73),
 
 ---
 
+### 5.11 FR-11 - Ảnh sản phẩm (SF-74)
+
+Contract tại [Product Image API](./api-product-image-spec.md); backend/frontend
+được triển khai và kiểm chứng qua SF-90, SF-91, SF-92.
+
+- **FR-11.1:** Chỉ SHOP_OWNER được tải hoặc thay một ảnh cho mỗi product active;
+  request ghi phải có phiên và CSRF hợp lệ.
+- **FR-11.2:** Backend kiểm tra JPEG/PNG hợp lệ, file không quá 2 MiB và ảnh không
+  quá 16 triệu pixel; request validation bị từ chối không ghi R2 hay đổi database.
+- **FR-11.3:** Ảnh lưu trên R2, database lưu object key; catalog trả URL công khai
+  hoặc null. Thiếu ảnh hoặc tải lỗi phải có placeholder và text tên sản phẩm.
+- **FR-11.4:** Thay ảnh chỉ xoá ảnh cũ sau khi key mới được commit; lỗi upload/lưu
+  database không được làm mất tham chiếu ảnh cũ.
+
+---
+
 ## 6. Quy tắc nghiệp vụ
 
 | Mã    | Quy tắc                                                                                                      |
@@ -652,6 +668,7 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 | SF-70, SF-72, SF-77                            | FR-09, BR-16, NFR-09 đến NFR-11, AC-25 đến AC-27        | Xác thực người dùng                      |
 | SF-73, SF-81                                   | FR-10, BR-17, BR-18, AC-28 đến AC-30                    | Phân quyền theo vai trò                  |
 | SF-85                                          | FR-10.3, BR-18                                          | Tham chiếu đơn hàng cho thanh toán guest |
+| SF-74, SF-89, SF-90, SF-91, SF-92 | FR-11 | Ảnh sản phẩm trên Cloudflare R2 |
 
 ---
 
@@ -680,6 +697,7 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 
 | Phiên bản | Ngày       | Thay đổi                                                                                                                 |
 | --------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 1.7       | 16/10/2026 | Bổ sung FR-11 và truy vết SF-74/SF-89…SF-92: ảnh sản phẩm trên Cloudflare R2. |
 | 1.6       | 29/07/2026 | Bổ sung FR-09.9 và NFR-12: rate limit đăng nhập theo định danh.                                                        |
 | 1.5       | 26/07/2026 | Bổ sung FR-10 phân quyền theo vai trò, BR-17, BR-18 và AC-28 đến AC-30                                                   |
 | 1.4       | 26/07/2026 | Bổ sung FR-09 xác thực người dùng, BR-16, NFR-09 đến NFR-11 và AC-25 đến AC-27                                           |

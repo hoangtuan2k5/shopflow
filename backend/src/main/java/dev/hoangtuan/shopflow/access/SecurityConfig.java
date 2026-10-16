@@ -59,6 +59,8 @@ class SecurityConfig {
                 requests
                     .requestMatchers(HttpMethod.GET, "/products", "/products/*")
                     .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/products/*/image")
+                    .hasRole(SHOP_OWNER)
                     .requestMatchers(HttpMethod.POST, "/orders")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/orders/*/payments")
