@@ -35,6 +35,7 @@ import {
 } from '@/api'
 import { RouterLink } from 'vue-router'
 import { Button, buttonVariants } from '@/components/ui/button'
+import ProductImage from '@/components/catalog/ProductImage.vue'
 import CheckoutForm from '@/components/forms/CheckoutForm.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import { useSessionStore } from '@/stores/session'
@@ -500,14 +501,16 @@ function closeProduct() {
               :aria-label="t('catalog.viewDetails', { name: product.name })"
               @click="selectedProductId = product.id"
             >
-              <span class="absolute -right-8 -top-10 size-36 rounded-full bg-white/45" />
-              <span class="absolute -bottom-10 -left-8 size-28 rounded-full bg-white/45" />
-              <IconPackage
-                class="relative drop-shadow-xl transition-transform duration-200 group-hover:scale-105"
-                :size="64"
-                :stroke-width="1.5"
-                aria-hidden="true"
-              />
+              <ProductImage :src="product.imageUrl" :name="product.name">
+                <span class="absolute -right-8 -top-10 size-36 rounded-full bg-white/45" />
+                <span class="absolute -bottom-10 -left-8 size-28 rounded-full bg-white/45" />
+                <IconPackage
+                  class="relative drop-shadow-xl transition-transform duration-200 group-hover:scale-105"
+                  :size="64"
+                  :stroke-width="1.5"
+                  aria-hidden="true"
+                />
+              </ProductImage>
               <span
                 :class="[
                   'absolute left-2 top-2 flex items-center gap-1 rounded-md px-2 py-1 text-[9px] font-black uppercase sm:left-3 sm:top-3 sm:text-[11px]',
@@ -592,10 +595,15 @@ function closeProduct() {
 
         <template v-else-if="productQuery.data.value">
           <div
-            class="grid aspect-[16/8] place-items-center bg-gradient-to-br"
+            class="relative grid aspect-[16/8] place-items-center overflow-hidden bg-gradient-to-br"
             :class="visualClass(productQuery.data.value.id)"
           >
-            <IconPackage :size="76" :stroke-width="1.4" aria-hidden="true" />
+            <ProductImage
+              :src="productQuery.data.value.imageUrl"
+              :name="productQuery.data.value.name"
+            >
+              <IconPackage :size="76" :stroke-width="1.4" aria-hidden="true" />
+            </ProductImage>
           </div>
           <div class="grid gap-5 p-6">
             <DialogHeader>
@@ -683,10 +691,12 @@ function closeProduct() {
             class="grid grid-cols-[4.5rem_1fr_auto] gap-3 border-b border-border py-5"
           >
             <div
-              class="grid size-[4.5rem] place-items-center rounded-lg bg-gradient-to-br"
+              class="relative grid size-[4.5rem] place-items-center overflow-hidden rounded-lg bg-gradient-to-br"
               :class="visualClass(line.product.id)"
             >
-              <IconPackage :size="30" :stroke-width="1.5" aria-hidden="true" />
+              <ProductImage :src="line.product.imageUrl" :name="line.product.name">
+                <IconPackage :size="30" :stroke-width="1.5" aria-hidden="true" />
+              </ProductImage>
             </div>
             <div class="min-w-0">
               <p class="truncate font-bold">{{ line.product.name }}</p>

@@ -10,7 +10,7 @@ export type {
 } from './auth'
 export { getOpenApiDocument } from './openApi'
 export type { OpenApiDocument, OpenApiInfo, OpenApiTag } from './openApi'
-export { getProductById, getProducts } from './catalog'
+export { getProductById, getProducts, uploadProductImage } from './catalog'
 export type { ProductDetail, ProductListItem, StockStatus } from './catalog'
 export { adjustStock, getInventory, updateLowStockThreshold } from './inventory'
 export type {
