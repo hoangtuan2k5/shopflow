@@ -1,7 +1,7 @@
 # ShopFlow — Product Catalog API Specification
 
-**Phiên bản:** 1.3
-**Ngày cập nhật:** 11/10/2026
+**Phiên bản:** 1.4
+**Ngày cập nhật:** 16/10/2026
 **Liên quan:**
 - [SF-2: Browse Product Catalog](https://tuanwork.atlassian.net/browse/SF-2)
 - [SF-36: Define Product Catalog API Contract](https://tuanwork.atlassian.net/browse/SF-36)
@@ -37,6 +37,10 @@ trong [SRS](./SRS.md) (FR-01); kết quả kiểm tra và lệnh chạy nằm tr
 Hai endpoint đều công khai, không yêu cầu đăng nhập hay CSRF token và không
 thay đổi dữ liệu. Backend local dùng URL bên dưới; qua frontend production,
 thêm prefix `/api` (ví dụ `GET /api/products`).
+
+Theo contract SF-89, list/detail bổ sung `imageUrl: string | null` khi SF-90
+được triển khai; xem [Product Image API](./api-product-image-spec.md). Thiếu ảnh
+trả `null`, frontend dùng placeholder; các field hiện có giữ nguyên.
 
 Giá trả về là số nguyên theo đơn vị VND; API không nhận hoặc phát sinh phần lẻ.
 
@@ -78,6 +82,7 @@ Trả về danh sách product đang active, kèm trạng thái còn hàng.
 | `id` | `number` (long) | `products.id` | BIGSERIAL PK |
 | `name` | `string` | `products.name` | VARCHAR(255), NOT NULL |
 | `price` | `number` | `products.price` | NUMERIC(12,2), ≥ 0, số nguyên VND |
+| `imageUrl` | `string` or `null` | `products.image_key` | URL đọc ảnh R2; null nếu chưa có (SF-89 contract) |
 | `stockStatus` | `string` enum | Computed | `IN_STOCK` hoặc `OUT_OF_STOCK` |
 
 **Query behavior:**
@@ -116,6 +121,7 @@ Trả về chi tiết 1 product.
 | `name` | `string` | `products.name` | |
 | `description` | `string` or `null` | `products.description` | TEXT, nullable |
 | `price` | `number` | `products.price` | NUMERIC(12,2), số nguyên VND |
+| `imageUrl` | `string` or `null` | `products.image_key` | URL đọc ảnh R2; null nếu chưa có (SF-89 contract) |
 | `stockStatus` | `string` enum | Computed | `IN_STOCK` hoặc `OUT_OF_STOCK` |
 
 **Error responses:**
@@ -273,6 +279,7 @@ export function getProductById(id: number) {
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.4 | 2026-10-16 | Bổ sung contract imageUrl nullable cho list/detail (SF-89) |
 | 1.3 | 2026-10-11 | Duy trì contract trong repository; bổ sung quyền truy cập và liên kết SRS/QA (SF-125) |
 | 1.2 | 2026-07-17 | Chuyển currency baseline sang VND và quy định price là số nguyên |
 | 1.1 | 2026-07-17 | Clarify USD as the single MVP currency |
