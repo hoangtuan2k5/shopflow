@@ -15,3 +15,11 @@ shopflow.hoangtuan.dev, shopflow.phamthuy.dev {
 		file_server
 	}
 }
+
+wnc.phamthuy.dev {
+	reverse_proxy 172.20.0.1:5001
+}
+
+wnc.hoangtuan.dev {
+	reverse_proxy 172.20.0.1:5002
+}
