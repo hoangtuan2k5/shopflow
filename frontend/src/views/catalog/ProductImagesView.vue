@@ -85,7 +85,7 @@ function submit(id: number) {
       <div class="grid min-w-0 gap-3">
         <h2 class="break-words text-lg font-semibold text-primary">{{ product.name }}</h2>
         <form class="flex min-w-0 flex-wrap items-end gap-3" @submit.prevent="submit(product.id)">
-          <label class="grid min-w-0 flex-1 gap-2 text-sm">
+          <label class="grid w-full min-w-0 gap-2 text-sm sm:w-auto sm:flex-1">
             <span>{{ t('productImages.choose', { name: product.name }) }}</span>
             <input
               type="file"

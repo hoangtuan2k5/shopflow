@@ -1,6 +1,7 @@
 # ShopFlow — Database Schema Documentation
 
-**Phiên bản:** 1.0
+**Phiên bản:** 1.1
+**Ngày cập nhật:** 16/10/2026
 **Ngày lập:** 26/05/2026
 **Liên quan:**
 - [`database-schema.sql`](./database-schema.sql) — DDL PostgreSQL
@@ -81,6 +82,7 @@ entity "products" as products #DAE8FC {
     --
     * name : VARCHAR(255)
       description : TEXT
+      image_key : VARCHAR(255)
     * price : NUMERIC(12,2)
     * active : BOOLEAN
       low_stock_threshold : INT
@@ -246,6 +248,7 @@ Master data của sản phẩm — thông tin **chung** của 1 product. Đây l
 | `id` | `BIGSERIAL` | PK | Khóa chính tự tăng. Dùng `BIGSERIAL` thay `SERIAL` để tránh tràn nếu shop lớn (`SERIAL` max ~2.1 tỷ). |
 | `name` | `VARCHAR(255)` | NOT NULL | Tên sản phẩm hiển thị trên catalog. 255 ký tự đủ cho mọi tên product hợp lý. |
 | `description` | `TEXT` | nullable | Mô tả dài. Dùng `TEXT` thay `VARCHAR(N)` vì không giới hạn độ dài, hiệu năng PostgreSQL tương đương. |
+| `image_key` | `VARCHAR(255)` | nullable | Key object R2 do server sinh, không lưu URL; NULL khi chưa có ảnh. Migration V6 (SF-74/SF-90). |
 | `price` | `NUMERIC(12,2)` | NOT NULL, ≥ 0 | Giá hiện tại theo VND nguyên. `(12,2)` được giữ cho tương thích schema; ứng dụng không nhận phần lẻ. |
 | `active` | `BOOLEAN` | NOT NULL, DEFAULT TRUE | `true` = hiển thị catalog. `false` = ẩn nhưng không xóa (giữ tham chiếu cho order cũ). |
 | `low_stock_threshold` | `INT` | nullable, ≥ 0 | Ngưỡng cảnh báo hết hàng (FR-08.1). NULL = không cảnh báo cho product này. |

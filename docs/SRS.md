@@ -1,8 +1,8 @@
 # ShopFlow Software Requirements Specification
 
-**Phiên bản:** 1.6
+**Phiên bản:** 1.7
 
-**Ngày cập nhật:** 29/07/2026
+**Ngày cập nhật:** 16/10/2026
 
 **Trạng thái:** Baseline yêu cầu MVP
 
@@ -697,6 +697,7 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 
 | Phiên bản | Ngày       | Thay đổi                                                                                                                 |
 | --------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 1.7       | 16/10/2026 | Bổ sung FR-11 và truy vết SF-74/SF-89…SF-92: ảnh sản phẩm trên Cloudflare R2. |
 | 1.6       | 29/07/2026 | Bổ sung FR-09.9 và NFR-12: rate limit đăng nhập theo định danh.                                                        |
 | 1.5       | 26/07/2026 | Bổ sung FR-10 phân quyền theo vai trò, BR-17, BR-18 và AC-28 đến AC-30                                                   |
 | 1.4       | 26/07/2026 | Bổ sung FR-09 xác thực người dùng, BR-16, NFR-09 đến NFR-11 và AC-25 đến AC-27                                           |
