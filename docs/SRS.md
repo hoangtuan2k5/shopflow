@@ -668,10 +668,9 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 | SF-70, SF-72, SF-77                            | FR-09, BR-16, NFR-09 đến NFR-11, AC-25 đến AC-27        | Xác thực người dùng                      |
 | SF-73, SF-81                                   | FR-10, BR-17, BR-18, AC-28 đến AC-30                    | Phân quyền theo vai trò                  |
 | SF-85                                          | FR-10.3, BR-18                                          | Tham chiếu đơn hàng cho thanh toán guest |
+| SF-74, SF-89, SF-90, SF-91, SF-92 | FR-11 | Ảnh sản phẩm trên Cloudflare R2 |
 
 ---
-
-| SF-74, SF-89, SF-90, SF-91, SF-92 | FR-11 | Ảnh sản phẩm trên Cloudflare R2 |
 
 ## Phụ lục B - Giả định và giới hạn
 
