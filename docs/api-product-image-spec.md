@@ -2,12 +2,12 @@
 
 **Phiên bản:** 1.0
 **Ngày cập nhật:** 16/10/2026
-**Trạng thái:** Backend triển khai ở SF-90; frontend theo SF-91.
+**Trạng thái:** Backend/frontend triển khai ở SF-90/SF-91; bằng chứng kiểm tra ở SF-92.
 
 **Liên quan:** [SF-74](https://tuanwork.atlassian.net/browse/SF-74),
 [SF-89](https://tuanwork.atlassian.net/browse/SF-89),
 [SRS](./SRS.md), [Catalog API](./api-product-catalog-spec.md),
-[phân quyền](./api-authorization-spec.md).
+[phân quyền](./api-authorization-spec.md), [QA ảnh sản phẩm](./qa-product-image.md).
 
 ## 1. Phạm vi và quyết định
 

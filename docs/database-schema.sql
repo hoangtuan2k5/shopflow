@@ -17,6 +17,7 @@ CREATE TABLE products (
     id                   BIGSERIAL    PRIMARY KEY,
     name                 VARCHAR(255) NOT NULL,
     description          TEXT,
+    image_key            VARCHAR(255),
     price                NUMERIC(12,2) NOT NULL CHECK (price >= 0),
     active               BOOLEAN      NOT NULL DEFAULT TRUE,
     low_stock_threshold  INT          CHECK (low_stock_threshold >= 0),

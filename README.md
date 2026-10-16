@@ -51,7 +51,7 @@ contract phải đọc được từ repository mà không cần truy cập wiki
 - **Backend:** Spring Boot & Spring
 - **Frontend:** Vue.js
 - **Database:** PostgreSQL, H2 Database
-- **Infrastructure & Cloud:** Cloudflare (R2 cho ảnh sản phẩm theo kế hoạch), Oracle Cloud
+- **Infrastructure & Cloud:** Cloudflare (R2 cho ảnh sản phẩm), Oracle Cloud
 - **Tooling:** Git/GitHub, Postman, Jira
 
 ### Backend
@@ -87,7 +87,7 @@ contract phải đọc được từ repository mà không cần truy cập wiki
 | **Sprint 1** | 18/05/2026 → 13/06/2026 | Closed | Foundation: monorepo + CI, bootstrap backend/frontend, process docs. Phạm vi nghiệp vụ (catalog, order, payment, inventory baseline) một phần chuyển sang sprint sau. |
 | **Sprint 2** | 15/06/2026 → 29/06/2026 | Closed | Goal ban đầu: operational flows. Thực tế hoàn thành domain model (SF-10), Product Catalog end-to-end (SF-2, SF-36–39), SRS baseline, release **v0.3.0** / **v0.4.0**. Issue chưa xong chuyển sang Sprint 3. |
 | **Sprint 3** | 17/07/2026 → 31/07/2026 | Closed | Carry-over unfinished MVP: Create Customer Order (SF-3), payment simulation (SF-4), inventory (SF-6), delivery (SF-5), supplier receiving (SF-7), customer return (SF-8), low-stock alert (SF-9), song ngữ Anh/Việt (SF-69). Toàn bộ story đã Done; release **v0.5.0** → **v0.8.0**. |
-| **Sprint 4** | 27/07/2026 → 10/08/2026 | **Active** | Nền tảng post-MVP thuộc epic SF-70: đăng nhập (SF-72), phân quyền theo vai trò (SF-73), rate-limit đăng nhập (SF-105) và hardening production (SF-121) đã Done, release **v0.9.0** → **v0.9.3**; còn ảnh sản phẩm trên Cloudflare R2 (SF-74) và đánh chỉ mục catalog vào Qdrant (SF-75), đều đã chia subtask (SF-89…SF-96). Chatbot tư vấn (SF-76) nằm ở backlog, subtask SF-97…SF-100 đã sẵn sàng. |
+| **Sprint 4** | 27/07/2026 → 10/08/2026 | **Active** | Nền tảng post-MVP thuộc epic SF-70: đăng nhập (SF-72), phân quyền theo vai trò (SF-73), rate-limit đăng nhập (SF-105) và hardening production (SF-121) đã Done, release **v0.9.0** → **v0.9.3**; ảnh sản phẩm trên Cloudflare R2 (SF-74, SF-89…SF-92) đã triển khai trên `develop`, chưa release production; còn đánh chỉ mục catalog vào Qdrant (SF-75, SF-93…SF-96). Chatbot tư vấn (SF-76) nằm ở backlog, subtask SF-97…SF-100 đã sẵn sàng. |
 
 Chi tiết backlog và board trên Jira project [`SF`](https://tuanwork.atlassian.net/browse/SF) (Shopflow).
 
@@ -135,7 +135,12 @@ Tài khoản demo trên môi trường demo:
 
 Đây là tài khoản demo, mật khẩu nằm công khai trong repository và chỉ bảo vệ dữ liệu demo.
 
-Phần còn lại của epic SF-70: ảnh sản phẩm trên Cloudflare R2 và chatbot tư vấn khách hàng dựa trên
+Ảnh sản phẩm SF-74: chủ shop tải/thay ảnh tại `/shop-owner/products`; catalog giữ
+placeholder khi thiếu hoặc lỗi ảnh. Xem [API ảnh](docs/api-product-image-spec.md) và
+[QA ảnh sản phẩm](docs/qa-product-image.md). Chức năng có trên `develop`, chưa được
+release lên production.
+
+Phần còn lại của epic SF-70: đánh chỉ mục catalog và chatbot tư vấn khách hàng dựa trên
 vector search.
 
 Từ v0.9.2, mọi thao tác ghi từ trình duyệt hoạt động trở lại. Từ v0.9.0 tới v0.9.1, cấu hình CSRF

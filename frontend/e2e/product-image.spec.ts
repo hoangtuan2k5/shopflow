@@ -56,7 +56,8 @@ test('Owner uploads multipart with CSRF and refreshed images reach the catalog, 
   await page.getByRole('button', { name: 'Upload image' }).click()
   await expect(page.getByRole('status')).toContainText('Image updated')
   await expect(page.getByRole('img', { name, exact: true })).toBeVisible()
-  await page.goto('/customer')
+  await page.locator('a[href="/customer"]').first().click()
+  await expect(page).toHaveURL(/\/customer$/)
   const card = page.locator('article').first()
   await expect(card.getByRole('img', { name, exact: true })).toBeVisible()
   await page.getByRole('button', { name: `View details for ${name}`, exact: true }).click()
@@ -127,4 +128,34 @@ test('Owner has an entry link while warehouse and guests cannot reach image mana
   await mockSession(page, null)
   await page.goto('/shop-owner/products')
   await expect(page).toHaveURL(/\/login\?redirect=/)
+})
+
+test('A failed thumbnail recovers after replacement and pending uploads disable controls', async ({
+  page,
+}) => {
+  await mockSession(page, 'SHOP_OWNER')
+  const state = await catalog(page, '/missing-image.png')
+  await page.route('**/missing-image.png', (route) => route.fulfill({ status: 404, body: '' }))
+  let release!: () => void
+  const pending = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.route('**/api/products/7/image', async (route) => {
+    await pending
+    state.imageUrl = '/test-image.png'
+    await route.fulfill({ json: { imageUrl: state.imageUrl } })
+  })
+  await page.goto('/shop-owner/products')
+  const row = page.locator('article').first()
+  await expect(row.locator('.tabler-icon-package')).toBeVisible()
+  const input = page.getByLabel(`Choose an image for ${name}`)
+  await input.setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: png })
+  await page.getByRole('button', { name: 'Upload image', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Uploading…' })).toBeDisabled()
+  await expect(input).toBeDisabled()
+  await expect(row.locator('.tabler-icon-package')).toBeVisible()
+  release()
+  await expect(row.getByRole('img', { name, exact: true })).toBeVisible()
+  await expect(row.locator('.tabler-icon-package')).toHaveCount(0)
+  await expect(input).toBeEnabled()
 })

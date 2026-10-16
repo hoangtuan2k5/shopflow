@@ -96,7 +96,13 @@ class ProductImageControllerTests {
 
   @Test
   void refusesInvalidFilesWithoutStorageCalls() throws Exception {
-    for (byte[] bytes : new byte[][] {"fake png".getBytes(), Arrays.copyOf(png, 12)}) {
+    jdbc.update("UPDATE shopflow.products SET image_key='products/old.png' WHERE id=?", id);
+    for (byte[] bytes :
+        new byte[][] {
+          "fake png".getBytes(),
+          "<svg xmlns=\"http://www.w3.org/2000/svg\"/>".getBytes(),
+          Arrays.copyOf(png, 12)
+        }) {
       mvc.perform(
               multipart("/products/{id}/image", id)
                   .file(file(bytes))
@@ -112,6 +118,7 @@ class ProductImageControllerTests {
                 .with(csrf()))
         .andExpect(status().isPayloadTooLarge());
     verifyNoInteractions(client);
+    assertThat(key()).isEqualTo("products/old.png");
   }
 
   @Test
@@ -127,7 +134,14 @@ class ProductImageControllerTests {
     byte[] jpg = out.toByteArray();
     var app2 = new ByteArrayOutputStream();
     app2.write(jpg, 0, 2);
-    app2.write(new byte[] {(byte) 255, (byte) 226, 0, 4, 0, 0});
+    byte[] profile =
+        java.awt.color.ICC_Profile.getInstance(java.awt.color.ColorSpace.CS_sRGB).getData();
+    int segmentLength = 2 + 14 + profile.length;
+    app2.write(
+        new byte[] {(byte) 255, (byte) 226, (byte) (segmentLength >> 8), (byte) segmentLength});
+    app2.write("ICC_PROFILE\0".getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+    app2.write(new byte[] {1, 1});
+    app2.write(profile);
     app2.write(jpg, 2, jpg.length - 2);
     mvc.perform(
             multipart("/products/{id}/image", id)
@@ -140,6 +154,7 @@ class ProductImageControllerTests {
 
   @Test
   void rejectsMissingEmptyOrDuplicateFiles() throws Exception {
+    jdbc.update("UPDATE shopflow.products SET image_key='products/old.png' WHERE id=?", id);
     for (List<MockMultipartFile> files :
         List.of(
             List.<MockMultipartFile>of(),
@@ -151,10 +166,12 @@ class ProductImageControllerTests {
           .andExpect(status().isBadRequest());
     }
     verifyNoInteractions(client);
+    assertThat(key()).isEqualTo("products/old.png");
   }
 
   @Test
   void protectsRoleAndCsrfAndProductExistence() throws Exception {
+    jdbc.update("UPDATE shopflow.products SET image_key='products/old.png' WHERE id=?", id);
     mvc.perform(multipart("/products/{id}/image", id).file(file(png)).with(csrf()))
         .andExpect(status().isUnauthorized());
     for (String role : List.of("CUSTOMER", "WAREHOUSE")) {
@@ -181,6 +198,7 @@ class ProductImageControllerTests {
           .andExpect(status().isNotFound());
     }
     verifyNoInteractions(client);
+    assertThat(key()).isEqualTo("products/old.png");
   }
 
   @Test
@@ -239,6 +257,24 @@ class ProductImageControllerTests {
                 .with(csrf()))
         .andExpect(status().isUnsupportedMediaType());
     verifyNoInteractions(client);
+  }
+
+  @Test
+  void databaseFailureAfterUploadRollsBackAndCleansOnlyTheNewObject() {
+    jdbc.update("UPDATE shopflow.products SET image_key='products/old.png' WHERE id=?", id);
+    jdbc.execute(
+        "ALTER TABLE shopflow.products ADD CONSTRAINT reject_new_image CHECK (image_key IS NULL OR image_key='products/old.png')");
+    try {
+      org.assertj.core.api.Assertions.assertThatThrownBy(
+              () -> service.upload(id, List.of(file(png))))
+          .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+      assertThat(key()).isEqualTo("products/old.png");
+      verify(client).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+      verify(client)
+          .deleteObject(argThat((DeleteObjectRequest r) -> !r.key().equals("products/old.png")));
+    } finally {
+      jdbc.execute("ALTER TABLE shopflow.products DROP CONSTRAINT reject_new_image");
+    }
   }
 
   @Test
