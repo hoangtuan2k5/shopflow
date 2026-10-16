@@ -47,6 +47,10 @@ Quy tắc:
 
 ### Workflow chuẩn
 
+Trước khi promote `develop` vào `main`, phải cập nhật `CHANGELOG.md` cho phiên bản
+dự kiến và đưa thay đổi đó vào `develop` qua PR. Không để bước này tới sau khi đã
+merge hoặc deploy production.
+
 1. Đảm bảo `develop` mới nhất:
 
    ```bash

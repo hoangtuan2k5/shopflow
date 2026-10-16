@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-10-16
+
+### Added
+- **Product images**:
+  - Allow shop owners to upload or replace one JPEG/PNG image per active product using Cloudflare R2, with backend format, size and pixel-limit validation (SF-74, SF-89, SF-90).
+  - Add an owner image-management screen and display product images in catalog cards, product details and cart rows, preserving the existing placeholder when an image is missing or fails to load (SF-91).
+
+### Changed
+- **Catalog API and schema**:
+  - Add nullable `imageUrl` to catalog responses and Flyway migration V6 for nullable `products.image_key`; retain existing product prices and stock behavior (SF-90).
+- **Documentation and verification**:
+  - Maintain catalog/order API contracts entirely in the repository, removing their dependency on Confluence (SF-125).
+  - Add repeatable TLS rejection checks, image upload/rollback and browser coverage, and recorded real R2 smoke evidence (SF-119, SF-120, SF-92).
+
+### Fixed
+- **Production routing**:
+  - Preserve the existing WNC reverse-proxy routes in the tracked Caddyfile so deploying ShopFlow does not remove the two neighbouring sites (SF-74).
+
 ## [0.9.4] - 2026-08-04
 
 ### Fixed
