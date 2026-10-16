@@ -1,8 +1,8 @@
 # ShopFlow — Authorization API Specification
 
-**Phiên bản:** 1.0
+**Phiên bản:** 1.1
 
-**Ngày cập nhật:** 26/07/2026
+**Ngày cập nhật:** 16/10/2026
 
 **Liên quan:**
 
@@ -80,6 +80,7 @@ tiền · dashboard · doanh thu và báo cáo · cấu hình cửa hàng.
 | --- | :---: | :---: | :---: | :---: |
 | `GET /products` | ✓ | ✓ | ✓ | ✓ |
 | `GET /products/{id}` | ✓ | ✓ | ✓ | ✓ |
+| `POST /products/{id}/image` (SF-89 contract) | — | — | — | ✓ |
 | `POST /orders` | ✓ | ✓ | ✓ | ✓ |
 | `POST /orders/{orderRef}/payments` | ✓ | ✓ | ✓ | ✓ |
 | `POST /auth/login` | ✓ | ✓ | ✓ | ✓ |
@@ -168,14 +169,15 @@ Danh sách này tồn tại để không ai đọc ma trận rồi tưởng các
 
 **Phía Shop Owner**
 
-Quản lý sản phẩm (catalog hiện chỉ đọc) · danh mục · giá bán · quản lý khách
+Quản lý sản phẩm (CRUD chưa có; upload ảnh được chốt riêng trong
+[Product Image API](./api-product-image-spec.md), SF-90 triển khai) · danh mục · giá bán · quản lý khách
 hàng · quản lý tài khoản người dùng và phân quyền · xác nhận, từ chối, huỷ đơn
 (`OrderStatus.CANCELLED` có trong enum nhưng không endpoint nào chạm tới được) ·
 sửa đơn trước khi xuất kho · đổi hàng · hoàn tiền · dashboard · báo cáo doanh
 thu · cấu hình cửa hàng.
 
 Tổng cộng khoảng 13 quyền chưa có endpoint và 4 quyền chỉ có bản thay thế thô
-hơn. Ma trận ở mục 3 phủ 17 endpoint đang tồn tại, không phải toàn bộ mô hình
+hơn. Ma trận ở mục 3 phủ 17 endpoint đang tồn tại và contract của một endpoint ảnh mới, không phải toàn bộ mô hình
 tổ chức.
 
 ## 8. Rủi ro đã biết, chấp nhận trong MVP
