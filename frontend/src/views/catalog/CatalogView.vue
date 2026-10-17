@@ -567,7 +567,9 @@ function closeProduct() {
     </Button>
 
     <Dialog :open="selectedProductId !== null" @update:open="(open) => !open && closeProduct()">
-      <DialogContent class="overflow-hidden p-0">
+      <DialogContent
+        class="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-h-[calc(100dvh-3rem)]"
+      >
         <DialogClose as-child>
           <Button
             class="absolute right-4 top-4 z-10 size-10 bg-card/90 p-0"
@@ -595,18 +597,23 @@ function closeProduct() {
 
         <template v-else-if="productQuery.data.value">
           <div
-            class="relative grid aspect-[16/8] place-items-center overflow-hidden bg-gradient-to-br"
-            :class="visualClass(productQuery.data.value.id)"
+            role="region"
+            :aria-label="productQuery.data.value.name"
+            tabindex="0"
+            class="min-h-0 overflow-y-auto overscroll-contain"
           >
-            <ProductImage
-              :src="productQuery.data.value.imageUrl"
-              :name="productQuery.data.value.name"
+            <div
+              class="relative grid aspect-[16/8] place-items-center overflow-hidden bg-gradient-to-br"
+              :class="visualClass(productQuery.data.value.id)"
             >
-              <IconPackage :size="76" :stroke-width="1.4" aria-hidden="true" />
-            </ProductImage>
-          </div>
-          <div class="grid gap-5 p-6">
-            <DialogHeader>
+              <ProductImage
+                :src="productQuery.data.value.imageUrl"
+                :name="productQuery.data.value.name"
+              >
+                <IconPackage :size="76" :stroke-width="1.4" aria-hidden="true" />
+              </ProductImage>
+            </div>
+            <DialogHeader class="p-6">
               <span
                 :class="[
                   'mr-auto flex items-center gap-1 rounded-md px-2 py-1 text-xs font-bold',
@@ -625,7 +632,9 @@ function closeProduct() {
                 }}
               </DialogDescription>
             </DialogHeader>
-            <p class="border-t border-border pt-5 text-2xl font-black text-primary">
+          </div>
+          <div class="grid shrink-0 gap-5 border-t border-border p-6">
+            <p class="text-2xl font-black text-primary">
               {{ currency.format(productQuery.data.value.price) }}
             </p>
             <Button
