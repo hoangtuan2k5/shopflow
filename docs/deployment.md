@@ -117,6 +117,31 @@ has been deployed, do not edit, rename, or delete it; create a new versioned
 migration instead. Use `flyway repair` only as an incident-recovery action
 after a backup and review.
 
+### SSH script stdin (SF-128)
+
+The workflow sends its remote script to `bash -s` through SSH stdin. Flyway's
+`docker compose run` and both `docker compose exec -T` health probes redirect
+stdin from `/dev/null` so Compose cannot consume the remaining script. `-T`
+disables pseudo-TTY allocation, not stdin. Without this isolation, validation
+can succeed while Bash reaches EOF before rollout, yielding a green deploy job
+without updating containers. Keep these redirects when changing deploy commands.
+
+Run the regression check with Docker Compose available:
+
+```bash
+python3 scripts/test-deploy-stdin.py
+```
+
+The check reads the three commands from the workflow, retains their Compose
+options and redirections, and substitutes harmless commands in a temporary
+`postgres:17-alpine` container with no network or production mounts. It verifies
+that subsequent markers run, nonzero child exits stop the script, and removing
+each stdin redirect reproduces silent truncation. Containers are cleaned up
+even on test failure. CI runs this before the Java build; the first run may
+pull the test image. This does not exercise SSH, Flyway, rollout or live health
+endpoints. After a release, verify running containers and the live application
+independently of the workflow's exit status.
+
 ## Local verification
 
 Use temporary values when validating the Compose file locally:
