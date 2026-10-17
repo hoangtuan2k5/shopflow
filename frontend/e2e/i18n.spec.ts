@@ -42,7 +42,9 @@ test.describe('Vietnamese browser locale', () => {
 
 test('Interface defaults to English for non-Vietnamese browser locales', async ({ page }) => {
   const browserErrors = collectBrowserErrors(page)
-  await page.route('**/api/products', (route) => fulfillJson(route, []))
+  await page.route(/\/api\/products(?:\?.*)?$/, (route) =>
+    fulfillJson(route, { items: [], nextCursor: null }),
+  )
 
   await page.goto('/customer')
 

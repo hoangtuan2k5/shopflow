@@ -1,6 +1,7 @@
 package dev.hoangtuan.shopflow.catalog;
 
-import java.util.List;
+import java.util.Locale;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,17 +16,30 @@ class ProductService {
     this.productRepository = productRepository;
   }
 
-  List<ProductDto.ListItem> getProducts() {
-    return productRepository.findAllActive().stream()
-        .map(
-            product ->
-                new ProductDto.ListItem(
-                    product.getId(),
-                    product.getName(),
-                    product.getPrice(),
-                    ProductDto.StockStatus.valueOf(product.getStockStatus()),
-                    imageStorage.url(product.getImageKey())))
-        .toList();
+  ProductDto.Page getProducts(int limit, long after, String query) {
+    String pattern =
+        "%"
+            + query
+                .strip()
+                .toLowerCase(Locale.forLanguageTag("vi"))
+                .replace("!", "!!")
+                .replace("%", "!%")
+                .replace("_", "!_")
+            + "%";
+    var rows = productRepository.findActivePage(after, pattern, PageRequest.of(0, limit + 1));
+    var items =
+        rows.stream()
+            .limit(limit)
+            .map(
+                product ->
+                    new ProductDto.ListItem(
+                        product.getId(),
+                        product.getName(),
+                        product.getPrice(),
+                        ProductDto.StockStatus.valueOf(product.getStockStatus()),
+                        imageStorage.url(product.getImageKey())))
+            .toList();
+    return new ProductDto.Page(items, rows.size() > limit ? items.getLast().id().toString() : null);
   }
 
   ProductDto.Detail getProduct(Long id) {

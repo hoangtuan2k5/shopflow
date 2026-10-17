@@ -19,7 +19,9 @@ for (const viewport of [
     await page.setViewportSize(viewport)
     await page.addInitScript(() => localStorage.setItem('shopflow.locale', 'en'))
     await mockSession(page, null)
-    await page.route('**/api/products', (route) => route.fulfill({ json: [product] }))
+    await page.route(/\/api\/products(?:\?.*)?$/, (route) =>
+      route.fulfill({ json: { items: [product], nextCursor: null } }),
+    )
     await page.route('**/api/products/7', (route) =>
       route.fulfill({ json: { ...product, description } }),
     )
@@ -69,7 +71,9 @@ test('Loading and failed product details keep their close control inside the vie
   await page.setViewportSize({ width: 360, height: 640 })
   await page.addInitScript(() => localStorage.setItem('shopflow.locale', 'en'))
   await mockSession(page, null)
-  await page.route('**/api/products', (route) => route.fulfill({ json: [product] }))
+  await page.route(/\/api\/products(?:\?.*)?$/, (route) =>
+    route.fulfill({ json: { items: [product], nextCursor: null } }),
+  )
   let release!: () => void
   const pending = new Promise<void>((resolve) => {
     release = resolve
