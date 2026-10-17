@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Product image management**:
   - Load owner product lists incrementally while retaining image upload and replacement behavior (SF-127).
 
+### Fixed
+- **Production deployment**:
+  - Isolate stdin for Flyway validation and internal health probes so Docker Compose cannot consume the remaining SSH deployment script and report success without completing rollout or verification (SF-128).
+
 ## [0.10.1] - 2026-10-17
 
 ### Fixed

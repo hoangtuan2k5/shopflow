@@ -29,6 +29,10 @@ jobs:
         working-directory: .
         run: python3 scripts/test-deploy-tls.py
 
+      - name: Verify deployment stdin handling
+        working-directory: .
+        run: python3 scripts/test-deploy-stdin.py
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -112,11 +116,11 @@ jobs:
           git reset --hard origin/main
           test -f .env
           if docker compose --env-file .env -f docker-compose.prod.yml ps --status running -q postgres | grep -q .; then
-            docker compose --env-file .env -f docker-compose.prod.yml --profile validation run --rm --no-deps flyway validate -ignoreMigrationPatterns='*:pending'
+            docker compose --env-file .env -f docker-compose.prod.yml --profile validation run --rm --no-deps flyway validate -ignoreMigrationPatterns='*:pending' </dev/null
           fi
           docker compose --env-file .env -f docker-compose.prod.yml up -d --build --remove-orphans --wait
           curl --fail --silent --show-error --connect-timeout 5 --max-time 10 https://shopflow.hoangtuan.dev/healthz >/dev/null
-          docker compose --env-file .env -f docker-compose.prod.yml exec -T frontend wget --spider --quiet http://127.0.0.1:2019/config/
-          docker compose --env-file .env -f docker-compose.prod.yml exec -T backend curl --fail --silent http://127.0.0.1:8080/actuator/health >/dev/null
+          docker compose --env-file .env -f docker-compose.prod.yml exec -T frontend wget --spider --quiet http://127.0.0.1:2019/config/ </dev/null
+          docker compose --env-file .env -f docker-compose.prod.yml exec -T backend curl --fail --silent http://127.0.0.1:8080/actuator/health >/dev/null </dev/null
           docker compose --env-file .env -f docker-compose.prod.yml ps
           REMOTE
