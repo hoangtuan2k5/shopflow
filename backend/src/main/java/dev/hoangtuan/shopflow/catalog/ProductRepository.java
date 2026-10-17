@@ -3,6 +3,7 @@ package dev.hoangtuan.shopflow.catalog;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,10 +19,13 @@ interface ProductRepository extends JpaRepository<Product, Long> {
           FROM shopflow.products p
           LEFT JOIN shopflow.inventory_items i ON i.product_id = p.id
           WHERE p.active = TRUE
+            AND p.id > :after
+            AND LOWER(p.name) LIKE :pattern ESCAPE '!'
           ORDER BY p.id
           """,
       nativeQuery = true)
-  List<ProductView> findAllActive();
+  List<ProductView> findActivePage(
+      @Param("after") long after, @Param("pattern") String pattern, Pageable pageable);
 
   @Query(
       value =

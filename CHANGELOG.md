@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-10-17
+
+### Added
+- **Catalog**:
+  - Load products in batches of 20 as customers scroll, with a manual load-more control, loading/error states and retry support (SF-127).
+  - Search active products across the full catalog on the server while preserving cart selections when the search changes (SF-127).
+
+### Changed
+- **Catalog API**:
+  - **Breaking:** `GET /products` now returns `{items, nextCursor}` instead of an array and accepts `limit` (1–100, default 20), `after` and `q` parameters. API consumers must read products from `items` and follow `nextCursor` for subsequent pages (SF-127).
+- **Product image management**:
+  - Load owner product lists incrementally while retaining image upload and replacement behavior (SF-127).
+
 ## [0.10.1] - 2026-10-17
 
 ### Fixed

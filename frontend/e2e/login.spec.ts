@@ -169,7 +169,9 @@ test('A shop owner reaches warehouse screens because their role covers them', as
 
 test('The storefront stays open to guests', async ({ page }) => {
   await mockSession(page, null)
-  await page.route('**/api/products', (route) => fulfillJson(route, []))
+  await page.route(/\/api\/products(?:\?.*)?$/, (route) =>
+    fulfillJson(route, { items: [], nextCursor: null }),
+  )
 
   await page.goto('/customer')
 
@@ -194,7 +196,9 @@ test('The storefront offers a way in for staff and a way back for signed-in user
   page,
 }) => {
   await mockSession(page, null)
-  await page.route('**/api/products', (route) => fulfillJson(route, []))
+  await page.route(/\/api\/products(?:\?.*)?$/, (route) =>
+    fulfillJson(route, { items: [], nextCursor: null }),
+  )
 
   await page.goto('/customer')
   await page.getByRole('link', { name: 'Sign in' }).click()

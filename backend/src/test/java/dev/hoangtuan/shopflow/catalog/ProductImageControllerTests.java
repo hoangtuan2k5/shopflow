@@ -91,7 +91,7 @@ class ProductImageControllerTests {
     mvc.perform(get("/products/{id}", id))
         .andExpect(jsonPath("$.imageUrl").value("https://media.example.invalid/" + key()));
     mvc.perform(get("/products"))
-        .andExpect(jsonPath("$[0].imageUrl").value("https://media.example.invalid/" + key()));
+        .andExpect(jsonPath("$.items[0].imageUrl").value("https://media.example.invalid/" + key()));
   }
 
   @Test

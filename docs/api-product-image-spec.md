@@ -86,7 +86,7 @@ rollback và cleanup như mục 3, không lộ credential hoặc SDK error ra re
 
 ## 5. Catalog và cấu hình
 
-`GET /products` và `GET /products/{id}` thêm `imageUrl: string | null`.
+`GET /products` và `GET /products/{id}` thêm `imageUrl: string | null`. Với SF-127, danh sách nằm trong `items` của response `{ items, nextCursor }`; `imageUrl` trên từng sản phẩm không đổi. Xem [contract catalog](./api-product-catalog-spec.md).
 Không có ảnh trả `null`; frontend giữ placeholder hiện có khi null hoặc tải lỗi.
 Các field/stockStatus và luồng checkout giữ nguyên.
 
