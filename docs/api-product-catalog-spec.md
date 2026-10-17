@@ -1,7 +1,7 @@
 # ShopFlow — Product Catalog API Specification
 
-**Phiên bản:** 1.4
-**Ngày cập nhật:** 16/10/2026
+**Phiên bản:** 1.5
+**Ngày cập nhật:** 17/10/2026
 **Liên quan:**
 - [SF-2: Browse Product Catalog](https://tuanwork.atlassian.net/browse/SF-2)
 - [SF-36: Define Product Catalog API Contract](https://tuanwork.atlassian.net/browse/SF-36)
@@ -53,27 +53,42 @@ Giá trả về là số nguyên theo đơn vị VND; API không nhận hoặc p
 
 ## 2. GET /products
 
-Trả về danh sách product đang active, kèm trạng thái còn hàng.
+Trả về từng đợt product đang active, kèm trạng thái còn hàng (SF-127).
+
+| Query parameter | Quy tắc |
+|---|---|
+| `limit` | Số nguyên từ 1 đến 100; mặc định 20 |
+| `after` | ID cuối đợt trước, số nguyên long không âm; mặc định 0 |
+| `q` | Tìm chuỗi con trong tên, tối đa 255 ký tự; bỏ khoảng trắng đầu/cuối và không phân biệt hoa/thường; không bỏ dấu. `%`, `_`, `!` là ký tự thường, không phải wildcard |
+
+Ví dụ: `GET /products?limit=20&after=56&q=sharp`.
+
+Response đổi từ mảng sang `{ items, nextCursor }`; backend và frontend phải triển khai cùng phiên bản. `nextCursor` là ID dạng chuỗi hoặc `null` khi hết dữ liệu. Mỗi đợt sắp xếp ID tăng dần, chỉ lấy ID lớn hơn `after`; truy vấn database giới hạn `limit + 1` dòng để xác định còn dữ liệu, không cần COUNT toàn catalog. Tham số sai kiểu, ngoài giới hạn hoặc `q` quá dài trả `400` với `{ "message": "Invalid catalog query parameters", "status": 400 }`.
+
+Không có snapshot xuyên các đợt: đổi tên, trạng thái active hoặc thêm sản phẩm trong lúc cuộn có thể thay đổi kết quả; thứ tự ID không thay đổi. Khi đổi từ khóa, bắt đầu lại với `after=0`.
 
 **Response:** `200 OK`
 
 ```json
-[
-  {
-    "id": 1,
-    "name": "iPhone 15",
-    "price": 19990000,
-    "stockStatus": "IN_STOCK",
-    "imageUrl": null
-  },
-  {
-    "id": 2,
-    "name": "MacBook Air M4",
-    "price": 29990000,
-    "stockStatus": "OUT_OF_STOCK",
-    "imageUrl": null
-  }
-]
+{
+  "items": [
+    {
+      "id": 1,
+      "name": "iPhone 15",
+      "price": 19990000,
+      "stockStatus": "IN_STOCK",
+      "imageUrl": null
+    },
+    {
+      "id": 2,
+      "name": "MacBook Air M4",
+      "price": 29990000,
+      "stockStatus": "OUT_OF_STOCK",
+      "imageUrl": null
+    }
+  ],
+  "nextCursor": null
+}
 ```
 
 **Response fields:**
@@ -216,15 +231,7 @@ catalog/
 - Return `Optional<Product>` → map to 200 or throw 404
 - `@Tag(name = "Catalog")` cho Swagger grouping
 
-**Projection query (JPA):**
-
-```java
-@Query("SELECT p FROM Product p WHERE p.active = true")
-List<Product> findAllActive();
-
-@Query("SELECT p FROM Product p WHERE p.id = :id AND p.active = true")
-Optional<Product> findActiveById(@Param("id") Long id);
-```
+**Truy vấn phân trang (SF-127):** `ProductRepository.findActivePage(after, pattern, pageable)` dùng native SQL với `p.active = TRUE`, `p.id > :after`, `LOWER(p.name) LIKE :pattern ESCAPE '!'`, join tồn kho và `ORDER BY p.id`. `PageRequest.of(0, limit + 1)` giới hạn kết quả ở database; service chỉ trả tối đa `limit` item và cursor từ item cuối nếu có dòng dư.
 
 ### Frontend (SF-38)
 
@@ -239,15 +246,21 @@ interface ProductListItem {
   name: string
   price: number
   stockStatus: 'IN_STOCK' | 'OUT_OF_STOCK'
+  imageUrl: string | null
 }
 
 interface ProductDetail extends ProductListItem {
   description: string | null
 }
 
-export function getProducts() {
-  return request<ProductListItem[]>({ method: 'GET', url: '/products' })
+interface ProductPage {
+  items: ProductListItem[]
+  nextCursor: string | null
 }
+
+// getProducts({ after, q, signal }) gọi qua httpClient, limit=20,
+// và validateProductPrice cho từng item.
+
 
 export function getProductById(id: number) {
   return request<ProductDetail>({ method: 'GET', url: `/products/${id}` })
@@ -257,7 +270,10 @@ export function getProductById(id: number) {
 **UI components:**
 - Catalog list: shadcn-vue `Card` components, `OUT_OF_STOCK` marked with red badge
 - Product detail: dialog/modal or dedicated view showing full description
-- TanStack Query `useQuery` for data fetching
+- TanStack Query `useInfiniteQuery` cho danh sách; `useQuery` cho chi tiết. Cache danh sách dùng `['products', 'pages', q]`, khác cache chi tiết.
+- Storefront tự tải khi gần cuối và có nút tải thêm; chủ shop dùng nút tải thêm. Lỗi tải tiếp giữ các đợt đã tải và chỉ thử lại khi người dùng yêu cầu.
+- Tìm kiếm debounce 300 ms và bắt đầu đợt đầu khi đổi từ khóa; giỏ hàng giữ thông tin món độc lập với danh sách đang tìm.
+- Số đếm chỉ thể hiện các sản phẩm đã tải, không giả định đây là tổng catalog.
 - Loading & error states handled via `ApiClientError`
 
 ---
@@ -267,7 +283,7 @@ export function getProductById(id: number) {
 | # | Scenario | Expected |
 |---|---|---|
 | 1 | GET /products khi có product active | 200, danh sách chỉ gồm product active |
-| 2 | GET /products khi không có product nào active | 200, mảng rỗng `[]` |
+| 2 | GET /products khi không có product nào active | 200, `{ "items": [], "nextCursor": null }` |
 | 3 | GET /products có product hết hàng | Item có `stockStatus: "OUT_OF_STOCK"` |
 | 4 | GET /products/{id} với id tồn tại & active | 200, đầy đủ fields kể cả description |
 | 5 | GET /products/{id} với id không tồn tại | 404 |
@@ -281,6 +297,7 @@ export function getProductById(id: number) {
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.5 | 2026-10-17 | Phân trang cursor, tìm kiếm server, response items/nextCursor và giới hạn query (SF-127) |
 | 1.4 | 2026-10-16 | Bổ sung contract imageUrl nullable cho list/detail (SF-89) |
 | 1.3 | 2026-10-11 | Duy trì contract trong repository; bổ sung quyền truy cập và liên kết SRS/QA (SF-125) |
 | 1.2 | 2026-07-17 | Chuyển currency baseline sang VND và quy định price là số nguyên |

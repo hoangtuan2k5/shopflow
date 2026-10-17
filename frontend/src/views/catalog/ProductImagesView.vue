@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
-import { ApiClientError, getProducts, uploadProductImage } from '@/api'
+import { ApiClientError, uploadProductImage } from '@/api'
+import { useProductPages } from '@/composables/useProductPages'
 import ProductImage from '@/components/catalog/ProductImage.vue'
 import { Button, buttonVariants } from '@/components/ui/button'
 
@@ -11,11 +12,17 @@ const { t } = useI18n()
 const queryClient = useQueryClient()
 const success = ref('')
 const selected = ref<Record<number, File | undefined>>({})
-const products = useQuery({ queryKey: ['products'], queryFn: getProducts })
+const products = useProductPages()
+const items = computed(() => products.data.value?.pages.flatMap((page) => page.items) ?? [])
+function loadMore() {
+  if (products.hasNextPage.value && !products.isFetching.value) {
+    void products.fetchNextPage({ cancelRefetch: false })
+  }
+}
 const upload = useMutation({
   mutationFn: ({ id, file }: { id: number; file: File }) => uploadProductImage(id, file),
   onSuccess: async (_, variables) => {
-    const name = products.data.value?.find((product) => product.id === variables.id)?.name ?? ''
+    const name = items.value.find((product) => product.id === variables.id)?.name ?? ''
     success.value = t('productImages.success', { name })
     await queryClient.invalidateQueries({ queryKey: ['products'] })
   },
@@ -66,13 +73,17 @@ function submit(id: number) {
       {{ error }}
     </p>
     <p v-if="products.isPending.value" role="status">{{ t('catalog.loadingLabel') }}</p>
-    <div v-else-if="products.isError.value" role="alert" class="grid justify-items-start gap-3">
+    <div
+      v-else-if="products.isError.value && !products.data.value"
+      role="alert"
+      class="grid justify-items-start gap-3"
+    >
       <p>{{ t('productImages.loadError') }}</p>
       <Button variant="outline" @click="products.refetch()">{{ t('common.tryAgain') }}</Button>
     </div>
-    <p v-else-if="!products.data.value?.length">{{ t('productImages.empty') }}</p>
+    <p v-else-if="!items.length">{{ t('productImages.empty') }}</p>
     <article
-      v-for="product in products.data.value"
+      v-for="product in items"
       v-else
       :key="product.id"
       class="grid min-w-0 gap-4 rounded-xl border border-border bg-card p-4 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-6 sm:p-6"
@@ -105,5 +116,22 @@ function submit(id: number) {
         </form>
       </div>
     </article>
+    <p v-if="products.isFetchNextPageError.value" role="alert">{{ t('catalog.loadMoreError') }}</p>
+    <Button
+      v-if="products.hasNextPage.value"
+      type="button"
+      variant="outline"
+      :aria-disabled="products.isFetching.value"
+      @click="loadMore"
+    >
+      {{
+        products.isFetchingNextPage.value
+          ? t('catalog.loadingMore')
+          : products.isFetchNextPageError.value
+            ? t('common.tryAgain')
+            : t('catalog.loadMore')
+      }}
+    </Button>
+    <p v-else-if="items.length" role="status">{{ t('catalog.endOfProducts') }}</p>
   </section>
 </template>

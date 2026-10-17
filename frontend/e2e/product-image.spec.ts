@@ -19,7 +19,9 @@ async function catalog(page: Page, imageUrl: string | null = '/test-image.png') 
   await page.route('**/test-image.png', (route) =>
     route.fulfill({ contentType: 'image/png', body: png }),
   )
-  await page.route('**/api/products', (route) => route.fulfill({ json: [state] }))
+  await page.route(/\/api\/products(?:\?.*)?$/, (route) =>
+    route.fulfill({ json: { items: [state], nextCursor: null } }),
+  )
   await page.route('**/api/products/7', (route) =>
     route.fulfill({ json: { ...state, description: 'Màng lọc thay thế' } }),
   )
@@ -54,7 +56,9 @@ test('Owner uploads multipart with CSRF and refreshed images reach the catalog, 
     .getByLabel(`Choose an image for ${name}`)
     .setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: png })
   await page.getByRole('button', { name: 'Upload image' }).click()
-  await expect(page.getByRole('status')).toContainText('Image updated')
+  await expect(page.getByRole('status').filter({ hasText: 'Image updated' })).toContainText(
+    'Image updated',
+  )
   await expect(page.getByRole('img', { name, exact: true })).toBeVisible()
   await page.locator('a[href="/customer"]').first().click()
   await expect(page).toHaveURL(/\/customer$/)

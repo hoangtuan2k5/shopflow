@@ -15,10 +15,26 @@ export interface ProductDetail extends ProductListItem {
   description: string | null
 }
 
-export async function getProducts() {
-  const products = await request<ProductListItem[]>({ method: 'GET', url: '/products' })
+export interface ProductPage {
+  items: ProductListItem[]
+  nextCursor: string | null
+}
 
-  return products.map(validateProductPrice)
+export async function getProducts(
+  options: {
+    after?: string | null
+    q?: string
+    signal?: AbortSignal
+  } = {},
+): Promise<ProductPage> {
+  const page = await request<ProductPage>({
+    method: 'GET',
+    url: '/products',
+    params: { limit: 20, after: options.after ?? undefined, q: options.q || undefined },
+    signal: options.signal,
+  })
+
+  return { ...page, items: page.items.map(validateProductPrice) }
 }
 
 export async function getProductById(id: number) {

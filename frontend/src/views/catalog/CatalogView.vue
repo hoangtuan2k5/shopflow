@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, type Component } from 'vue'
-import { useMutation, useQuery } from '@tanstack/vue-query'
+import { computed, nextTick, onUnmounted, ref, watch, type Component } from 'vue'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useI18n } from 'vue-i18n'
 import {
   IconAlertCircle,
@@ -26,7 +26,6 @@ import {
   createPayment,
   createOrder,
   getProductById,
-  getProducts,
   type CreateOrderRequest,
   type OrderErrorDetails,
   type PaymentErrorDetails,
@@ -34,6 +33,8 @@ import {
   type StockStatus,
 } from '@/api'
 import { RouterLink } from 'vue-router'
+import type { ProductListItem } from '@/api/catalog'
+import { useProductPages } from '@/composables/useProductPages'
 import { Button, buttonVariants } from '@/components/ui/button'
 import ProductImage from '@/components/catalog/ProductImage.vue'
 import CheckoutForm from '@/components/forms/CheckoutForm.vue'
@@ -50,36 +51,70 @@ import {
 
 const { t } = useI18n()
 const session = useSessionStore()
+const queryClient = useQueryClient()
 
 const selectedProductId = ref<number | null>(null)
 const selectedQuantities = ref<Record<number, number>>({})
+const selectedProducts = ref<Record<number, ProductListItem>>({})
 const searchQuery = ref('')
+const normalizedSearch = ref('')
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+watch(searchQuery, (query) => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    const next = query.trim().toLocaleLowerCase('vi')
+    if (next !== normalizedSearch.value) {
+      queryClient.removeQueries({ queryKey: ['products', 'pages', next], exact: true })
+      normalizedSearch.value = next
+    }
+  }, 300)
+})
 const cartOpen = ref(false)
 const checkoutOpen = ref(false)
 
-const productsQuery = useQuery({
-  queryKey: ['products'],
-  queryFn: getProducts,
-  retry: 1,
+const productsQuery = useProductPages(normalizedSearch)
+const loadMoreAnchor = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | undefined
+function loadMore() {
+  if (productsQuery.hasNextPage.value && !productsQuery.isFetching.value) {
+    void productsQuery.fetchNextPage({ cancelRefetch: false })
+  }
+}
+watch(
+  loadMoreAnchor,
+  (element) => {
+    observer?.disconnect()
+    if (!element) return
+    observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries.some((entry) => entry.isIntersecting) &&
+          !productsQuery.isFetchNextPageError.value
+        ) {
+          loadMore()
+        }
+      },
+      { rootMargin: '200px' },
+    )
+    observer.observe(element)
+  },
+  { flush: 'post' },
+)
+onUnmounted(() => {
+  clearTimeout(searchTimer)
+  observer?.disconnect()
 })
 
 const productQuery = useQuery({
-  queryKey: computed(() => ['products', selectedProductId.value]),
+  queryKey: computed(() => ['products', 'detail', selectedProductId.value]),
   queryFn: () => getProductById(selectedProductId.value!),
   enabled: computed(() => selectedProductId.value !== null),
   retry: 1,
 })
 
-const products = computed(() => productsQuery.data.value ?? [])
-const normalizedSearch = computed(() => searchQuery.value.trim().toLocaleLowerCase('vi'))
-const filteredProducts = computed(() => {
-  if (!normalizedSearch.value) return products.value
-  return products.value.filter((product) =>
-    product.name.toLocaleLowerCase('vi').includes(normalizedSearch.value),
-  )
-})
-const filteredInStockCount = computed(
-  () => filteredProducts.value.filter((product) => product.stockStatus === 'IN_STOCK').length,
+const products = computed(() => productsQuery.data.value?.pages.flatMap((page) => page.items) ?? [])
+const loadedInStockCount = computed(
+  () => products.value.filter((product) => product.stockStatus === 'IN_STOCK').length,
 )
 
 const stockStatus = computed(
@@ -110,7 +145,7 @@ const currency = new Intl.NumberFormat('vi-VN', {
 })
 
 const checkoutLines = computed(() =>
-  products.value.flatMap((product) => {
+  Object.values(selectedProducts.value).flatMap((product) => {
     const quantity = selectedQuantities.value[product.id]
     return quantity ? [{ product, quantity }] : []
   }),
@@ -166,8 +201,9 @@ function scrollToProducts() {
   document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })
 }
 
-function addToCart(product: { id: number; stockStatus: StockStatus }) {
+function addToCart(product: ProductListItem) {
   if (product.stockStatus === 'OUT_OF_STOCK') return
+  selectedProducts.value = { ...selectedProducts.value, [product.id]: product }
   selectedQuantities.value = {
     ...selectedQuantities.value,
     [product.id]: (selectedQuantities.value[product.id] ?? 0) + 1,
@@ -187,6 +223,9 @@ function removeFromCart(productId: number) {
   const next = { ...selectedQuantities.value }
   delete next[productId]
   selectedQuantities.value = next
+  const remaining = { ...selectedProducts.value }
+  delete remaining[productId]
+  selectedProducts.value = remaining
 }
 
 function openCheckout() {
@@ -241,6 +280,7 @@ function simulatePayment(result: SimulatedPaymentResult) {
 
 function startOver() {
   selectedQuantities.value = {}
+  selectedProducts.value = {}
   orderMutation.reset()
   paymentMutation.reset()
   checkoutOpen.value = false
@@ -267,6 +307,7 @@ function closeProduct() {
           <input
             v-model="searchQuery"
             type="search"
+            maxlength="255"
             autocomplete="off"
             class="h-11 w-full rounded-lg border-2 border-primary bg-card px-4 pr-12 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 md:h-12"
             :placeholder="t('catalog.searchPlaceholder')"
@@ -397,11 +438,11 @@ function closeProduct() {
               {{ t('catalog.section.title') }}
             </h2>
             <p
-              v-if="!productsQuery.isPending.value && !productsQuery.isError.value"
+              v-if="productsQuery.data.value"
               class="mt-2 text-sm text-muted-foreground"
             >
-              {{ t('catalog.productCount', filteredProducts.length) }} ·
-              {{ t('catalog.inStockCount', filteredInStockCount) }}
+              {{ t('catalog.loadedCount', products.length) }} ·
+              {{ t('catalog.loadedInStockCount', loadedInStockCount) }}
             </p>
           </div>
           <Button
@@ -437,7 +478,7 @@ function closeProduct() {
         </div>
 
         <div
-          v-else-if="productsQuery.isError.value"
+          v-else-if="productsQuery.isError.value && !productsQuery.data.value"
           class="flex items-start gap-4 border-l-4 border-destructive bg-destructive-muted p-5"
           role="alert"
         >
@@ -460,7 +501,7 @@ function closeProduct() {
         </div>
 
         <div
-          v-else-if="products.length === 0"
+          v-else-if="products.length === 0 && !normalizedSearch"
           class="grid justify-items-center gap-3 rounded-xl border border-dashed border-border bg-card py-16 text-center"
         >
           <div class="grid size-12 place-items-center rounded-lg bg-secondary text-primary">
@@ -475,7 +516,7 @@ function closeProduct() {
         </div>
 
         <div
-          v-else-if="filteredProducts.length === 0"
+          v-else-if="products.length === 0"
           class="grid justify-items-center gap-3 rounded-xl border border-dashed border-border bg-card py-16 text-center"
         >
           <IconSearch :size="30" :stroke-width="1.6" aria-hidden="true" />
@@ -490,7 +531,7 @@ function closeProduct() {
 
         <div v-else class="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
           <article
-            v-for="product in filteredProducts"
+            v-for="product in products"
             :key="product.id"
             class="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-[0_5px_16px_rgba(20,37,83,0.05)] transition duration-200 hover:-translate-y-1 hover:border-brand/50 hover:shadow-[0_16px_32px_rgba(20,37,83,0.12)]"
           >
@@ -552,6 +593,31 @@ function closeProduct() {
               </Button>
             </div>
           </article>
+        </div>
+        <div
+          v-if="products.length"
+          ref="loadMoreAnchor"
+          class="mt-6 grid justify-items-center gap-3"
+        >
+          <p v-if="productsQuery.isFetchNextPageError.value" role="alert">
+            {{ t('catalog.loadMoreError') }}
+          </p>
+          <Button
+            v-if="productsQuery.hasNextPage.value"
+            type="button"
+            variant="outline"
+            :aria-disabled="productsQuery.isFetching.value"
+            @click="loadMore"
+          >
+            {{
+              productsQuery.isFetchingNextPage.value
+                ? t('catalog.loadingMore')
+                : productsQuery.isFetchNextPageError.value
+                  ? t('common.tryAgain')
+                  : t('catalog.loadMore')
+            }}
+          </Button>
+          <p v-else role="status">{{ t('catalog.endOfProducts') }}</p>
         </div>
       </section>
     </main>
