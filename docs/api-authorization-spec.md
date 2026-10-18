@@ -206,3 +206,30 @@ không phải chặn cả endpoint. Chưa làm trong SF-73.
 | Phiên bản | Ngày | Thay đổi |
 | --- | --- | --- |
 | 1.0 | 26/07/2026 | Ma trận quyền đầu tiên, ranh giới Guest/Customer/Warehouse/Shop Owner (SF-81). |
+
+## Dashboard (SF-129)
+
+`GET /dashboard` is SHOP_OWNER-only: anonymous 401; CUSTOMER/WAREHOUSE 403.
+See [the dashboard contract](./api-dashboard-spec.md) for aggregate semantics.
+
+## Catalog vector index (SF-75)
+
+| Endpoint | Anonymous | CUSTOMER | WAREHOUSE | SHOP_OWNER |
+| --- | --- | --- | --- | --- |
+| `POST /catalog-index` (CSRF required) | 401 | 403 | 403 | 200 |
+| `GET /catalog-index/search` | 401 | 403 | 403 | 200 |
+
+Security responses above assume a valid request/CSRF token; missing CSRF on POST
+returns 403. See [index contract](api-catalog-index-spec.md) for errors and manual
+session/token steps. A rejected request must not call Gemini or Qdrant.
+
+## Product advisory chat (SF-76)
+
+| Endpoint | Guest | CUSTOMER | WAREHOUSE | SHOP_OWNER |
+| --- | --- | --- | --- | --- |
+| `POST /chat/messages` | Allowed | Allowed | Allowed | Allowed |
+
+CSRF remains required, including guests: absent/invalid token returns 403 before
+AI calls. Daily AI-attempt budget and bounded request data protect the public
+endpoint; see [contract](api-product-advisory-chat-spec.md). Catalog index/search
+remain owner-only. SF-101 already fixed SPA CSRF; chat does not reopen that bug.

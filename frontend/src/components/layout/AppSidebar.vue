@@ -59,6 +59,14 @@ const roleIcons: Record<RoleKey, Component> = {
           </span>
         </span>
       </RouterLink>
+      <RouterLink
+        v-if="session.roleKey === 'shop-owner'"
+        to="/shop-owner/dashboard"
+        class="ml-8 rounded-md px-3 py-2 text-sm font-medium text-primary hover:bg-accent focus-visible:outline-2"
+        active-class="bg-accent"
+      >
+        {{ t('dashboard.title') }}
+      </RouterLink>
     </nav>
   </aside>
 </template>

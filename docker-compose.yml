@@ -11,6 +11,14 @@
 # =====================================================================
 
 services:
+  qdrant:
+    image: qdrant/qdrant:v1.18.3
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6333:6333"
+    volumes:
+      - shopflow_qdrant_data:/qdrant/storage
+
   postgres:
     image: postgres:17-alpine
     container_name: shopflow-postgres
@@ -31,5 +39,6 @@ services:
       retries: 5
 
 volumes:
+  shopflow_qdrant_data:
   shopflow_pgdata:
     name: shopflow_pgdata

@@ -1,0 +1,17 @@
+[
+  {
+    "path": "/v1beta/models/gemini-embedding-2:embedContent",
+    "status": 200,
+    "seconds": 0.54
+  },
+  {
+    "path": "/v1beta/models/gemma-4-31b-it:generateContent",
+    "status": 500,
+    "seconds": 0.78
+  },
+  {
+    "path": "/v1beta/models/gemma-4-26b-a4b-it:generateContent",
+    "status": 200,
+    "seconds": 5.17
+  }
+]

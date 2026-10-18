@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue'
 import { IconPackage } from '@tabler/icons-vue'
 
-const props = defineProps<{ src: string | null; name: string }>()
+const props = defineProps<{ src: string | null; name: string; eager?: boolean }>()
 const failed = ref(false)
 watch(
   () => props.src,
@@ -17,7 +17,7 @@ watch(
     v-if="src && !failed"
     :src="src"
     :alt="name"
-    loading="lazy"
+    :loading="eager ? 'eager' : 'lazy'"
     decoding="async"
     class="absolute inset-0 h-full w-full object-contain"
     @error="failed = true"

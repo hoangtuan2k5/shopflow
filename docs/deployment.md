@@ -169,3 +169,87 @@ Migration V6 adds nullable `products.image_key`; existing products keep their
 placeholder. See [the image contract](./api-product-image-spec.md) for limits,
 permissions and replacement/rollback behavior. This change does not deploy itself:
 production deployment still requires the release workflow from `develop` to `main`.
+
+
+## Catalog vector index (SF-75)
+
+Before the first SF-75 release to main, add the following to `/opt/shopflow/.env`
+without committing or printing their values:
+
+- `GEMINI_API_KEY`: AI Studio key permitted to call `gemini-embedding-2`.
+- `QDRANT_API_KEY`: independently generated secret (for example, use Python's
+  `secrets.token_hex(32)` and write it directly into the protected env file).
+- `QDRANT_URL`: production Compose sets this to `http://qdrant:6333`; no host
+  override is required. Host-run local backend defaults to `http://localhost:6333`.
+
+Missing `QDRANT_API_KEY` fails Compose interpolation, including the Flyway
+preflight. Missing Gemini key does not prevent startup; index/search returns
+503 until configured. Never print `docker compose config` with real secrets;
+use `config --quiet` or validate with dummy environment values.
+
+Qdrant uses image `qdrant/qdrant:v1.18.3` and volume
+`shopflow_prod_qdrant_data`. It has no published ports, public domain or reverse
+proxy. Local Compose binds only loopback port 6333. No curl/wget healthcheck is
+invented for the minimal image: `up --wait` checks its running state, not Qdrant
+API readiness. The application boots without reaching Qdrant/Gemini.
+
+After deployment, authenticate as owner, obtain the session/CSRF cookies and
+run `POST /catalog-index` manually (see [contract](api-catalog-index-spec.md)).
+Check `indexed` against the active product count and try owner-only
+`GET /catalog-index/search`. Re-running replaces vectors by product ID and
+removes inactive/deleted products only after every batch upserts successfully.
+Do not run catalog imports while reindexing. The current implementation assumes
+one backend instance; it serializes index calls within that instance.
+
+Ordinary container recreation preserves the named volume. Never use
+`docker compose down -v` on production. The index can be rebuilt from PostgreSQL
+and Gemini; SF-75 does not add snapshot/backup scheduling. Changing model or
+vector dimensions requires rebuilding the dedicated derived collection; it
+must never share a collection with other applications.
+
+Observe actual Qdrant memory/CPU with `docker stats --no-stream` after idle,
+indexing and searches. This story does not deploy itself on a develop merge;
+the separate approved release to main triggers production rollout.
+
+
+## Product advisory chat (SF-76)
+
+No new external account, public Qdrant domain, database migration or frontend
+secret is required. Keep GEMINI_API_KEY on the backend. SF-75's private Qdrant
+service must be deployed and indexed; configure QDRANT_API_KEY before promotion
+to main as described above. Guest chat uses the existing session-CSRF flow.
+
+Shared application properties select Gemma 4 31B with one Gemma 4 26B A4B fallback,
+daily AI-attempt budget 500 and initial retrieval score floor 0.70. Both models
+use Minimal thinking, temperature 0.2 and a structured JSON reply. Output is
+bounded to 800 tokens to accommodate Vietnamese text, JSON and the requested
+signature. Model availability and account quota must be checked independently;
+being listed by models.list does not prove reliable generation access.
+
+Each chat consumes one embedding attempt and normally one generation attempt;
+fallback costs another attempt. The local synchronized counter is per backend
+process and resets on restart, not a durable billing limit. Provider HTTP 429
+may affect both models even when ShopFlow's own counter has room. Shared quota
+or key errors cannot be fixed by model fallback alone.
+
+Chat embedding/Qdrant use shorter network timeouts than owner indexing. The
+primary generation attempt has up to 6s and fallback up to 10s, both bounded
+by the remaining 18s pipeline budget. Only frontend chat uses a 20s timeout;
+other requests keep their existing default. This is not a hard SLA for a stalled
+local database. Never publish model tracebacks, API keys or request transcripts
+in application logs; public chat errors use sanitized 400/429/503 bodies, with
+403 enforced by Spring Security before controller work.
+
+After rollout, verify guest CSRF, a matching product with current price/stock,
+VI/EN text, close/open product details, mobile input/cart access and model outage
+recovery on both public storefront domains. Conversation disappears on reload.
+No transcript is stored server-side, and live advisory text still needs factual
+review before commercial use of the demo descriptions. See
+[chat QA](qa-product-advisory-chat.md) for observed provider/quality limits.
+
+Normal `mvn verify` excludes tests tagged external and needs no AI key. A manual
+external test is available only against a disposable loopback backend:
+`CHAT_QA_BASE_URL=http://127.0.0.1:<port> bash backend/mvnw -f backend/pom.xml
+-Dtest=ChatExternalTests -Dgroups=external -DexcludedGroups=none test`.
+It records exploratory model responses and verifies returned cards against
+catalog API data; it does not certify language or compatibility accuracy.

@@ -54,3 +54,9 @@ export type {
   PaymentStatus,
   SimulatedPaymentResult,
 } from './payment'
+
+export { getDashboard } from './dashboard'
+export type { DashboardData, DashboardFilter, DashboardPoint } from './dashboard'
+
+export { sendChatMessage } from './chat'
+export type { ChatMessage, ChatRequest } from './chat'

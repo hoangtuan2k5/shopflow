@@ -4,6 +4,37 @@ Hệ thống bán hàng và quản lý kho cho shop online quy mô nhỏ. Mô ph
 
 Currency baseline của MVP: **VND (đồng Việt Nam)**; giá và amount dùng đơn vị đồng, không có phần lẻ.
 
+## Giao diện
+
+### Dashboard chủ shop
+
+Theo dõi tiền đã thanh toán, đơn hàng, sản phẩm bán chạy và tình hình tồn kho.
+Ảnh chụp với dữ liệu minh họa.
+
+![Dashboard chủ shop với biểu đồ dòng tiền, đơn hàng và sản phẩm bán chạy](docs/qa/sf-129/dashboard-1440.png)
+
+### Trợ lý tư vấn sản phẩm
+
+Hỏi theo nhu cầu hoặc mã máy, xem gợi ý có ảnh, giá và tồn kho rồi mở chi tiết
+sản phẩm ngay trong cửa hàng. Ảnh chụp QA với dữ liệu demo.
+
+![Chat tư vấn sản phẩm trên desktop](docs/qa/sf-76/chat-1440.png)
+
+### Cửa hàng
+
+Danh sách sản phẩm với ảnh thực tế, giá VND và trạng thái còn hàng.
+
+![Giao diện cửa hàng ShopFlow trên máy tính](docs/qa/sf-127/catalog-desktop.png)
+
+<details>
+<summary>Xem dashboard trên điện thoại</summary>
+
+<p align="center">
+  <img src="docs/qa/sf-129/dashboard-390.png" width="390" alt="Dashboard chủ shop trên điện thoại: bộ lọc thời gian, thống kê và biểu đồ" />
+</p>
+
+</details>
+
 ## Team
 
 ShopFlow Team gồm 3 thành viên:
@@ -168,6 +199,52 @@ Container PostgreSQL expose ra port `5433` để tránh đụng PostgreSQL cài 
 DB_URL=jdbc:postgresql://localhost:5433/shopflow
 ```
 
+### Catalog vector index (SF-75)
+
+Compose local cũng chạy Qdrant tại `127.0.0.1:6333`, có volume lưu chỉ mục.
+Nếu chỉ cần Qdrant để thử: `docker compose up -d qdrant`.
+Backend không tự đọc `.env` khi chạy trên host. Từ thư mục gốc repo, nạp biến
+trước khi chạy Maven (file `.env` phải dùng cú pháp shell):
+
+```bash
+set -a
+source .env
+set +a
+```
+
+Hai API chủ shop: `POST /catalog-index` và
+`GET /catalog-index/search?q=màng%20lọc&limit=5`. Xem
+[contract](docs/api-catalog-index-spec.md) để đăng nhập và gửi CSRF token.
+Dùng tên/mô tả sản phẩm để tạo vector 768 chiều; không đổi tìm kiếm storefront,
+không có UI hay chatbot ở bước này. Gemini nhận nội dung catalog/search,
+không nhận dữ liệu khách hàng hoặc đơn hàng.
+
+Trước release production phải có `QDRANT_API_KEY` trong `/opt/shopflow/.env`;
+thiếu biến này Compose sẽ dừng. `GEMINI_API_KEY` cần có để index/search hoạt động.
+Chi tiết ở [deployment](docs/deployment.md#catalog-vector-index-sf-75).
+
+### Chat tư vấn sản phẩm (SF-76)
+
+Sau khi index catalog bằng SF-75, mở nút **Hỏi để chọn đúng** trên storefront.
+Guest không cần đăng nhập; trình duyệt vẫn gửi cookie/token CSRF qua HTTP client
+hiện có. Backend dùng `GEMINI_API_KEY`, không gửi key xuống frontend.
+
+Model chính `gemma-4-31b-it`, một fallback `gemma-4-26b-a4b-it`; cả hai dùng
+Minimal thinking và temperature 0.2. Embedding giữ `gemini-embedding-2` 768 chiều.
+Giá/tồn kho của thẻ gợi ý đọc lại từ PostgreSQL; điểm tương đồng không bảo đảm
+màng lọc lắp vừa mọi model gần tên. Thiếu dữ liệu thì trợ lý cần hỏi thêm.
+
+Hội thoại chỉ ở bộ nhớ component, tải lại trang sẽ mất. Quota mặc định 500 lượt
+gọi AI/ngày cho chat, gồm embedding và từng model attempt; reset khi backend
+khởi động lại. Đây không phải giới hạn thanh toán bền vững. Cấu hình model,
+fallback, quota và score floor ở `shopflow.chat.*` trong `application.yaml`.
+
+Model lỗi/hết quota upstream có thể làm cả hai nhánh thất bại; UI có thông báo
+và thử lại thủ công. Không streaming, upload ảnh hoặc tự tìm Google. Xem
+[contract](docs/api-product-advisory-chat-spec.md), [QA](docs/qa-product-advisory-chat.md)
+và [ảnh mobile](docs/qa/sf-76/chat-390.png). Persona trong prompt do chủ repo
+chọn; cấu hình suy luận thực tế là Gemma của Google.
+
 ### Backend
 
 ```bash
@@ -208,6 +285,9 @@ Mặc định FE chạy ở `http://localhost:5173` và gọi tới backend qua 
 | `DB_URL` | `jdbc:postgresql://localhost:5432/shopflow` | JDBC URL tới PostgreSQL. Dùng `jdbc:postgresql://localhost:5433/shopflow` nếu chạy PostgreSQL bằng `docker-compose.yml`. |
 | `DB_USERNAME` | `postgres` | Username kết nối database. |
 | `DB_PASSWORD` | `postgres` | Password kết nối database. |
+| `GEMINI_API_KEY` | Rỗng | Key AI Studio cho Gemini Embedding 2; thiếu key thì API index/search trả 503. |
+| `QDRANT_URL` | `http://localhost:6333` | Local backend trên host; production dùng `http://qdrant:6333` trong Docker. |
+| `QDRANT_API_KEY` | Rỗng | Local có thể bỏ trống; production bắt buộc có key riêng. |
 
 Profile `staging` bắt buộc truyền đủ 3 biến database qua môi trường. Test profile
 dùng H2 in-memory và tự chạy Flyway migration trong schema `shopflow`.
