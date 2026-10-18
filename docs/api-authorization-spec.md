@@ -206,3 +206,8 @@ không phải chặn cả endpoint. Chưa làm trong SF-73.
 | Phiên bản | Ngày | Thay đổi |
 | --- | --- | --- |
 | 1.0 | 26/07/2026 | Ma trận quyền đầu tiên, ranh giới Guest/Customer/Warehouse/Shop Owner (SF-81). |
+
+## Dashboard (SF-129)
+
+`GET /dashboard` is SHOP_OWNER-only: anonymous 401; CUSTOMER/WAREHOUSE 403.
+See [the dashboard contract](./api-dashboard-spec.md) for aggregate semantics.
