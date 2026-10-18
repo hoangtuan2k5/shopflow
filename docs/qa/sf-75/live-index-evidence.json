@@ -1,0 +1,132 @@
+{
+  "model": "gemini-embedding-2",
+  "dimensions": 768,
+  "expected_products": 90,
+  "curl_dimensions": 768,
+  "before": {
+    "phase": "empty",
+    "memory": "76.51MiB / 23.42GiB",
+    "cpu": "0.04%"
+  },
+  "index_response": {
+    "indexed": 90,
+    "removed": 0,
+    "dimensions": 768
+  },
+  "index_seconds": 4.02,
+  "index_samples": [
+    {
+      "phase": "indexing",
+      "memory": "81.19MiB / 23.42GiB",
+      "cpu": "0.04%"
+    },
+    {
+      "phase": "indexing",
+      "memory": "88.62MiB / 23.42GiB",
+      "cpu": "2.17%"
+    }
+  ],
+  "after": {
+    "phase": "indexed",
+    "memory": "88.77MiB / 23.42GiB",
+    "cpu": "0.89%"
+  },
+  "queries": [
+    {
+      "query": "màng lọc HEPA thay thế cho máy Winix 5500-2",
+      "top5": [
+        {
+          "productId": 104,
+          "name": "Lõi lọc HEPA và khử mùi Winix Filter G – 115122 cho 5500",
+          "score": 0.82300353
+        },
+        {
+          "productId": 110,
+          "name": "Lõi lọc HEPA và khử mùi Winix Filter H – 116130 cho 5500-2 và AM80",
+          "score": 0.817154
+        },
+        {
+          "productId": 98,
+          "name": "Màng lọc thay thế Winix Filter U – 1712-0094-00 cho HR900 , HR950, HR951, HR1000, 5300-2, 5500-2, 6300-2, C535, C555",
+          "score": 0.8125202
+        },
+        {
+          "productId": 103,
+          "name": "Bộ 4 màng lọc than hoạt tính Winix Filter Pack P – 115119 cho máy lọc không khí Winix 5500",
+          "score": 0.80790657
+        },
+        {
+          "productId": 80,
+          "name": "Lõi lọc HEPA và khử mùi Winix Filter A +SmokeGuard cho 6300, P300, 5300, 5500, 5300-2, 6300-2, AM90, C909, 9800 và C535",
+          "score": 0.8067224
+        }
+      ]
+    },
+    {
+      "query": "máy lọc không khí Xiaomi cho phòng ngủ",
+      "top5": [
+        {
+          "productId": 126,
+          "name": "Máy lọc không khí Xiaomi Smart Air Purifier 4 Compact – thiết kế thông minh, lọc bụi và hỗ trợ giảm mùi trong nhà",
+          "score": 0.7739183
+        },
+        {
+          "productId": 123,
+          "name": "Máy lọc không khí Xiaomi Smart Air Purifier 4 – thiết kế thông minh, lọc bụi và hỗ trợ giảm mùi trong nhà",
+          "score": 0.77265
+        },
+        {
+          "productId": 124,
+          "name": "Máy lọc không khí Xiaomi Smart Air Purifier 4 Lite – thiết kế thông minh, lọc bụi và hỗ trợ giảm mùi trong nhà",
+          "score": 0.7672502
+        },
+        {
+          "productId": 125,
+          "name": "Máy lọc không khí Xiaomi Smart Air Purifier 4 Pro – thiết kế thông minh, lọc bụi và hỗ trợ giảm mùi trong nhà",
+          "score": 0.76351386
+        },
+        {
+          "productId": 94,
+          "name": "Máy lọc không khí Winix XQ – lọc bụi trong nhà, thiết kế dùng cho phòng ở và không gian sinh hoạt",
+          "score": 0.704373
+        }
+      ]
+    },
+    {
+      "query": "tem tiếng Việt dán nồi cơm điện Nhật",
+      "top5": [
+        {
+          "productId": 42,
+          "name": "50 Bộ Tem 9 NÚT hướng dẫn tiếng việt NỒI CƠM ĐIỆN nhật bãi Tiger, Toshiba, Panasonic, Sanyo, Mitsubishi",
+          "score": 0.83832014
+        },
+        {
+          "productId": 37,
+          "name": "20 Bộ Tem song ngữ hướng dẫn tiếng việt NỒI CƠM ĐIỆN nhật bãi Tiger, Toshiba, Panasonic, Sanyo, Mitsubishi....",
+          "score": 0.8353187
+        },
+        {
+          "productId": 39,
+          "name": "30 Tem Chất Lượng 5 Năm nồi cơm điện nội địa nhật 100V kích thước khác nhau",
+          "score": 0.8125963
+        },
+        {
+          "productId": 40,
+          "name": "24 Bộ Tem hướng dẫn tiếng việt NỒI CƠM ĐIỆN CUCKOO HÀN QUỐC",
+          "score": 0.7923702
+        },
+        {
+          "productId": 65,
+          "name": "Tem hướng dẫn tiếng việt MÁY RỬA BÁT Panasonic NP-TZ1 TZ2 TZ3  nội địa nhật ....",
+          "score": 0.7729478
+        }
+      ]
+    }
+  ],
+  "persisted_points_after_recreate": 90,
+  "qdrant_down": {
+    "search_status": 503,
+    "catalog_and_health": 200
+  },
+  "startup_without_qdrant": 200
+}

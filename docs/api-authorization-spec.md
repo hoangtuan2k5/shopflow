@@ -211,3 +211,14 @@ không phải chặn cả endpoint. Chưa làm trong SF-73.
 
 `GET /dashboard` is SHOP_OWNER-only: anonymous 401; CUSTOMER/WAREHOUSE 403.
 See [the dashboard contract](./api-dashboard-spec.md) for aggregate semantics.
+
+## Catalog vector index (SF-75)
+
+| Endpoint | Anonymous | CUSTOMER | WAREHOUSE | SHOP_OWNER |
+| --- | --- | --- | --- | --- |
+| `POST /catalog-index` (CSRF required) | 401 | 403 | 403 | 200 |
+| `GET /catalog-index/search` | 401 | 403 | 403 | 200 |
+
+Security responses above assume a valid request/CSRF token; missing CSRF on POST
+returns 403. See [index contract](api-catalog-index-spec.md) for errors and manual
+session/token steps. A rejected request must not call Gemini or Qdrant.

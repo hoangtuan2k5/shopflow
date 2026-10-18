@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Catalog vector index**:
+  - Add owner-only Gemini Embedding 2 indexing and semantic retrieval with a persistent, private Qdrant service; keep storefront search unchanged (SF-75, SF-93–SF-96).
 - **Owner dashboard**:
   - Add owner-only sales and inventory aggregates, Vietnamese calendar filters, shadcn-vue/Unovis charts and top-selling products with exact VND values (SF-129).
 

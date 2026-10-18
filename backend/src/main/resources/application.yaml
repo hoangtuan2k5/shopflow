@@ -46,6 +46,15 @@ shopflow:
     secret-access-key: ${R2_SECRET_ACCESS_KEY:}
     bucket: ${R2_BUCKET:dev-products}
     public-base-url: ${R2_PUBLIC_BASE_URL:https://media.example.invalid}
+  qdrant:
+    url: ${QDRANT_URL:http://localhost:6333}
+    api-key: ${QDRANT_API_KEY:}
+    dimensions: 768
+    collection: products
+  gemini:
+    base-url: https://generativelanguage.googleapis.com/v1beta
+    api-key: ${GEMINI_API_KEY:}
+    batch-size: 100
   openapi:
     version: 0.0.1-SNAPSHOT
 
