@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Add owner-only sales and inventory aggregates, Vietnamese calendar filters, shadcn-vue/Unovis charts and top-selling products with exact VND values (SF-129).
   - Show paid order value by first successful payment, creation-date order counts, current processing/low-stock snapshots and an accessible data table.
 
+### Changed
+- **Product advisory chat**: rename the launcher to "Tư vấn sản phẩm" / "Product advice" for a clearer storefront label (SF-76).
+
 ### Fixed
 - **Storefront startup**: serve Be Vietnam Pro locally so a stalled Google Fonts stylesheet cannot block application startup; preserve existing font weights and Vietnamese glyphs (SF-76, SF-100).
 

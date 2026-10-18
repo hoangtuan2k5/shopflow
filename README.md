@@ -225,7 +225,7 @@ Chi tiết ở [deployment](docs/deployment.md#catalog-vector-index-sf-75).
 
 ### Chat tư vấn sản phẩm (SF-76)
 
-Sau khi index catalog bằng SF-75, mở nút **Hỏi để chọn đúng** trên storefront.
+Sau khi index catalog bằng SF-75, mở nút **Tư vấn sản phẩm** trên storefront.
 Guest không cần đăng nhập; trình duyệt vẫn gửi cookie/token CSRF qua HTTP client
 hiện có. Backend dùng `GEMINI_API_KEY`, không gửi key xuống frontend.
 
