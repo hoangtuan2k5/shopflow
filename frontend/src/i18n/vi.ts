@@ -2,7 +2,7 @@ import type { en } from './en'
 
 export const vi: typeof en = {
   chat: {
-    open: 'Hỏi để chọn đúng',
+    open: 'Tư vấn sản phẩm',
     title: 'Cùng bạn chọn món phù hợp',
     kicker: 'SHOPFLOW / TƯ VẤN SẢN PHẨM',
     subtitle: 'Cho biết nhu cầu, để trợ lý tìm trong cửa hàng giúp bạn.',

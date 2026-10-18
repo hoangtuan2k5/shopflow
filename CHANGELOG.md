@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Product advisory chat**: rename the launcher to "Tư vấn sản phẩm" / "Product advice" for a clearer storefront label (SF-76).
+
 ## [0.12.0] - 2026-10-18
 
 ### Added

@@ -1,6 +1,6 @@
 export const en = {
   chat: {
-    open: 'Ask about products',
+    open: 'Product advice',
     title: 'A little help choosing',
     kicker: 'SHOPFLOW / PRODUCT ADVISOR',
     subtitle: 'Tell us what you need. We’ll look through the shop together.',
