@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Product advisory chat**: remove redundant panel copy, compact the header and widen the desktop panel by 25% while preserving full-width mobile layout and accessible dialog naming (SF-76).
+
 ## [0.12.0] - 2026-10-18
 
 ### Added

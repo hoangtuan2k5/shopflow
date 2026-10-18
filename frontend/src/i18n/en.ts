@@ -1,9 +1,7 @@
 export const en = {
   chat: {
     open: 'Product advice',
-    title: 'A little help choosing',
     kicker: 'SHOPFLOW / PRODUCT ADVISOR',
-    subtitle: 'Tell us what you need. We’ll look through the shop together.',
     close: 'Close product assistant',
     input: 'Your question',
     placeholder: 'For example: a replacement filter for Winix 5500-2…',
@@ -14,7 +12,6 @@ export const en = {
     examples: ['A filter for my air purifier', 'An air purifier for the bedroom'],
     empty: 'No product suggestions for this reply.',
     note: 'Check the full machine model before choosing a replacement filter.',
-    temporary: 'Conversation is temporary and clears when you reload.',
     max: 'Enter between 1 and 500 characters.',
     error: 'The assistant could not answer. Please try again.',
     csrf: 'Your session token needs refreshing. Reload the page and try again.',
