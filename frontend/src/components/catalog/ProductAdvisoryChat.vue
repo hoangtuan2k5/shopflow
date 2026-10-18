@@ -17,13 +17,7 @@ import {
   type ProductListItem,
 } from '@/api'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import ProductImage from './ProductImage.vue'
 
 defineProps<{ cartVisible: boolean }>()
@@ -127,7 +121,8 @@ watch(
       </Button>
     </DialogTrigger>
     <DialogContent
-      class="!left-0 !top-0 !translate-x-0 !translate-y-0 flex h-dvh !w-full !max-w-none flex-col gap-0 overflow-hidden rounded-none p-0 sm:!left-auto sm:!top-auto sm:bottom-6 sm:right-6 sm:h-[min(44rem,calc(100dvh-3rem))] sm:!w-[26rem] sm:rounded-2xl"
+      :aria-describedby="undefined"
+      class="!left-0 !top-0 !translate-x-0 !translate-y-0 flex h-dvh !w-full !max-w-none flex-col gap-0 overflow-hidden rounded-none p-0 sm:!left-auto sm:!top-auto sm:bottom-6 sm:right-6 sm:h-[min(44rem,calc(100dvh-3rem))] sm:!w-[min(32.5rem,calc(100vw-3rem))] sm:rounded-2xl"
       @close-auto-focus="closeFocus"
       @open-auto-focus="
         (event) => {
@@ -137,21 +132,14 @@ watch(
       "
     >
       <header
-        class="relative shrink-0 border-b border-border bg-primary p-5 text-primary-foreground sm:p-6"
+        class="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-primary px-4 py-2 text-primary-foreground sm:px-5"
       >
-        <p class="mb-3 text-[10px] font-bold tracking-[0.15em] text-emerald-200">
+        <DialogTitle class="text-[10px] font-bold tracking-[0.15em] text-emerald-200">
           {{ t('chat.kicker') }}
-        </p>
-        <DialogTitle class="max-w-[19rem] pr-7 text-xl font-semibold leading-snug tracking-tight">{{
-          t('chat.title')
-        }}</DialogTitle>
-        <DialogDescription
-          class="mt-2 max-w-[20rem] text-sm leading-relaxed text-primary-foreground/75"
-          >{{ t('chat.subtitle') }}</DialogDescription
-        >
+        </DialogTitle>
         <button
           type="button"
-          class="absolute right-3 top-3 rounded-full p-2 hover:bg-white/10 focus-visible:outline focus-visible:outline-2"
+          class="shrink-0 rounded-full p-2 hover:bg-white/10 focus-visible:outline focus-visible:outline-2"
           :aria-label="t('chat.close')"
           @click="open = false"
         >
@@ -316,7 +304,6 @@ watch(
         <p v-if="invalid" id="chat-validation" role="alert" class="mt-2 text-xs text-destructive">
           {{ t('chat.max') }}
         </p>
-        <p class="mt-2 text-center text-[10px] text-muted-foreground">{{ t('chat.temporary') }}</p>
       </footer>
     </DialogContent>
   </Dialog>
