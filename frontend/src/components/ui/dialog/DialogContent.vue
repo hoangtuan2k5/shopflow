@@ -9,6 +9,8 @@ import {
 import { type HTMLAttributes, computed } from 'vue'
 import { cn } from '@/lib/utils'
 
+defineOptions({ inheritAttrs: false })
+
 const props = defineProps<
   DialogContentProps & {
     class?: HTMLAttributes['class']
@@ -40,7 +42,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     />
     <DialogContent
       data-slot="dialog-content"
-      v-bind="forwarded"
+      v-bind="{ ...forwarded, ...$attrs }"
       :class="
         cn(
           'fixed left-1/2 top-1/2 z-50 grid w-[min(calc(100%-2rem),28rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border border-border bg-popover p-6 text-popover-foreground shadow-lg outline-none',

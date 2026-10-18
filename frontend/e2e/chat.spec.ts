@@ -217,9 +217,13 @@ test('Mobile assistant trigger leaves the cart bar and checkout accessible', asy
   await expect(page.getByRole('dialog')).toContainText('Checkout')
 })
 
-for (const width of [360, 390, 1440]) {
+for (const width of [360, 390, 640, 1440]) {
   test(`Vietnamese chat geometry at ${width}px`, async ({ page }) => {
-    await setup(page, 'vi')
+    const errors = await setup(page, 'vi')
+    const warnings: string[] = []
+    page.on('console', (message) => {
+      if (message.type() === 'warning') warnings.push(message.text())
+    })
     await page.setViewportSize({ width, height: 844 })
     await page.route('**/api/chat/messages', (route) =>
       route.fulfill({
@@ -234,6 +238,19 @@ for (const width of [360, 390, 1440]) {
     expect(box!.y).toBeGreaterThanOrEqual(0)
     expect(box!.y + box!.height).toBeLessThanOrEqual(844)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-    await expect(page.getByRole('dialog')).toContainText('Cùng bạn chọn món phù hợp')
+    const dialog = page.getByRole('dialog')
+    const panel = (await dialog.boundingBox())!
+    expect(panel.width).toBeCloseTo(width >= 640 ? 520 : width, 0)
+    await expect(dialog).toHaveAccessibleName('SHOPFLOW / TƯ VẤN SẢN PHẨM')
+    await expect(dialog).not.toHaveAttribute('aria-describedby')
+    await expect(dialog).not.toContainText('Cùng bạn chọn món phù hợp')
+    await expect(dialog).not.toContainText(
+      'Cho biết nhu cầu, để trợ lý tìm trong cửa hàng giúp bạn.',
+    )
+    await expect(dialog).not.toContainText('Hội thoại tạm thời, tải lại trang sẽ xóa nội dung.')
+    const header = (await dialog.locator('header').boundingBox())!
+    expect(header.height).toBeLessThan(72)
+    expect(errors).toEqual([])
+    expect(warnings).toEqual([])
   })
 }
