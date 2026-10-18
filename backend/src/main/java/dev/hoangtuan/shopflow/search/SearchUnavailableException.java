@@ -1,6 +1,6 @@
 package dev.hoangtuan.shopflow.search;
 
-class SearchUnavailableException extends RuntimeException {
+public class SearchUnavailableException extends RuntimeException {
   SearchUnavailableException(String message) {
     super(message);
   }

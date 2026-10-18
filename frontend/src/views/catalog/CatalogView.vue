@@ -37,6 +37,7 @@ import type { ProductListItem } from '@/api/catalog'
 import { useProductPages } from '@/composables/useProductPages'
 import { Button, buttonVariants } from '@/components/ui/button'
 import ProductImage from '@/components/catalog/ProductImage.vue'
+import ProductAdvisoryChat from '@/components/catalog/ProductAdvisoryChat.vue'
 import CheckoutForm from '@/components/forms/CheckoutForm.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import { useSessionStore } from '@/stores/session'
@@ -631,6 +632,8 @@ function closeProduct() {
       <span>{{ t('catalog.viewCartBar', selectedItemCount) }}</span>
       <span>{{ currency.format(cartTotal) }}</span>
     </Button>
+
+    <ProductAdvisoryChat :cart-visible="selectedItemCount > 0" @product="(id) => (selectedProductId = id)" />
 
     <Dialog :open="selectedProductId !== null" @update:open="(open) => !open && closeProduct()">
       <DialogContent

@@ -210,3 +210,46 @@ must never share a collection with other applications.
 Observe actual Qdrant memory/CPU with `docker stats --no-stream` after idle,
 indexing and searches. This story does not deploy itself on a develop merge;
 the separate approved release to main triggers production rollout.
+
+
+## Product advisory chat (SF-76)
+
+No new external account, public Qdrant domain, database migration or frontend
+secret is required. Keep GEMINI_API_KEY on the backend. SF-75's private Qdrant
+service must be deployed and indexed; configure QDRANT_API_KEY before promotion
+to main as described above. Guest chat uses the existing session-CSRF flow.
+
+Shared application properties select Gemma 4 31B with one Gemma 4 26B A4B fallback,
+daily AI-attempt budget 500 and initial retrieval score floor 0.70. Both models
+use Minimal thinking, temperature 0.2 and a structured JSON reply. Output is
+bounded to 800 tokens to accommodate Vietnamese text, JSON and the requested
+signature. Model availability and account quota must be checked independently;
+being listed by models.list does not prove reliable generation access.
+
+Each chat consumes one embedding attempt and normally one generation attempt;
+fallback costs another attempt. The local synchronized counter is per backend
+process and resets on restart, not a durable billing limit. Provider HTTP 429
+may affect both models even when ShopFlow's own counter has room. Shared quota
+or key errors cannot be fixed by model fallback alone.
+
+Chat embedding/Qdrant use shorter network timeouts than owner indexing. The
+primary generation attempt has up to 6s and fallback up to 10s, both bounded
+by the remaining 18s pipeline budget. Only frontend chat uses a 20s timeout;
+other requests keep their existing default. This is not a hard SLA for a stalled
+local database. Never publish model tracebacks, API keys or request transcripts
+in application logs; public chat errors use sanitized 400/429/503 bodies, with
+403 enforced by Spring Security before controller work.
+
+After rollout, verify guest CSRF, a matching product with current price/stock,
+VI/EN text, close/open product details, mobile input/cart access and model outage
+recovery on both public storefront domains. Conversation disappears on reload.
+No transcript is stored server-side, and live advisory text still needs factual
+review before commercial use of the demo descriptions. See
+[chat QA](qa-product-advisory-chat.md) for observed provider/quality limits.
+
+Normal `mvn verify` excludes tests tagged external and needs no AI key. A manual
+external test is available only against a disposable loopback backend:
+`CHAT_QA_BASE_URL=http://127.0.0.1:<port> bash backend/mvnw -f backend/pom.xml
+-Dtest=ChatExternalTests -Dgroups=external -DexcludedGroups=none test`.
+It records exploratory model responses and verifies returned cards against
+catalog API data; it does not certify language or compatibility accuracy.
