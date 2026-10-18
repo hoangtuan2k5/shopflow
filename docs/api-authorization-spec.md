@@ -222,3 +222,14 @@ See [the dashboard contract](./api-dashboard-spec.md) for aggregate semantics.
 Security responses above assume a valid request/CSRF token; missing CSRF on POST
 returns 403. See [index contract](api-catalog-index-spec.md) for errors and manual
 session/token steps. A rejected request must not call Gemini or Qdrant.
+
+## Product advisory chat (SF-76)
+
+| Endpoint | Guest | CUSTOMER | WAREHOUSE | SHOP_OWNER |
+| --- | --- | --- | --- | --- |
+| `POST /chat/messages` | Allowed | Allowed | Allowed | Allowed |
+
+CSRF remains required, including guests: absent/invalid token returns 403 before
+AI calls. Daily AI-attempt budget and bounded request data protect the public
+endpoint; see [contract](api-product-advisory-chat-spec.md). Catalog index/search
+remain owner-only. SF-101 already fixed SPA CSRF; chat does not reopen that bug.

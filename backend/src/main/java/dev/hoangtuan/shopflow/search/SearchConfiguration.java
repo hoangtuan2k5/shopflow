@@ -11,9 +11,17 @@ import org.springframework.web.client.RestClient;
 class SearchConfiguration {
   @Bean
   RestClient.Builder catalogIndexRestClientBuilder() {
-    var http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+    return builder(Duration.ofSeconds(60));
+  }
+
+  static RestClient.Builder builder(Duration timeout) {
+    var http =
+        HttpClient.newBuilder()
+            .connectTimeout(
+                timeout.compareTo(Duration.ofSeconds(10)) < 0 ? timeout : Duration.ofSeconds(10))
+            .build();
     var factory = new JdkClientHttpRequestFactory(http);
-    factory.setReadTimeout(Duration.ofSeconds(60));
+    factory.setReadTimeout(timeout);
     return RestClient.builder().requestFactory(factory);
   }
 }

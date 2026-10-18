@@ -1,6 +1,32 @@
 import type { en } from './en'
 
 export const vi: typeof en = {
+  chat: {
+    open: 'Hỏi để chọn đúng',
+    title: 'Cùng bạn chọn món phù hợp',
+    kicker: 'SHOPFLOW / TƯ VẤN SẢN PHẨM',
+    subtitle: 'Cho biết nhu cầu, để trợ lý tìm trong cửa hàng giúp bạn.',
+    close: 'Đóng trợ lý sản phẩm',
+    input: 'Câu hỏi của bạn',
+    placeholder: 'Ví dụ: màng lọc thay thế cho Winix 5500-2…',
+    send: 'Gửi câu hỏi',
+    thinking: 'Đang tìm trong danh sách sản phẩm…',
+    welcome: 'Bạn đang phân vân chọn món nào?',
+    intro: 'Bắt đầu bằng tên hãng, mã máy đầy đủ hoặc nhu cầu sử dụng nhé.',
+    examples: ['Tìm màng lọc cho máy lọc không khí', 'Máy lọc không khí cho phòng ngủ'],
+    empty: 'Chưa có gợi ý sản phẩm trong câu trả lời này.',
+    note: 'Kiểm tra mã máy đầy đủ trước khi chọn màng lọc thay thế.',
+    temporary: 'Hội thoại tạm thời, tải lại trang sẽ xóa nội dung.',
+    max: 'Nhập từ 1 đến 500 ký tự.',
+    error: 'Trợ lý chưa trả lời được. Bạn thử lại nhé.',
+    csrf: 'Phiên bảo vệ cần làm mới. Bạn tải lại trang rồi thử lại nhé.',
+    busy: 'Trợ lý đã đạt giới hạn hôm nay. Bạn quay lại sau nhé.',
+    retry: 'Gửi lại câu hỏi vừa rồi',
+    conversation: 'Hội thoại',
+    product: 'Xem sản phẩm: {name}',
+    you: 'Bạn',
+    assistant: 'Trợ lý cửa hàng',
+  },
   dashboard: {
     title: 'Tổng quan',
     owner: 'Chủ shop',

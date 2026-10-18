@@ -4,18 +4,21 @@ export interface ApiClientProblem {
   message: string
   status?: number
   details?: unknown
+  retryAfter?: number
   cause?: unknown
 }
 
 export class ApiClientError extends Error {
   readonly status?: number
   readonly details?: unknown
+  readonly retryAfter?: number
 
   constructor(problem: ApiClientProblem) {
     super(problem.message, { cause: problem.cause })
     this.name = 'ApiClientError'
     this.status = problem.status
     this.details = problem.details
+    this.retryAfter = problem.retryAfter
   }
 }
 
@@ -62,6 +65,9 @@ function toApiClientError(error: AxiosError<unknown>) {
       details: error.response.data,
       message: `API request failed with status ${error.response.status}.`,
       status: error.response.status,
+      retryAfter: /^\d+$/.test(String(error.response.headers['retry-after'] ?? ''))
+        ? Number(error.response.headers['retry-after'])
+        : undefined,
     })
   }
 

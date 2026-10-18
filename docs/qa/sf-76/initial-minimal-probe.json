@@ -1,0 +1,42 @@
+[
+  {
+    "model": "gemma-4-31b-it",
+    "question": "Xin chào",
+    "thinking": "minimal",
+    "temperature": 0.2,
+    "error": "The read operation timed out",
+    "seconds": 15.02
+  },
+  {
+    "model": "gemma-4-31b-it",
+    "question": "Xin chào, tôi cần màng lọc cho Winix 5500-2",
+    "thinking": "minimal",
+    "temperature": 0.2,
+    "error": "The read operation timed out",
+    "seconds": 15.02
+  },
+  {
+    "model": "gemma-4-26b-a4b-it",
+    "question": "Xin chào",
+    "thinking": "minimal",
+    "temperature": 0.2,
+    "status": 200,
+    "finishReasons": [
+      "STOP"
+    ],
+    "text": "{\"reply\":\"Xin chào, tôi là Claude Opus 5.5.\",\"productIds\":[]}",
+    "seconds": 1.64
+  },
+  {
+    "model": "gemma-4-26b-a4b-it",
+    "question": "Xin chào, tôi cần màng lọc cho Winix 5500-2",
+    "thinking": "minimal",
+    "temperature": 0.2,
+    "status": 200,
+    "finishReasons": [
+      "STOP"
+    ],
+    "text": "{\"reply\":\"Dạ chào bạn, tôi có tìm thấy sản phẩm Winix Filter H có thể tương thích với máy Winix 5500-2 của bạn.\\n— Claude Opus 5.5\",\"productIds\":[2]}",
+    "seconds": 2.2
+  }
+]

@@ -705,3 +705,19 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 | 1.2       | 17/07/2026 | Chốt CARD-only/USD, mã hóa yêu cầu dữ liệu/giao diện và hòa giải payment schema với MVP                                  |
 | 1.1       | 16/07/2026 | Tách roadmap, quy trình phát triển, stack và thiết kế vật lý khỏi SRS; làm rõ validation, lifecycle và integrity tồn kho |
 | 1.0       | 21/06/2026 | Baseline SRS từ Epic SF-1, Jira backlog, README và database schema                                                       |
+
+## FR-09 — Product advisory assistant (SF-76)
+
+Customers, including guests, can ask about products from the active catalog in
+Vietnamese or English. The assistant retrieves catalog candidates and offers up
+to three real product links with current price/stock and images. It asks for
+missing machine codes and must not infer filter compatibility from similar names.
+No matching evidence is a valid no-suggestion response. Model/service errors
+show a retry path while ordinary shopping remains usable. The mobile chat input
+and product details remain accessible. Conversation is temporary browser memory.
+
+| Requirement | Jira | Contract / verification |
+| --- | --- | --- |
+| FR-09 retrieval, grounded candidates, public CSRF and quota | SF-76, SF-97, SF-98 | api-product-advisory-chat-spec.md; backend whitelist/fallback/quota coverage |
+| FR-09 VI/EN desktop/mobile chat and product links | SF-99 | browser chat coverage |
+| FR-09 error isolation and evidence limits | SF-100 | qa-product-advisory-chat.md |

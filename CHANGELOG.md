@@ -8,10 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Product advisory chat**:
+  - Add guest-accessible catalog-grounded chat with Gemma 4 31B / 26B fallback, Minimal thinking, bounded AI-attempt quota and current catalog product cards (SF-76, SF-97–SF-100).
+  - Add Vietnamese/English desktop/mobile chat, recoverable errors and product-detail navigation while preserving storefront checkout.
 - **Catalog vector index**:
   - Add owner-only Gemini Embedding 2 indexing and semantic retrieval with a persistent, private Qdrant service; keep storefront search unchanged (SF-75, SF-93–SF-96).
 - **Owner dashboard**:
   - Add owner-only sales and inventory aggregates, Vietnamese calendar filters, shadcn-vue/Unovis charts and top-selling products with exact VND values (SF-129).
+
+### Fixed
+- **Storefront startup**: serve Be Vietnam Pro locally so a stalled Google Fonts stylesheet cannot block application startup; preserve existing font weights and Vietnamese glyphs (SF-76, SF-100).
 
 ## [0.11.0] - 2026-10-17
 

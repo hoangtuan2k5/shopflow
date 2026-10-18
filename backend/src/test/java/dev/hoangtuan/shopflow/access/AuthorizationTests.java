@@ -176,6 +176,12 @@ class AuthorizationTests {
 
   @Test
   void keepsGuestShoppingAndHealthChecksOpen() throws Exception {
+    mockMvc
+        .perform(
+            post("/chat/messages")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"question\":\"filter\"}"))
+        .andExpect(status().isServiceUnavailable());
     mockMvc.perform(get("/products")).andExpect(status().isOk());
     mockMvc.perform(get("/actuator/health")).andExpect(status().isOk());
     mockMvc.perform(get("/auth/session")).andExpect(status().isOk());

@@ -13,6 +13,13 @@ Theo dõi tiền đã thanh toán, đơn hàng, sản phẩm bán chạy và tì
 
 ![Dashboard chủ shop với biểu đồ dòng tiền, đơn hàng và sản phẩm bán chạy](docs/qa/sf-129/dashboard-1440.png)
 
+### Trợ lý tư vấn sản phẩm
+
+Hỏi theo nhu cầu hoặc mã máy, xem gợi ý có ảnh, giá và tồn kho rồi mở chi tiết
+sản phẩm ngay trong cửa hàng. Ảnh chụp QA với dữ liệu demo.
+
+![Chat tư vấn sản phẩm trên desktop](docs/qa/sf-76/chat-1440.png)
+
 ### Cửa hàng
 
 Danh sách sản phẩm với ảnh thực tế, giá VND và trạng thái còn hàng.
@@ -215,6 +222,28 @@ không nhận dữ liệu khách hàng hoặc đơn hàng.
 Trước release production phải có `QDRANT_API_KEY` trong `/opt/shopflow/.env`;
 thiếu biến này Compose sẽ dừng. `GEMINI_API_KEY` cần có để index/search hoạt động.
 Chi tiết ở [deployment](docs/deployment.md#catalog-vector-index-sf-75).
+
+### Chat tư vấn sản phẩm (SF-76)
+
+Sau khi index catalog bằng SF-75, mở nút **Hỏi để chọn đúng** trên storefront.
+Guest không cần đăng nhập; trình duyệt vẫn gửi cookie/token CSRF qua HTTP client
+hiện có. Backend dùng `GEMINI_API_KEY`, không gửi key xuống frontend.
+
+Model chính `gemma-4-31b-it`, một fallback `gemma-4-26b-a4b-it`; cả hai dùng
+Minimal thinking và temperature 0.2. Embedding giữ `gemini-embedding-2` 768 chiều.
+Giá/tồn kho của thẻ gợi ý đọc lại từ PostgreSQL; điểm tương đồng không bảo đảm
+màng lọc lắp vừa mọi model gần tên. Thiếu dữ liệu thì trợ lý cần hỏi thêm.
+
+Hội thoại chỉ ở bộ nhớ component, tải lại trang sẽ mất. Quota mặc định 500 lượt
+gọi AI/ngày cho chat, gồm embedding và từng model attempt; reset khi backend
+khởi động lại. Đây không phải giới hạn thanh toán bền vững. Cấu hình model,
+fallback, quota và score floor ở `shopflow.chat.*` trong `application.yaml`.
+
+Model lỗi/hết quota upstream có thể làm cả hai nhánh thất bại; UI có thông báo
+và thử lại thủ công. Không streaming, upload ảnh hoặc tự tìm Google. Xem
+[contract](docs/api-product-advisory-chat-spec.md), [QA](docs/qa-product-advisory-chat.md)
+và [ảnh mobile](docs/qa/sf-76/chat-390.png). Persona trong prompt do chủ repo
+chọn; cấu hình suy luận thực tế là Gemma của Google.
 
 ### Backend
 
