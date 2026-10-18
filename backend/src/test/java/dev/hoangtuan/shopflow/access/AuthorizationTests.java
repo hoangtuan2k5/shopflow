@@ -50,6 +50,8 @@ class AuthorizationTests {
 
   private static Stream<MockHttpServletRequestBuilder> protectedEndpoints() {
     return Stream.of(
+        post("/catalog-index"),
+        get("/catalog-index/search").param("q", "filter"),
         get("/inventory"),
         post("/inventory/1/adjustments").contentType(MediaType.APPLICATION_JSON).content("{}"),
         put("/inventory/1/threshold").contentType(MediaType.APPLICATION_JSON).content("{}"),
@@ -65,6 +67,8 @@ class AuthorizationTests {
   private static Stream<MockHttpServletRequestBuilder> shopOwnerOnlyEndpoints() {
     return Stream.of(
         get("/returns/orders"),
+        post("/catalog-index"),
+        get("/catalog-index/search").param("q", "filter"),
         post("/returns").contentType(MediaType.APPLICATION_JSON).content("{}"));
   }
 
@@ -156,6 +160,10 @@ class AuthorizationTests {
   void rejectsStateChangingRequestsThatCarryNoCsrfToken() throws Exception {
     MockMvc withoutCsrfDefault =
         MockMvcBuilders.webAppContextSetup(webApplicationContext).apply(springSecurity()).build();
+
+    withoutCsrfDefault
+        .perform(post("/catalog-index").with(user("boss").roles("SHOP_OWNER")))
+        .andExpect(status().isForbidden());
 
     withoutCsrfDefault
         .perform(

@@ -1,6 +1,14 @@
 name: shopflow
 
 services:
+  qdrant:
+    image: qdrant/qdrant:v1.18.3
+    restart: unless-stopped
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?QDRANT_API_KEY is required}
+    volumes:
+      - shopflow_prod_qdrant_data:/qdrant/storage
+
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
@@ -36,6 +44,9 @@ services:
       context: ./backend
     restart: unless-stopped
     environment:
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY:?QDRANT_API_KEY is required}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       SPRING_PROFILES_ACTIVE: staging
       R2_ENDPOINT: ${R2_ENDPOINT:?R2_ENDPOINT is required}
       R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:?R2_ACCESS_KEY_ID is required}
@@ -79,6 +90,7 @@ services:
       start_period: 10s
 
 volumes:
+  shopflow_prod_qdrant_data:
   shopflow_prod_pgdata:
   caddy_data:
   caddy_config:

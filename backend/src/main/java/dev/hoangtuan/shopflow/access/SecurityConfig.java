@@ -73,6 +73,8 @@ class SecurityConfig {
                     .requestMatchers(
                         "/v3/api-docs", "/v3/api-docs/*", "/swagger-ui.html", "/swagger-ui/*")
                     .permitAll()
+                    .requestMatchers("/catalog-index", "/catalog-index/**")
+                    .hasRole(SHOP_OWNER)
                     .requestMatchers("/dashboard", "/dashboard/**")
                     .hasRole(SHOP_OWNER)
                     .requestMatchers(HttpMethod.GET, "/returns/orders")

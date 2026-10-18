@@ -169,3 +169,44 @@ Migration V6 adds nullable `products.image_key`; existing products keep their
 placeholder. See [the image contract](./api-product-image-spec.md) for limits,
 permissions and replacement/rollback behavior. This change does not deploy itself:
 production deployment still requires the release workflow from `develop` to `main`.
+
+
+## Catalog vector index (SF-75)
+
+Before the first SF-75 release to main, add the following to `/opt/shopflow/.env`
+without committing or printing their values:
+
+- `GEMINI_API_KEY`: AI Studio key permitted to call `gemini-embedding-2`.
+- `QDRANT_API_KEY`: independently generated secret (for example, use Python's
+  `secrets.token_hex(32)` and write it directly into the protected env file).
+- `QDRANT_URL`: production Compose sets this to `http://qdrant:6333`; no host
+  override is required. Host-run local backend defaults to `http://localhost:6333`.
+
+Missing `QDRANT_API_KEY` fails Compose interpolation, including the Flyway
+preflight. Missing Gemini key does not prevent startup; index/search returns
+503 until configured. Never print `docker compose config` with real secrets;
+use `config --quiet` or validate with dummy environment values.
+
+Qdrant uses image `qdrant/qdrant:v1.18.3` and volume
+`shopflow_prod_qdrant_data`. It has no published ports, public domain or reverse
+proxy. Local Compose binds only loopback port 6333. No curl/wget healthcheck is
+invented for the minimal image: `up --wait` checks its running state, not Qdrant
+API readiness. The application boots without reaching Qdrant/Gemini.
+
+After deployment, authenticate as owner, obtain the session/CSRF cookies and
+run `POST /catalog-index` manually (see [contract](api-catalog-index-spec.md)).
+Check `indexed` against the active product count and try owner-only
+`GET /catalog-index/search`. Re-running replaces vectors by product ID and
+removes inactive/deleted products only after every batch upserts successfully.
+Do not run catalog imports while reindexing. The current implementation assumes
+one backend instance; it serializes index calls within that instance.
+
+Ordinary container recreation preserves the named volume. Never use
+`docker compose down -v` on production. The index can be rebuilt from PostgreSQL
+and Gemini; SF-75 does not add snapshot/backup scheduling. Changing model or
+vector dimensions requires rebuilding the dedicated derived collection; it
+must never share a collection with other applications.
+
+Observe actual Qdrant memory/CPU with `docker stats --no-stream` after idle,
+indexing and searches. This story does not deploy itself on a develop merge;
+the separate approved release to main triggers production rollout.
