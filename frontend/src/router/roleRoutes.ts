@@ -11,6 +11,12 @@ type RoleRoute = RouteRecordRaw & {
 
 export const roleRoutes: RoleRoute[] = [
   {
+    path: 'shop-owner/dashboard',
+    name: 'shop-owner-dashboard',
+    component: () => import('@/views/dashboard/DashboardView.vue'),
+    meta: { role: 'shop-owner', title: 'Dashboard', description: 'Sales and inventory overview.' },
+  },
+  {
     path: 'shop-owner/products',
     name: 'shop-owner-products',
     component: () => import('@/views/catalog/ProductImagesView.vue'),

@@ -54,3 +54,6 @@ export type {
   PaymentStatus,
   SimulatedPaymentResult,
 } from './payment'
+
+export { getDashboard } from './dashboard'
+export type { DashboardData, DashboardFilter, DashboardPoint } from './dashboard'

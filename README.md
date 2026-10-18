@@ -4,6 +4,30 @@ Hệ thống bán hàng và quản lý kho cho shop online quy mô nhỏ. Mô ph
 
 Currency baseline của MVP: **VND (đồng Việt Nam)**; giá và amount dùng đơn vị đồng, không có phần lẻ.
 
+## Giao diện
+
+### Dashboard chủ shop
+
+Theo dõi tiền đã thanh toán, đơn hàng, sản phẩm bán chạy và tình hình tồn kho.
+Ảnh chụp với dữ liệu minh họa.
+
+![Dashboard chủ shop với biểu đồ dòng tiền, đơn hàng và sản phẩm bán chạy](docs/qa/sf-129/dashboard-1440.png)
+
+### Cửa hàng
+
+Danh sách sản phẩm với ảnh thực tế, giá VND và trạng thái còn hàng.
+
+![Giao diện cửa hàng ShopFlow trên máy tính](docs/qa/sf-127/catalog-desktop.png)
+
+<details>
+<summary>Xem dashboard trên điện thoại</summary>
+
+<p align="center">
+  <img src="docs/qa/sf-129/dashboard-390.png" width="390" alt="Dashboard chủ shop trên điện thoại: bộ lọc thời gian, thống kê và biểu đồ" />
+</p>
+
+</details>
+
 ## Team
 
 ShopFlow Team gồm 3 thành viên:
