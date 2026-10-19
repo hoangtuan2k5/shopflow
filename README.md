@@ -62,6 +62,10 @@ shopflow/
   VeeValidate, Zod, ESLint, Oxlint, Prettier.
 - `docs/`: tài liệu yêu cầu, API contract, database schema và kết quả kiểm tra.
 
+Backend tổ chức theo tầng Spring MVC REST: `controller` → `service` →
+`repository`, với `dto`, `model`, `security`, `exception` và `integration`
+riêng. Xem [kiến trúc backend](docs/architecture/backend.md) và các luồng ví dụ.
+
 Tài liệu chuẩn của dự án được lưu và review ngay trong repository:
 
 - [SRS](docs/SRS.md): phạm vi, yêu cầu và quy tắc nghiệp vụ.

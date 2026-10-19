@@ -210,26 +210,24 @@ available_stock = on_hand_stock - reserved_stock
 
 ### Backend (SF-37)
 
-Package: `dev.hoangtuan.shopflow.catalog`
+Cấu trúc sau refactor SF-130, dưới `dev.hoangtuan.shopflow`:
 
-Expected structure:
-
-```
-catalog/
-├── CatalogController.java   # @RestController, GET /products, GET /products/{id}
-├── ProductDto.java          # Response DTO (record or class)
-├── ProductService.java      # Business logic + stockStatus computation
-├── ProductRepository.java   # JPA Repository querying active products
-└── package-info.java        # Đã có: "Catalog feature: hiển thị product cho khách hàng..."
+```text
+controller/CatalogController.java       # GET /products, GET /products/{id}
+service/ProductService.java             # Orchestration và response mapping
+repository/jpa/ProductRepository.java   # Truy vấn catalog và projection tồn kho
+model/catalog/Product.java             # JPA entity
+dto/catalog/ProductDto.java            # Response records
+exception/handler/CatalogErrorHandler.java
 ```
 
 **Key conventions:**
-- Google Java Format (Spotless, indent 2 spaces)
-- Lombok for getters/setters/builder
-- MapStruct for entity → DTO mapping
-- Constructor injection for dependencies
-- Return `Optional<Product>` → map to 200 or throw 404
-- `@Tag(name = "Catalog")` cho Swagger grouping
+- Google Java Format (Spotless, indent 2 spaces).
+- Constructor injection; controller gọi service, service gọi repository.
+- DTO là Java records, mapping thuần; không gọi DB từ DTO/mapper.
+- `Optional` từ repository được chuyển thành response hoặc 404 theo contract.
+- `@Tag(name = "Catalog")` cho Swagger grouping.
+- Xem [kiến trúc backend](architecture/backend.md) để biết trách nhiệm từng tầng.
 
 **Truy vấn phân trang (SF-127):** `ProductRepository.findActivePage(after, pattern, pageable)` dùng native SQL với `p.active = TRUE`, `p.id > :after`, `LOWER(p.name) LIKE :pattern ESCAPE '!'`, join tồn kho và `ORDER BY p.id`. `PageRequest.of(0, limit + 1)` giới hạn kết quả ở database; service chỉ trả tối đa `limit` item và cursor từ item cuối nếu có dòng dư.
 
