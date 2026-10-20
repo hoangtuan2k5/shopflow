@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-10-19
+
+### Changed
+- **Backend architecture**: separate Spring MVC controllers, business services, JPA/JDBC repositories, models, DTOs, security, exception handlers and external integrations; preserve API contracts and transactional workflows (SF-130).
+
 ## [0.12.0] - 2026-10-18
 
 ### Added

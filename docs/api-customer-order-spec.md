@@ -405,31 +405,30 @@ Constraint: `reserved_stock <= on_hand_stock` vẫn phải giữ sau update.
 
 ### Backend (SF-11, SF-12, SF-35)
 
-Package: `dev.hoangtuan.shopflow.order`
-
-Expected structure:
+Cấu trúc sau refactor SF-130, dưới `dev.hoangtuan.shopflow`:
 
 ```text
-order/
-├── OrderController.java          # @RestController, POST /orders
-├── CreateOrderRequest.java       # Request DTO (+ nested records)
-├── OrderResponse.java            # Response DTO
-├── OrderService.java             # Orchestration: validate → reserve → persist
-├── StockReservationService.java  # Optional extract: lock + available check + reserve (SF-11)
-├── OrderRepository.java
-├── OrderItemRepository.java
-├── OrderErrorHandler.java        # 400 shape
-└── package-info.java             # Đã có
+controller/OrderController.java
+service/OrderService.java
+service/StockReservationService.java
+repository/jpa/OrderRepository.java
+repository/jdbc/StockReservationRepository.java
+model/order/                           # Order, OrderItem và snapshot
+model/inventory/                       # Dữ liệu kiểm tra/giữ tồn kho
+dto/order/                             # CreateOrderRequest, OrderResponse
+exception/handler/OrderErrorHandler.java
+exception/order/OrderValidationException.java
 ```
 
-**Key conventions (khớp catalog):**
+**Key conventions:**
 
-- Google Java Format (Spotless, indent 2 spaces)
-- Constructor injection
-- `@Transactional` trên use-case create
-- `@Tag(name = "Order")` cho Swagger
-- MapStruct/Lombok theo pattern module catalog nếu đã có entity mapping
-- Không tin client `unitPrice` / `productName`
+- Google Java Format, constructor injection.
+- `@Transactional` trên use case tạo đơn; reservation yêu cầu transaction có sẵn.
+- JPA và JDBC tham gia cùng transaction; giữ flush trước khi JDBC đọc đơn vừa tạo.
+- SQL/row locking nằm trong repository; service quyết định thứ tự khóa và validation.
+- DTO dùng Java records và mapping thuần; không tin `unitPrice`/`productName` từ client.
+- `OrderItem` được persist qua cascade của `Order`; không có `OrderItemRepository` riêng.
+- Xem [kiến trúc backend](architecture/backend.md).
 
 **Pseudo-flow:**
 
