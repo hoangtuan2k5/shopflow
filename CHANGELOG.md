@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+- **Password recovery**: add session-bound email OTP reset with atomic password/version updates, invalidation of old sessions and a bilingual recovery screen; requesting a code leaves current sessions active (SF-145).
 - **Customer registration**: add email/password signup with session-bound verification codes, persistent OTP quotas, Resend delivery state and bilingual registration screens; create CUSTOMER accounts only after proof (SF-144).
 - **Transactional email foundation**: add a bounded Resend client, bilingual verification/recovery messages and password-change notices; wire sender/key into the production backend without requiring them for catalog or demo login (SF-143).
 - **Customer identity foundation**: add verified email/Google identity constraints, OTP challenge and quota tables, and nullable order account ownership while preserving legacy data and demo accounts (SF-142).

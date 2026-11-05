@@ -22,6 +22,11 @@ const router = createRouter({
       component: () => import('@/views/auth/RegisterView.vue'),
     },
     {
+      path: '/forgot-password',
+      name: 'password-recovery',
+      component: () => import('@/views/auth/RecoveryView.vue'),
+    },
+    {
       path: '/',
       component: AppLayout,
       children: roleRoutes,
@@ -40,7 +45,7 @@ router.beforeEach(async (to) => {
   const session = useSessionStore()
   await session.restore()
 
-  if (to.name === 'login' || to.name === 'register') {
+  if (to.name === 'login' || to.name === 'register' || to.name === 'password-recovery') {
     return session.isAuthenticated ? session.homePath : true
   }
 

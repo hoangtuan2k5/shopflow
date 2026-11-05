@@ -6,7 +6,9 @@ export {
   logout,
   registerAccount,
   verifyRegistration,
-  resendRegistrationCode,
+  resendOtp,
+  requestPasswordReset,
+  resetPassword,
 } from './auth'
 export type {
   RegistrationRequest,

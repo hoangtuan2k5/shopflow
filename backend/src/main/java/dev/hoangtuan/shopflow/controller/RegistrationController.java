@@ -1,7 +1,7 @@
 package dev.hoangtuan.shopflow.controller;
 
 import dev.hoangtuan.shopflow.dto.access.*;
-import dev.hoangtuan.shopflow.service.RegistrationService;
+import dev.hoangtuan.shopflow.service.CustomerOtpService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/auth")
 public class RegistrationController {
-  private final RegistrationService service;
+  private final CustomerOtpService service;
 
-  public RegistrationController(RegistrationService service) {
+  public RegistrationController(CustomerOtpService service) {
     this.service = service;
   }
 

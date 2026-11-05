@@ -345,3 +345,35 @@ and does not log in automatically. Legacy demo login and sessions are retained.
 Password reset, Google login, guest checkout enforcement/cart preservation and
 real-provider acceptance remain separate tasks. Do not claim those are enabled
 by deploying this registration change.
+
+## Password recovery (SF-145)
+
+Use the same verified Resend sender and independent `OTP_HMAC_SECRET` already
+configured for registration. No additional secret, migration, SMTP dependency,
+queue or reset-token store is introduced. The shared OTP service/repository
+now support REGISTER and RESET_PASSWORD with separate email-purpose budgets,
+HMAC inputs and challenge slots; IP/daily budgets remain shared.
+
+Enable POST `/auth/password/forgot` and `/auth/password/reset` only with the
+reviewed prerequisites SF-142–144. Both require CSRF and allowed Origin checks.
+The existing `/auth/otp/resend` derives purpose from the bound challenge. There
+is no independent OTP-verify endpoint, passwordless login or reset capability
+token. Reset accepts only challengeId, OTP and newPassword; the target account
+is read from the database, not email/userId supplied by a client.
+
+Only an active verified account with a local hash receives reset mail. Unknown,
+inactive and Google-only accounts receive the same202 challenge response and
+response floor, without acquiring a local password. Successful proof updates
+the hash, increments auth_version and consumes/invalidates reset challenges
+in one transaction. Old sessions fail on their next request; requests already
+authorized before commit are not retroactively canceled. No auto-login occurs.
+
+The password-change notification is sent after commit and outside database
+locks. Notification failure does not undo the password change and is not
+retried automatically. Requesting a code never clears login failures or logs
+out users; only successful reset clears the canonical email's login limit.
+
+Real-mail/Inbox testing and production rollout still require separate approval.
+Preserve environment values, demo accounts and all order data. Deploy/reset
+verification must include two existing sessions, old-password rejection,
+new-password login and replay rejection.

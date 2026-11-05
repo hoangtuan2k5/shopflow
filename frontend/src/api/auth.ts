@@ -74,11 +74,29 @@ export async function verifyRegistration(challengeId: string, otp: string) {
   })
 }
 
-export async function resendRegistrationCode(challengeId: string) {
+export async function resendOtp(challengeId: string) {
   await getSession()
   return request<ChallengeResponse>({
     method: 'POST',
     url: '/auth/otp/resend',
     data: { challengeId },
   })
+}
+
+export async function requestPasswordReset(email: string) {
+  await getSession()
+  return request<ChallengeResponse>({
+    method: 'POST',
+    url: '/auth/password/forgot',
+    data: { email },
+  })
+}
+
+export async function resetPassword(data: {
+  challengeId: string
+  otp: string
+  newPassword: string
+}) {
+  await getSession()
+  return request<void>({ method: 'POST', url: '/auth/password/reset', data })
 }
