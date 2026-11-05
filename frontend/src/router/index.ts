@@ -17,6 +17,11 @@ const router = createRouter({
       component: () => import('@/views/auth/LoginView.vue'),
     },
     {
+      path: '/register',
+      name: 'register',
+      component: () => import('@/views/auth/RegisterView.vue'),
+    },
+    {
       path: '/',
       component: AppLayout,
       children: roleRoutes,
@@ -35,7 +40,7 @@ router.beforeEach(async (to) => {
   const session = useSessionStore()
   await session.restore()
 
-  if (to.name === 'login') {
+  if (to.name === 'login' || to.name === 'register') {
     return session.isAuthenticated ? session.homePath : true
   }
 

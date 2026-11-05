@@ -211,3 +211,27 @@ test('The storefront offers a way in for staff and a way back for signed-in user
   await page.getByRole('link', { name: 'Workspace' }).click()
   await expect(page).toHaveURL(/\/shop-owner$/)
 })
+
+test('Login only returns to an allowed internal destination for the signed-in role', async ({
+  page,
+}) => {
+  await page.route('**/api/inventory', (route) => fulfillJson(route, []))
+  await page.route('**/api/auth/login', async (route) => {
+    await mockSession(page, 'WAREHOUSE')
+    await fulfillJson(route, WAREHOUSE_USER)
+  })
+  for (const redirect of [
+    'https://evil.invalid',
+    '//evil.invalid',
+    '/%2fevil.invalid',
+    '/shop-owner',
+    '/customer?checkout=1&next=evil',
+  ]) {
+    await mockSession(page, null)
+    await page.goto(`/login?redirect=${encodeURIComponent(redirect)}`)
+    await page.getByLabel('Username').fill('warehouse')
+    await page.getByLabel('Password').fill('Warehouse@2026')
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    await expect(page).toHaveURL(/\/warehouse$/)
+  }
+})

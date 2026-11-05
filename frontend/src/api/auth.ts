@@ -46,3 +46,39 @@ export function getSession() {
     url: '/auth/session',
   })
 }
+
+export interface RegistrationRequest {
+  email: string
+  password: string
+  displayName: string
+}
+
+export interface ChallengeResponse {
+  challengeId: string
+  message: string
+  expiresInSeconds: number
+  resendAfterSeconds: number
+}
+
+export async function registerAccount(data: RegistrationRequest) {
+  await getSession()
+  return request<ChallengeResponse>({ method: 'POST', url: '/auth/registrations', data })
+}
+
+export async function verifyRegistration(challengeId: string, otp: string) {
+  await getSession()
+  return request<void>({
+    method: 'POST',
+    url: '/auth/registrations/verify',
+    data: { challengeId, otp },
+  })
+}
+
+export async function resendRegistrationCode(challengeId: string) {
+  await getSession()
+  return request<ChallengeResponse>({
+    method: 'POST',
+    url: '/auth/otp/resend',
+    data: { challengeId },
+  })
+}

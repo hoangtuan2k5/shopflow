@@ -39,6 +39,7 @@ export const useSessionStore = defineStore('session', () => {
 
   async function signIn(credentials: LoginRequest) {
     user.value = await loginRequest(credentials)
+    await getSession()
     resolved.value = true
     return user.value
   }
@@ -52,6 +53,7 @@ export const useSessionStore = defineStore('session', () => {
   async function signOut() {
     try {
       await logoutRequest()
+      await getSession()
     } finally {
       user.value = null
       resolved.value = true

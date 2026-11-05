@@ -17,7 +17,9 @@ public class AccountRepository {
       """
       SELECT id, username, password_hash, display_name, role, auth_version
       FROM shopflow.users
-      WHERE LOWER(username) = LOWER(?) AND active = TRUE AND email IS NULL AND password_hash IS NOT NULL
+      WHERE active = TRUE AND password_hash IS NOT NULL AND
+        ((email IS NOT NULL AND email_verified_at IS NOT NULL AND email = LOWER(TRIM(?)))
+         OR (email IS NULL AND ? NOT LIKE '%@%' AND LOWER(username) = LOWER(TRIM(?))))
       """;
 
   public AccountData findActiveByUsername(String username) {
@@ -32,6 +34,8 @@ public class AccountRepository {
                     rs.getString("display_name"),
                     Role.valueOf(rs.getString("role")),
                     rs.getLong("auth_version")),
+            username,
+            username,
             username);
     return accounts.isEmpty() ? null : accounts.getFirst();
   }

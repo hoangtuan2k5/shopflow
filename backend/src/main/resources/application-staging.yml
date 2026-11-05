@@ -19,6 +19,8 @@ springdoc:
     enabled: false
 
 shopflow:
+  auth:
+    allowed-origins: https://shopflow.hoangtuan.dev,https://shopflow.phamthuy.dev
   r2:
     endpoint: ${R2_ENDPOINT}
     access-key-id: ${R2_ACCESS_KEY_ID}

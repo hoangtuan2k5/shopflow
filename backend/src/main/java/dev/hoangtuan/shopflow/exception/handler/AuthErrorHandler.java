@@ -1,6 +1,11 @@
 package dev.hoangtuan.shopflow.exception.handler;
 
 import dev.hoangtuan.shopflow.controller.AuthController;
+import dev.hoangtuan.shopflow.controller.RegistrationController;
+import dev.hoangtuan.shopflow.exception.access.CredentialsValidationException;
+import dev.hoangtuan.shopflow.exception.access.EmailUnavailableException;
+import dev.hoangtuan.shopflow.exception.access.InvalidCodeException;
+import dev.hoangtuan.shopflow.exception.access.OtpRateLimitException;
 import dev.hoangtuan.shopflow.security.LoginRateLimiter;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -12,7 +17,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = AuthController.class)
+@RestControllerAdvice(assignableTypes = {AuthController.class, RegistrationController.class})
 public class AuthErrorHandler {
 
   /**
@@ -47,6 +52,28 @@ public class AuthErrorHandler {
     return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
         .header("Retry-After", Long.toString(exception.retryAfterSeconds()))
         .body(new ErrorResponse("Too many sign-in attempts", 429, Map.of()));
+  }
+
+  @ExceptionHandler(CredentialsValidationException.class)
+  ResponseEntity<ErrorResponse> handleCredentials(CredentialsValidationException exception) {
+    return response(HttpStatus.BAD_REQUEST, "Invalid credentials request", exception.fieldErrors());
+  }
+
+  @ExceptionHandler(InvalidCodeException.class)
+  ResponseEntity<ErrorResponse> handleInvalidCode() {
+    return response(HttpStatus.BAD_REQUEST, "Invalid or expired code", Map.of());
+  }
+
+  @ExceptionHandler(EmailUnavailableException.class)
+  ResponseEntity<ErrorResponse> handleEmailUnavailable() {
+    return response(HttpStatus.SERVICE_UNAVAILABLE, "Authentication service unavailable", Map.of());
+  }
+
+  @ExceptionHandler(OtpRateLimitException.class)
+  ResponseEntity<ErrorResponse> handleOtpLimit(OtpRateLimitException exception) {
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+        .header("Retry-After", Long.toString(exception.retryAfterSeconds()))
+        .body(new ErrorResponse("Too many authentication attempts", 429, Map.of()));
   }
 
   private ResponseEntity<ErrorResponse> response(

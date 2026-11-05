@@ -1,7 +1,16 @@
 export { apiBaseUrl, httpClient, onUnauthorized, request, ApiClientError } from './httpClient'
 export type { ApiClientProblem } from './httpClient'
-export { getSession, login, logout } from './auth'
+export {
+  getSession,
+  login,
+  logout,
+  registerAccount,
+  verifyRegistration,
+  resendRegistrationCode,
+} from './auth'
 export type {
+  RegistrationRequest,
+  ChallengeResponse,
   AuthErrorDetails,
   AuthenticatedUser,
   LoginRequest,
