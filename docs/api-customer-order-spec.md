@@ -1,7 +1,12 @@
 # ShopFlow — Customer Order API Specification
 
-**Phiên bản:** 1.5
-**Ngày cập nhật:** 12/10/2026
+**Phiên bản:** 1.6 (baseline + contract đích SF-141)
+**Ngày cập nhật:** 04/11/2026
+
+> Phần baseline dưới đây giữ hành vi order đã triển khai. Mục 10 ghi delta
+> authenticated checkout SF-141, thay quyền guest khi cutover; chưa có code
+> hoặc migration mới trong task tài liệu. Xem
+> [Customer Identity Contract](api-customer-identity-spec.md).
 **Liên quan:**
 - [SF-3: Create Customer Order](https://tuanwork.atlassian.net/browse/SF-3)
 - [SF-46: Fix Customer Order Validation and Payment Handoff Gaps](https://tuanwork.atlassian.net/browse/SF-46)
@@ -556,9 +561,32 @@ export function createOrder(body: CreateOrderRequest) {
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.6 | 2026-11-04 | Thêm contract đích gắn order với account và login-required checkout SF-141; chưa triển khai. |
 | 1.5 | 2026-10-12 | Duy trì contract trong repository; bổ sung CSRF, giới hạn field, orderRef và liên kết QA/payment (SF-125) |
 | 1.4 | 2026-07-26 | Bổ sung `orderRef` vào response; đây là định danh dùng cho đường thanh toán |
 | 1.3 | 2026-07-20 | Chặn numeric coercion, thêm field errors, total boundary và payment handoff |
 | 1.2 | 2026-07-17 | Chuyển currency baseline sang VND và giữ contract CARD-only/COD rejection |
 | 1.1 | 2026-07-17 | Chốt CARD-only/USD và bổ sung rejection contract cho COD |
 | 1.0 | 2026-07-13 | Initial API spec: POST /orders, stock validation/reservation, concurrency expectation, error payloads |
+
+## 10. Delta đích SF-141 — authenticated checkout
+
+- `POST /orders` yêu cầu active authenticated account, mọi role/demo đều được
+  mua; guest trả 401 trước khi lock/reserve. CSRF/Origin không hợp lệ trả 403.
+- Payload và OrderResponse giữ shape ở trên. `customer.email` vẫn optional
+  snapshot, không dùng lookup owner. Unknown owner field như `accountUserId`
+  hoặc `userId` trong body bị từ chối 400; client không được chọn chủ đơn.
+- Server gán cột mới `orders.account_user_id` từ principal.userId trong cùng
+  transaction tạo order/items/reservation. Cột `customer_id` vẫn FK tới
+  `customers`, không dùng làm user ID. Đơn lịch sử giữ owner null, không backfill
+  theo email. Giá, whole-VND, quantity validation, locking và rollback giữ nguyên.
+- GET session bootstrap CSRF trước write đầu; sau login lấy token mới, không
+  chấp nhận UX request đầu phải thất bại để lấy cookie. Login password/Google
+  giữ giỏ và intent checkout nhưng không tự submit order. Timeout POST không
+  retry mù vì server có thể đã commit.
+- Payment handoff vẫn dùng orderRef opaque, nhưng payment phải kiểm account
+  owner tại server; xem [payment delta](api-payment-simulation-spec.md#8-delta-đích-sf-141--payment-ownership).
+- Profile/address book/order history/cancel mới vẫn ngoài scope. Bộ kiểm thử
+  legacy cần thêm principal/CSRF có chủ đích; CI-11–CI-15 trong
+  [contract SF-141](api-customer-identity-spec.md) bao phủ guest denial, forged
+  owner, account switch, concurrency và bảo toàn lịch sử.

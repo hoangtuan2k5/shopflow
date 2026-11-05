@@ -1,12 +1,17 @@
 # ShopFlow Software Requirements Specification
 
-**Phiên bản:** 1.7
+**Phiên bản:** 1.8
 
-**Ngày cập nhật:** 16/10/2026
+**Ngày cập nhật:** 04/11/2026
 
-**Trạng thái:** Baseline yêu cầu MVP
+**Trạng thái:** Baseline MVP + yêu cầu đích SF-140 (chưa triển khai)
 
 **Phạm vi:** Epic [SF-1](https://tuanwork.atlassian.net/browse/SF-1)
+
+> Các phần baseline v0.12.1 và history được giữ để truy vết. Phần mở rộng
+> SF-140 ở cuối tài liệu ghi yêu cầu **đã chốt nhưng chưa triển khai**, thay
+> các giới hạn đăng ký/reset/OAuth và guest checkout cũ khi cutover. Contract
+> kỹ thuật chuẩn là [Customer Identity](api-customer-identity-spec.md).
 
 **Tài liệu liên quan:**
 
@@ -697,6 +702,7 @@ Baseline này không tuyên bố đạt mục tiêu performance production.
 
 | Phiên bản | Ngày       | Thay đổi                                                                                                                 |
 | --------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 1.8 | 04/11/2026 | SF-141: thêm yêu cầu đích email/OTP/Google, authenticated checkout, cart persistence và truy vết SF-140–SF-149; chưa triển khai. |
 | 1.7       | 16/10/2026 | Bổ sung FR-11 và truy vết SF-74/SF-89…SF-92: ảnh sản phẩm trên Cloudflare R2. |
 | 1.6       | 29/07/2026 | Bổ sung FR-09.9 và NFR-12: rate limit đăng nhập theo định danh.                                                        |
 | 1.5       | 26/07/2026 | Bổ sung FR-10 phân quyền theo vai trò, BR-17, BR-18 và AC-28 đến AC-30                                                   |
@@ -721,3 +727,113 @@ and product details remain accessible. Conversation is temporary browser memory.
 | FR-09 retrieval, grounded candidates, public CSRF and quota | SF-76, SF-97, SF-98 | api-product-advisory-chat-spec.md; backend whitelist/fallback/quota coverage |
 | FR-09 VI/EN desktop/mobile chat and product links | SF-99 | browser chat coverage |
 | FR-09 error isolation and evidence limits | SF-100 | qa-product-advisory-chat.md |
+
+## Mở rộng SF-140 — tài khoản khách và authenticated checkout
+
+**Trạng thái:** hành vi sản phẩm đã được chủ repo chốt; API/schema mới là
+contract SF-141 chờ review/triển khai. Không dùng phần này như evidence rằng
+production đã có đăng ký, OTP hoặc Google. Chi tiết tại
+[Customer Identity Contract](api-customer-identity-spec.md) và
+[schema đích](database-schema.md#15-thiết-kế-đích-customer-identity-sf-141).
+
+### Các yêu cầu baseline được thay thế khi cutover
+
+| Requirement cũ | Delta đích SF-140 |
+| --- | --- |
+| FR-09.1, FR-09.3 | Email account local hoặc Google; chỉ local có password hash; mọi account mới chỉ dùng sau proof email, Google-only không có local password |
+| FR-09.8 / ngoài phạm vi đăng ký, quên mật khẩu và OAuth | Được mở rộng bởi FR-12 bên dưới; không mở passwordless OTP/MFA/SSO |
+| FR-10.2 | Guest vẫn xem/thêm giỏ/chat, tạo đơn phải login |
+| FR-10.3 và BR-18 | OrderRef vẫn opaque nhưng phải đúng account owner để payment; không quyền payment theo việc giữ reference đơn thuần |
+| FR-10.5, BR-17 | Giữ quyền vận hành; staff/owner cũng được mua đơn của mình, không bypass ownership payment |
+| NFR-07 | PII còn phục vụ xác thực/recovery và Google linking đúng mục đích; không log body/secret/token |
+| NFR-11 | Session vẫn HttpOnly/Secure; Lax cho callback GET, giữ CSRF/Origin và state/nonce/PKCE, không còn yêu cầu cookie tuyệt đối không đi kèm cross-site navigation |
+| AC-29 | Guest browse/add được; create/pay thiếu session bị401 khi CSRF hợp lệ, không thay DB/reservation |
+
+Không đánh số lại FR-09 authentication hoặc đoạn FR-09 chatbot lịch sử ở trên
+trong task này. Dùng FR-12–FR-14 riêng để các tham chiếu mới không bị nhầm.
+
+### FR-12 — email, xác minh, recovery và Google
+
+- **FR-12.1:** Khách đăng ký bằng email, password, tên hiển thị. Server BẮT
+  BUỘC cố định role CUSTOMER; xác minh email qua OTP trước khi tạo account
+  active/sử dụng. Không thay đổi account hiện có vì registration trùng email.
+- **FR-12.2:** Password mới tối thiểu 8 ký tự, ít nhất một chữ hoa, chữ thường,
+  số và ký tự đặc biệt. Áp dụng signup/reset, không ép password demo cũ đổi;
+  không trim, không cắt thầm quá giới hạn byte của BCrypt.
+- **FR-12.3:** OTP 6 số, dùng một lần, hết hạn sau10 phút, tối đa5 lần sai,
+  gửi lại sau60 giây và giới hạn chống spam. Mã REGISTER và RESET_PASSWORD
+  khác purpose, không hoán đổi; resend không hồi sinh mã cũ hoặc xóa budget sai.
+- **FR-12.4:** Login bằng email/password hoặc username demo, role và session
+  response chung. Không cung cấp đăng nhập bằng OTP độc lập.
+- **FR-12.5:** Quên mật khẩu local dùng email → OTP → password mới; reset
+  thành công vô hiệu mọi session cũ, không auto-login. Unknown/inactive/
+  Google-only không được tạo credential mới qua reset, response không dò user.
+- **FR-12.6:** Google OIDC mới tạo CUSTOMER; returning subject về đúng account.
+  Email trùng local phải proof Google và password tài khoản cũ trước khi link;
+  không tự gộp chỉ theo email. Google-only ban đầu chỉ login Google.
+- **FR-12.7:** Hai domain ShopFlow dùng chung account/đơn, session và giỏ riêng
+  từng origin; không thêm SSO hay đồng bộ giỏ giữa hai root domain.
+- **FR-12.8:** Giữ nguyên username, ID, role và password demo hiện có. Resend
+  gửi từ shopflow@hoangtuan.dev; Google support/contact là
+  hoangchieunguyentuan@gmail.com. Secret không vào Git/frontend/log.
+
+### FR-13 — đặt hàng và quyền sở hữu
+
+- **FR-13.1:** Guest xem sản phẩm, chat và thêm giỏ tự do. Khi đặt hàng BẮT
+  BUỘC có phiên hợp lệ, mọi role/demo được mua; server gán owner từ principal.
+- **FR-13.2:** Chỉ account sở hữu đơn được payment, kể cả caller có role chủ
+  shop/kho. OrderRef hoặc snapshot email không thay thế ownership.
+- **FR-13.3:** Order lịch sử không có owner giữ nguyên dữ liệu/reservation,
+  không tự gán theo email, hủy hoặc release; chặn payment qua storefront.
+- **FR-13.4:** Thay đổi auth KHÔNG thay invariant giá/snapshot/atomic stock,
+  thứ tự khóa hoặc state machine payment/delivery/return; không thêm gateway thật.
+
+### FR-14 — giữ giỏ qua đăng nhập
+
+- **FR-14.1:** Giữ product ID/quantity qua login/password/Google redirect và
+  reload cùng origin; cancel/401/lỗi validation không mất giỏ hoặc tự gửi đơn.
+- **FR-14.2:** Giá/tồn kho đọc lại từ API hiện có và server validation; không
+  tin giá hoặc quantity sai kiểu từ browser storage.
+- **FR-14.3:** Logout/account switch giữ giỏ chưa đặt, nhưng xóa checkout PII,
+  orderRef/payment state và cache account cũ; không lưu OTP/password/token vào
+  storage. Lỗi storage phải có fallback và phản hồi rõ.
+
+### Quy tắc nghiệp vụ và dữ liệu mở rộng
+
+| Mã | Quy tắc đích |
+| --- | --- |
+| BR-19 | Email canonical unique, identity Google unique theo issuer/sub; không tạo duplicate vì race hoặc alias normalization |
+| BR-20 | OTP bound purpose/email/session/generation; verifier bảo vệ bằng secret riêng, hết hạn/dùng rồi không được dùng lại |
+| BR-21 | Password reset và consume OTP/increment credential version là atomic; counter sai phải commit dù trả lỗi |
+| BR-22 | Owner của order từ principal.userId; không tái dùng customer_id trỏ customers hoặc backfill theo snapshot |
+| BR-23 | Đăng nhập hai phương thức về cùng account sau link có proof; không nâng role hoặc gắn password pending vào Google-only |
+| DR-08 | Schema mới additive, giữ V1–V6 và toàn bộ dữ liệu/demo/legacy; auth_version dùng vô hiệu session, không thay session store SF-104 |
+
+### Điều kiện nghiệm thu và truy vết mới
+
+| Mã | Scenario / kết quả mong đợi | Jira / contract test plan |
+| --- | --- | --- |
+| AC-31 | Signup phải OTP trước sử dụng; duplicate/concurrent không chiếm account | SF-144; CI-01/02 |
+| AC-32 | Password composition, 8 ký tự, Unicode/byte boundary, demo cũ | SF-144/SF-145; CI-03 |
+| AC-33 | OTP10 phút, replay/purpose/session/resend/quota/counter và failure | SF-142/SF-143/SF-145; CI-04/05/06 |
+| AC-34 | Reset vô hiệu mọi session cũ; không auto-login/Google-only password | SF-145; CI-07 |
+| AC-35 | OIDC/link có proof; cả hai domain callback/cookie/write/logout đúng | SF-146; CI-08/09/10 |
+| AC-36 | Giữ giỏ và intent, không auto-submit, xóa PII khi switch | SF-147; CI-11 |
+| AC-37 | Guest/other-owner/forged owner/legacy bị chặn, DB/reserve nguyên | SF-148; CI-12/13 |
+| AC-38 | CSRF cookie roundtrip thật và migration/rollback giữ dữ liệu | SF-149; CI-14/15 |
+
+| Jira | Requirement đích | Deliverable |
+| --- | --- | --- |
+| SF-140, SF-141 | FR-12–FR-14, BR-19–BR-23, DR-08, AC-31–AC-38 | Contract này và API/schema liên kết; chưa phải runtime PASS |
+| SF-142 | FR-12.1/3/5/6, FR-13, BR-19–BR-23, DR-08 | Migration identity/OTP/quota/owner |
+| SF-143 | FR-12.3/8, AC-33 | Resend/env wiring và mail tests |
+| SF-144 | FR-12.1/2/4/8, AC-31/32 | Signup/verify/email-password + demo |
+| SF-145 | FR-12.2/3/5, AC-32–AC-34 | OTP reset và session revocation |
+| SF-146 | FR-12.6/7, BR-23, AC-35 | OIDC và link trên hai domain |
+| SF-147 | FR-14, AC-36 | Cart/redirect/storage |
+| SF-148 | FR-13, BR-22, AC-37 | Order/payment server ownership |
+| SF-149 | AC-31–AC-38, DR-08 | Evidence mới, rehearsal và checklist rollout |
+
+Chỉ các hành vi mới trên thay baseline sau triển khai. Các quyền chưa có API,
+session persistence SF-104, refactor/N+1 SF-130/SF-136/SF-139 và backup automation
+không tự trở thành Done. Live key probe không thay kiểm thử Inbox/OIDC đầy đủ.

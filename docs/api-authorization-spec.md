@@ -1,8 +1,13 @@
 # ShopFlow — Authorization API Specification
 
-**Phiên bản:** 1.1
+**Phiên bản:** 1.2 (baseline + contract đích SF-141)
 
-**Ngày cập nhật:** 16/10/2026
+**Ngày cập nhật:** 04/11/2026
+
+> Các mục cũ mô tả quyền đã triển khai ở v0.12.1. Ma trận đích SF-141 ở mục 11
+> dưới đây **thay quyền guest order/payment sau cutover**; chưa được bật bởi
+> thay đổi tài liệu này. Quyền vận hành không đổi. Request/response auth mới
+> nằm trong [Customer Identity Contract](api-customer-identity-spec.md).
 
 **Liên quan:**
 
@@ -205,6 +210,7 @@ không phải chặn cả endpoint. Chưa làm trong SF-73.
 
 | Phiên bản | Ngày | Thay đổi |
 | --- | --- | --- |
+| 1.2 | 04/11/2026 | Thêm ma trận đích authenticated checkout/ownership và auth endpoints SF-141; chưa triển khai. |
 | 1.0 | 26/07/2026 | Ma trận quyền đầu tiên, ranh giới Guest/Customer/Warehouse/Shop Owner (SF-81). |
 
 ## Dashboard (SF-129)
@@ -233,3 +239,42 @@ CSRF remains required, including guests: absent/invalid token returns 403 before
 AI calls. Daily AI-attempt budget and bounded request data protect the public
 endpoint; see [contract](api-product-advisory-chat-spec.md). Catalog index/search
 remain owner-only. SF-101 already fixed SPA CSRF; chat does not reopen that bug.
+
+## 11. Ma trận đích SF-141 — chưa triển khai
+
+Tất cả ba role, gồm tài khoản demo, được mua hàng của chính mình. Quyền owner
+bao trùm kho trong nghiệp vụ vận hành **không** bypass ownership payment.
+
+| Endpoint backend | Guest | CUSTOMER | WAREHOUSE | SHOP_OWNER |
+| --- | :---: | :---: | :---: | :---: |
+| Catalog/detail và chat (quota/CSRF cũ) | ✓ | ✓ | ✓ | ✓ |
+| `POST /orders` | 401 | ✓ | ✓ | ✓ |
+| `POST /orders/{orderRef}/payments` | 401 | own | own | own |
+| `GET /auth/session`, `POST /auth/login`, `POST /auth/logout` | ✓ | ✓ | ✓ | ✓ |
+| `POST /auth/registrations`, `/auth/registrations/verify` | ✓ | ✓ | ✓ | ✓ |
+| `POST /auth/otp/resend`, `/auth/password/forgot`, `/auth/password/reset` | ✓ | ✓ | ✓ | ✓ |
+| `GET /oauth2/authorization/google`, `GET /login/oauth2/code/google` | protocol | protocol | protocol | protocol |
+| `POST /auth/google/link` | proof | proof | proof | proof |
+| Các endpoint vận hành | Giữ 401 | Giữ quyền cũ | Giữ quyền cũ | Giữ quyền cũ |
+
+`own`: order có account_user_id đúng principal.userId; wrong-owner, legacy
+owner null hoặc orderRef không tồn tại đều 404, kiểm trước status/conflict và
+trước write. Không có API claim legacy theo email. `proof`: pending Google
+proof trong đúng session + password đúng của target account + version còn
+hiệu lực; không phải chỉ cần có một session bất kỳ. `protocol`: state/nonce/
+PKCE/OIDC validation theo [contract](api-customer-identity-spec.md).
+
+“Public” chỉ miễn login, không miễn validation/quota/CSRF. Tất cả write mới và
+logout/order/payment phải có CSRF; duy nhất login giữ exemption hiện tại.
+GET session bootstrap XSRF; cookie Lax/Secure/HttpOnly cho Google GET callback.
+Ở contract đích, thiếu/sai CSRF hoặc Origin không hợp lệ trả 403 trước side
+effect; 401 là không có phiên cho endpoint protected (khi CSRF hợp lệ).
+Không nới ops role, không tự thêm quyền return/history/profile cho CUSTOMER.
+
+“Không thay đổi dữ liệu khi bị chặn” nghĩa là không đổi user credential, đơn,
+payment, reservation hoặc kho. Auth rate counter/failed_attempts vẫn phải tăng
+và commit khi mã/password sai theo contract; không rollback counter vì API lỗi.
+
+Kiểm thử đích phải có guest/other-user/own-user theo cả ba role, legacy order,
+counter và DB không đổi khi bị từ chối; cookie roundtrip thật, không chỉ mock
+`.with(csrf())`. Xem CI-08–CI-15 trong contract SF-141.

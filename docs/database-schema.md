@@ -1,11 +1,16 @@
 # ShopFlow — Database Schema Documentation
 
-**Phiên bản:** 1.1
-**Ngày cập nhật:** 16/10/2026
+**Phiên bản:** 1.2 (baseline + thiết kế SF-141)
+**Ngày cập nhật:** 04/11/2026
 **Ngày lập:** 26/05/2026
 **Liên quan:**
 - [`database-schema.sql`](./database-schema.sql) — DDL PostgreSQL
 - [`SRS.md`](./SRS.md) — Software Requirements Specification
+
+> Mục 1–14 và DDL tham chiếu cũ là baseline nghiệp vụ; bảng `users` hiện có
+> thực tế ở migration V3. Mục 15 dưới đây bổ sung **thiết kế đích, chưa migrate**
+> của [SF-141](api-customer-identity-spec.md). Không dùng tài liệu này thay cho
+> Flyway migrations đã triển khai hoặc hiểu schema mới là đã có trong production.
 
 ---
 
@@ -25,6 +30,7 @@
 12. [Bảng `delivery_status_history`](#12-bảng-delivery_status_history)
 13. [Enum values tổng hợp](#13-enum-values-tổng-hợp)
 14. [Sequence diagrams — Luồng nghiệp vụ chính](#14-sequence-diagrams--luồng-nghiệp-vụ-chính)
+15. [Thiết kế đích Customer Identity SF-141](#15-thiết-kế-đích-customer-identity-sf-141)
 
 ---
 
@@ -1077,6 +1083,121 @@ end
 ```
 
 ---
+
+## 15. Thiết kế đích Customer Identity SF-141
+
+Nguồn hành vi: [Customer Identity Contract](api-customer-identity-spec.md),
+triển khai schema ở SF-142. Chỉ thêm migration **sau V6** theo HEAD lúc làm;
+không sửa V1–V6, không sửa DDL baseline để chạy thay migration, không Flyway
+repair để bỏ checksum. Các timestamp mới là UTC `TIMESTAMPTZ`.
+
+### 15.1 `users`: giữ legacy, thêm email và Google
+
+V3 hiện có id/username/password_hash/display_name/role/active/created_at/updated_at.
+Không thay IDs, username, hash hoặc role của demo. Target chỉ thay nullability
+của hash và thêm các cột dưới đây; chưa xóa username hoặc bảng customers.
+
+| Cột | Kiểu / constraint đích | Quy tắc |
+| --- | --- | --- |
+| `email` | `VARCHAR(254)` nullable, UNIQUE | Giá trị chuẩn hóa trim/lowercase, chỉ ASCII; null cho legacy, không backfill từ order snapshot |
+| `email_verified_at` | `TIMESTAMPTZ` nullable | Non-null cho mọi account mới có email; user chỉ tạo sau OTP REGISTER hoặc Google verified claim |
+| `password_hash` | Giữ `VARCHAR(255)`, chuyển nullable | Null chỉ cho Google-only; không tạo default password |
+| `google_issuer` | `VARCHAR(255)` nullable | Sau OIDC validation canonicalize issuer Google hợp lệ về `https://accounts.google.com` |
+| `google_sub` | `VARCHAR(255)` nullable | Stable subject, UNIQUE cùng issuer, không nhận từ body client |
+| `auth_version` | `BIGINT NOT NULL DEFAULT 0`, CHECK >= 0 | Tăng khi reset; principal lưu version, mọi authenticated request recheck DB |
+
+Giữ unique username cũ. Username mới `u_` + UUID dài38, không phải login alias;
+lookup login email chứa `@`, còn lại chỉ lookup legacy có email null. CHECK:
+email null hoặc đã lowercase/trim và email_verified_at non-null; issuer/sub cùng
+null hoặc cùng non-null; có local hash **hoặc** Google identity. Role vẫn chỉ
+CUSTOMER/WAREHOUSE/SHOP_OWNER. Google issuer/sub unique khi khác null bảo đảm
+một identity không vào hai user; mỗi user tối đa một Google identity vì đặt
+ngay trong row, không thêm bảng provider tổng quát.
+
+Không đổi email/role vì callback returning sub có claim mới. Linking local
+account chỉ cập nhật issuer/sub sau password proof đúng; giữ local hash. Tạo
+Google user nếu email có pending REGISTER phải consume/clear pending hash
+atomically, không thừa kế credential do người khác đã nhập trước đó.
+
+### 15.2 `auth_email_challenges`: một slot cho mỗi email/purpose
+
+| Cột | Kiểu / constraint đích | Quy tắc |
+| --- | --- | --- |
+| `email` | `VARCHAR(254) NOT NULL` | Canonical email; cùng normalization của users |
+| `purpose` | `VARCHAR(20) NOT NULL` | CHECK REGISTER hoặc RESET_PASSWORD; PK `(email, purpose)` |
+| `challenge_id` | `UUID NOT NULL UNIQUE` | Generation mới khi initial/resend, có thể synthetic |
+| `user_id` | `BIGINT` nullable FK users, ON DELETE RESTRICT | Target account cho RESET_PASSWORD; REGISTER/synthetic không trỏ user chưa tồn tại |
+| `session_binding` | `BYTEA NOT NULL`, length32 | HMAC của pre-auth session ID, không lưu plaintext session ID |
+| `otp_verifier` | `BYTEA` nullable, length32 nếu có | HMAC(email,purpose,generation,OTP); null cho synthetic hoặc đã consume/failed |
+| `synthetic` | `BOOLEAN NOT NULL` | Unknown/ineligible nhận cùng response; mã không bao giờ được verify thành công |
+| `status` | `VARCHAR(20) NOT NULL` | CHECK PENDING_SEND / ISSUED / FAILED / CONSUMED / EXPIRED |
+| `issued_at`, `expires_at`, `resend_at` | `TIMESTAMPTZ NOT NULL` | expires=issued+10 phút, resend=issued+60 giây; không tăng expiry khi nhập sai |
+| `failed_attempts` | `INT NOT NULL DEFAULT 0`, CHECK 0..5 | Tăng nguyên tử và commit cả khi API trả lỗi |
+| `pending_password_hash` | `VARCHAR(255)` nullable | REGISTER thật đang chờ, gồm FAILED còn hạn để resend; BCrypt; clear khi consumed hoặc expired được truy cập/cleanup; replacement không giữ credential generation cũ |
+| `pending_display_name` | `VARCHAR(255)` nullable | Chỉ REGISTER thật; không lấy lại từ verify body |
+| `consumed_at` | `TIMESTAMPTZ` nullable | Có với CONSUMED; không tiếp tục verify |
+
+Constraint trạng thái phải cho phép xóa verifier/pending payload sau dùng;
+ISSUED thật cần verifier; REGISTER thật ở PENDING_SEND/ISSUED/FAILED cần pending
+hash/name; RESET_PASSWORD thật cần user_id. CONSUMED/EXPIRED cho phép clear
+payload; expiry xử lý bằng transition EXPIRED, không CHECK dựa clock hiện tại.
+Replacement chỉ ghi generation mới nhất, không
+giữ OTP/history plaintext. API verify/resend tìm theo challenge_id rồi check
+session/purpose dưới lock; UUID cũ bị replace không được dùng lại. Resend không
+được đặt lại failure budget cấp email ở bảng kế tiếp.
+
+Index unique challenge_id phục vụ API lookup. Index expires_at để xóa slot
+hết hạn quá24 giờ theo cleanup best-effort khi phát hành mã; không cần cron,
+queue hoặc giữ lịch sử OTP lâu dài. Clear payload nhạy cảm ngay trong
+transaction khi consume; khi FAILED chỉ clear verifier, giữ pending
+hash/name để resend còn hạn. Expired được clear khi truy cập; sau24 giờ đủ điều
+kiện cleanup opportunistic, không cam kết thời hạn xóa khi không có traffic.
+Xóa challenge không xóa user/order.
+
+### 15.3 `auth_rate_buckets`: quota bền vững cho OTP
+
+| Cột | Kiểu / constraint đích | Quy tắc |
+| --- | --- | --- |
+| `scope` | `VARCHAR(32) NOT NULL` | EMAIL_SEND, EMAIL_VERIFY_FAILURE, IP_SEND, IP_VERIFY, MAIL_DAILY |
+| `key_digest` | `BYTEA NOT NULL`, length32 | SHA-256 canonical scope key; PK `(scope, key_digest)`; hashing không được quảng cáo là ẩn danh hóa email |
+| `window_started_at`, `expires_at` | `TIMESTAMPTZ NOT NULL` | Các bucket15 phút bắt đầu từ request đầu sau expiry; MAIL_DAILY hết hạn lúc0h UTC |
+| `used_count` | `INT NOT NULL`, CHECK >= 0 | Lock/UPSERT và reserve quota trước side effect; không reset vì resend/login |
+
+Keys: EMAIL_* = email + purpose; IP_* = trusted canonical IP; MAIL_DAILY = UTC
+date toàn app. Email send3/15 phút, email verify-failure5/15 phút, IP send10/15
+phút, IP verify30/15 phút và OTP mail90/ngày. Các cửa sổ15 phút là fixed window,
+không hứa rolling window. Count cả failed/synthetic issue. Mọi issue/resend
+đều kiểm global budget và reserve slot, kể cả synthetic, nên MAIL_DAILY là
+budget request phát mã và là upper bound số provider attempt. Không hoàn quota
+khi lỗi gửi. Xóa bucket hết hạn quá24 giờ qua cleanup opportunistic có giới hạn;
+không tạo key mới cho OTP verify UUID rác (chỉ IP bucket, không DB row/challenge).
+
+Login limiter SF-105 hiện có chưa chuyển DB; đây là bảng quota **OTP**, không
+task session JDBC. Nội dung hoặc giá trị key không được ghi application log.
+
+### 15.4 `orders.account_user_id`
+
+Thêm `BIGINT NULL REFERENCES users(id) ON DELETE RESTRICT` và index theo cột
+này. Order lịch sử null, không backfill. Order mới phải có owner từ principal
+do service bảo đảm; nullable ở DB chỉ để giữ legacy. `customer_id` vẫn FK
+customers và không liên quan auth; mọi customer/shipping/product/price snapshot
+giữ nguyên. Không hard-delete user đã được đơn tham chiếu; vô hiệu qua active.
+
+### 15.5 Thứ tự triển khai và nghiệm thu migration
+
+1. Migration additive cột users, constraints/indexes, challenge/rate tables và
+   owner column. Chạy trên DB baseline có cả demo và legacy order; không tạo
+   email giả cho demo để thỏa constraint. Không đưa NOT NULL lên owner lịch sử.
+2. Mọi flow theo lock order trong contract: sorted rate buckets → transaction
+   advisory lock email → user → challenge. DB unique là lớp cuối; PostgreSQL
+   concurrency tests thật, không dùng H2 để kết luận advisory lock đã đúng.
+3. Rehearse Flyway validate trên fresh DB và DB V1–V6 có dữ liệu. Assert hash/
+   ID/role demo, FK, counts, snapshots, payment/reservation không đổi; test
+   unique email/subject và concurrent signup/reset/Google/replay.
+4. Backup/restore và rollback code tương thích owner policy trước rollout.
+   Không quay về code permitAll để “rollback”; không drop bảng/volume hoặc
+   gán owner null thành demo. `database-schema.sql` giữ baseline trong SF-141;
+   SF-142 đồng bộ DDL tham chiếu khi migration được implement/review.
 
 ## Phụ lục: Quy ước đặt tên
 
