@@ -1,8 +1,13 @@
 # ShopFlow — Payment Simulation API Specification
 
-**Phiên bản:** 1.1
+**Phiên bản:** 1.2 (baseline + contract đích SF-141)
 
-**Ngày cập nhật:** 26/07/2026
+**Ngày cập nhật:** 04/11/2026
+
+> Mục 1–6 là baseline guest payment đã triển khai. Mục 8 là contract đích
+> SF-141, thay capability-only payment bằng login + ownership sau cutover;
+> task tài liệu chưa thay API thực tế. Xem
+> [Customer Identity Contract](api-customer-identity-spec.md).
 
 **Liên quan:**
 
@@ -167,5 +172,26 @@ thành công và tối đa một payment row được tạo.
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 1.2 | 2026-11-04 | Thêm delta đích login/ownership và legacy guest policy SF-141; chưa triển khai. |
 | 1.1 | 2026-07-26 | Đổi định danh đường thanh toán từ `orderId` sang `orderRef` để chặn dò id |
 | 1.0 | 2026-07-21 | Chốt payment states, endpoint, payload, side effects và error semantics |
+
+## 8. Delta đích SF-141 — payment ownership
+
+- Giữ URL `POST /orders/{orderRef}/payments`, payload, response, payment mô
+  phỏng CARD và transaction reserve/release. OrderRef vẫn khó đoán nhưng
+  **không còn đủ quyền thanh toán** nếu thiếu đúng account.
+- Cookie/CSRF/Origin hợp lệ là prerequisite. Thiếu session trả 401; thiếu/sai
+  CSRF hoặc Origin sai trả 403, đều trước side effect.
+- Sau structural validation, lấy owner cùng SELECT FOR UPDATE của order.
+  Kiểm `account_user_id = principal.userId` trước status/duplicate attempt và
+  mọi write. Áp dụng cả CUSTOMER/WAREHOUSE/SHOP_OWNER/demo, không bypass theo role.
+- Wrong-owner, legacy owner null, reference sai/không tồn tại đều 404 với
+  body `{"message":"Order not found","status":404}`. Đúng owner nhưng order
+  không eligible hoặc duplicate payment giữ 409; body malformed giữ 400.
+- Legacy guest PENDING_PAYMENT giữ nguyên dữ liệu/reservation, chặn storefront
+  payment; thống kê trước rollout, không tự gán owner theo email, hủy, expire
+  hoặc release. Không tạo API claim đơn cũ hay staff payment bypass.
+- Test rejection phải assert payment/order/stock/movement không đổi, gồm
+  account A/B với role khác nhau; correct-owner concurrent payment vẫn chỉ
+  có một attempt. Xem CI-12/13/15 trong contract SF-141.

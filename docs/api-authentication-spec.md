@@ -1,8 +1,14 @@
 # ShopFlow — Authentication API Specification
 
-**Phiên bản:** 1.3
+**Phiên bản:** 1.4 (baseline 1.3 + contract đích SF-141)
 
-**Ngày cập nhật:** 29/07/2026
+**Ngày cập nhật:** 04/11/2026
+
+> **Phân biệt hiện tại và đích:** mục 1–10 dưới đây ghi lại baseline username
+> đã triển khai đến v0.12.1. [Customer Identity Contract](api-customer-identity-spec.md)
+> là contract đích SF-141 cho email, OTP xác minh/reset, Google, cookie Lax và
+> session revocation. Chỉ có hiệu lực sau triển khai SF-142–SF-149; task tài liệu
+> này không bật các API mới. Các giới hạn “ngoài MVP” cũ không cấm scope mới đó.
 
 **Liên quan:**
 
@@ -270,7 +276,31 @@ Những phần sau KHÔNG thuộc MVP và không được ngầm hiểu là đã
 
 | Phiên bản | Ngày | Thay đổi |
 | --- | --- | --- |
+| 1.4 | 04/11/2026 | Liên kết contract đích SF-141; giữ baseline và history, không tuyên bố đã có API mới. |
 | 1.3 | 29/07/2026 | Giữ chỗ nguyên tử trước xác thực để chặn burst đồng thời vượt ngưỡng. |
 | 1.2 | 29/07/2026 | Bổ sung kiểm thử hết hạn, xoá bộ đếm và chống dò tài khoản của rate limit. |
 | 1.1 | 29/07/2026 | Thêm rate limit theo định danh cho đăng nhập (5 lần sai / 15 phút). |
 | 1.0 | 26/07/2026 | Contract đầu tiên cho xác thực (SF-77). |
+
+## 12. Contract đích SF-141
+
+Nguồn chuẩn cho request/response, error, rate limit và Google flow mới là
+[api-customer-identity-spec.md](api-customer-identity-spec.md). Các thay đổi có
+chủ đích so với baseline:
+
+- Giữ `POST /auth/login` với field `username`, tăng giới hạn input lên 254 để
+  nhận email; username demo và bốn field AuthenticatedUser không đổi.
+- Thêm `/auth/registrations`, `/auth/registrations/verify`, `/auth/otp/resend`,
+  `/auth/password/forgot`, `/auth/password/reset`, `/auth/google/link` và hai
+  OAuth2 GET mappings. Signup chỉ tạo user sau verify OTP; Google-only không
+  tự có password local. API login bằng OTP không thuộc scope.
+- Password mới tối thiểu 8 ký tự, đủ chữ hoa/thường/số/ký tự đặc biệt, tối đa
+  72 byte UTF-8. OTP 6 số, hạn 10 phút, 5 lần sai, resend sau 60 giây; có budget
+  chống spam tách khỏi rate limit login cũ.
+- Cookie session đổi Strict → Lax cho Google callback; giữ Secure/HttpOnly,
+  CSRF SPA và 8 giờ idle timeout. GET session phải bootstrap token ngay; các
+  auth write mới không được blanket-exempt CSRF.
+- Principal chung theo userId/auth_version cho cả password và Google; reset
+  vô hiệu tất cả phiên cũ. Session vẫn mất khi restart, SF-104 là task riêng.
+- Bộ kiểm thử CI-01–CI-15 trong contract là kế hoạch nghiệm thu tương lai,
+  không thay bằng chứng PASS của login legacy hoặc thử credential sơ bộ.
