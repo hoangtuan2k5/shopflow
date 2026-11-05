@@ -68,7 +68,7 @@ class AuthControllerTests {
             .andReturn();
 
     assertThat(result.getResponse().getContentAsString())
-        .doesNotContain("password", "passwordHash", "$2a$");
+        .doesNotContain("password", "passwordHash", "$2a$", "authVersion", "auth_version");
     assertThat(result.getRequest().getSession(false)).isNotNull();
   }
 
@@ -244,6 +244,76 @@ class AuthControllerTests {
           .perform(login(account[0], account[1]))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.role").value(account[2]));
+    }
+  }
+
+  @Test
+  void rejectsGoogleOnlyAccountOnLegacyPasswordLogin() throws Exception {
+    jdbcTemplate.update(
+        """
+        INSERT INTO shopflow.users (username, email, email_verified_at, google_issuer,
+          google_sub, display_name, role)
+        VALUES ('test-google', 'google@example.com', CURRENT_TIMESTAMP,
+          'https://accounts.google.com', 'test-sub', 'Google user', 'CUSTOMER')
+        """);
+    mockMvc.perform(login("test-google", "AnyPassword1!")).andExpect(status().isUnauthorized());
+    mockMvc.perform(login("test-google", "")).andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void invalidatesAllSessionsAfterAuthVersionChanges() throws Exception {
+    insertAccount("test-reset", "Str0ng@Pass", "Customer", "CUSTOMER", true);
+    MockHttpSession first =
+        (MockHttpSession)
+            mockMvc
+                .perform(login("test-reset", "Str0ng@Pass"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getRequest()
+                .getSession(false);
+    MockHttpSession second =
+        (MockHttpSession)
+            mockMvc
+                .perform(login("test-reset", "Str0ng@Pass"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getRequest()
+                .getSession(false);
+    jdbcTemplate.update(
+        "UPDATE shopflow.users SET auth_version = auth_version + 1 WHERE username = 'test-reset'");
+    mockMvc
+        .perform(get("/auth/session").session(first))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.authenticated").value(false));
+    mockMvc.perform(get("/inventory").session(second)).andExpect(status().isUnauthorized());
+    assertThat(first.isInvalid()).isTrue();
+    assertThat(second.isInvalid()).isTrue();
+    mockMvc.perform(login("test-reset", "Str0ng@Pass")).andExpect(status().isOk());
+  }
+
+  @Test
+  void invalidatesSessionWhenAccountIsDeactivatedOrDeleted() throws Exception {
+    for (boolean delete : new boolean[] {false, true}) {
+      String username = "test-disabled-" + delete;
+      insertAccount(username, "Str0ng@Pass", "Customer", "CUSTOMER", true);
+      MockHttpSession session =
+          (MockHttpSession)
+              mockMvc
+                  .perform(login(username, "Str0ng@Pass"))
+                  .andExpect(status().isOk())
+                  .andReturn()
+                  .getRequest()
+                  .getSession(false);
+      jdbcTemplate.update(
+          delete
+              ? "DELETE FROM shopflow.users WHERE username = ?"
+              : "UPDATE shopflow.users SET active = FALSE WHERE username = ?",
+          username);
+      mockMvc
+          .perform(get("/auth/session").session(session))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.authenticated").value(false));
+      assertThat(session.isInvalid()).isTrue();
     }
   }
 

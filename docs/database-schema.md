@@ -1084,7 +1084,14 @@ end
 
 ---
 
-## 15. Thiết kế đích Customer Identity SF-141
+## 15. Customer Identity SF-141 / schema SF-142
+
+Schema này được hiện thực bằng `V7__customer_identity_and_recovery.sql` ở SF-142.
+Migration chỉ cung cấp cấu trúc và constraints; phát hành/verify OTP, reset,
+Google callback và owner policy vẫn thuộc các task tiếp theo. Session principal
+lưu `auth_version`; filter kiểm tra user còn tồn tại, active và cùng version
+trước khi cho request tiếp tục. Tăng version sẽ vô hiệu mọi phiên cũ ở request
+kế tiếp; không hủy request đã được cấp quyền trước transaction reset commit.
 
 Nguồn hành vi: [Customer Identity Contract](api-customer-identity-spec.md),
 triển khai schema ở SF-142. Chỉ thêm migration **sau V6** theo HEAD lúc làm;
