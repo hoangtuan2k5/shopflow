@@ -9,6 +9,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useSessionStore } from '@/stores/session'
+import { authRedirect } from '@/router/authRedirect'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -48,7 +49,7 @@ async function submit() {
   submitting.value = true
   try {
     await session.signIn({ username: username.value, password: password.value })
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : null
+    const redirect = authRedirect(route.query.redirect, session.roleKey)
     await router.replace(redirect ?? session.homePath)
   } catch (error) {
     // Backend cố tình không nói sai ở đâu, nên giao diện cũng chỉ hiển thị một thông báo chung.
@@ -90,7 +91,7 @@ async function submit() {
               id="login-username"
               v-model="username"
               autocomplete="username"
-              maxlength="100"
+              maxlength="254"
               :aria-invalid="Boolean(formErrors.username)"
               aria-describedby="login-username-error"
             />
@@ -137,6 +138,17 @@ async function submit() {
             {{ submitting ? t('auth.submitting') : t('auth.submit') }}
           </Button>
         </form>
+        <p class="mt-5 text-center text-sm">
+          <RouterLink
+            :to="{
+              name: 'register',
+              query: { redirect: authRedirect(route.query.redirect, 'customer') ?? undefined },
+            }"
+            class="font-medium text-primary underline underline-offset-4"
+          >
+            {{ t('registration.create') }}
+          </RouterLink>
+        </p>
       </section>
 
       <p class="mt-4 text-center text-xs text-muted-foreground">{{ t('auth.guestHint') }}</p>

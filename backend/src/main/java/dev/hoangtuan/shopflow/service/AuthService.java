@@ -4,11 +4,14 @@ import dev.hoangtuan.shopflow.dto.access.AuthenticatedUser;
 import dev.hoangtuan.shopflow.dto.access.LoginRequest;
 import dev.hoangtuan.shopflow.dto.access.SessionResponse;
 import dev.hoangtuan.shopflow.security.AccountPrincipal;
+import dev.hoangtuan.shopflow.security.CustomerCredentials;
 import dev.hoangtuan.shopflow.security.LoginRateLimiter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import java.nio.charset.StandardCharsets;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -49,10 +52,13 @@ public class AuthService {
   public AuthenticatedUser login(
       LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
     loginRateLimiter.acquire(request.username());
+    if (request.password().getBytes(StandardCharsets.UTF_8).length > 72) {
+      throw new BadCredentialsException("Invalid username or password");
+    }
     Authentication authentication =
         authenticationManager.authenticate(
             UsernamePasswordAuthenticationToken.unauthenticated(
-                request.username(), request.password()));
+                CustomerCredentials.identifier(request.username()), request.password()));
     loginRateLimiter.clear(request.username());
 
     // Đổi session id sau khi xác thực để chặn session fixation.

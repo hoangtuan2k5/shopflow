@@ -4,7 +4,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 
@@ -54,7 +53,7 @@ public class LoginRateLimiter {
   }
 
   private static String key(String username) {
-    return username.toLowerCase(Locale.ROOT);
+    return CustomerCredentials.identifier(username);
   }
 
   private record FailureWindow(int failures, Instant expiresAt) {}

@@ -8,10 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Customer registration**: add email/password signup with session-bound verification codes, persistent OTP quotas, Resend delivery state and bilingual registration screens; create CUSTOMER accounts only after proof (SF-144).
 - **Transactional email foundation**: add a bounded Resend client, bilingual verification/recovery messages and password-change notices; wire sender/key into the production backend without requiring them for catalog or demo login (SF-143).
 - **Customer identity foundation**: add verified email/Google identity constraints, OTP challenge and quota tables, and nullable order account ownership while preserving legacy data and demo accounts (SF-142).
 
 ### Changed
+- **Login**: accept verified customer email alongside legacy demo usernames, preserve session rotation, normalize attempt limits and validate internal return paths (SF-144).
 - **Session validation**: recheck account activity and credential version on authenticated requests so a later password reset can invalidate existing sessions (SF-142).
 
 ## [0.12.1] - 2026-10-19

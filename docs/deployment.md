@@ -265,7 +265,7 @@ MAIL_FROM='ShopFlow <shopflow@hoangtuan.dev>'
 
 Keep `/opt/shopflow/.env` and local workspace `.env` separate, mode600, outside
 Git. Never overwrite existing DB/R2/Qdrant credentials. The root `.env.example`
-is a mail-only example, not a replacement for a complete deployment file.
+is a customer-auth example, not a replacement for a complete deployment file.
 Compose now explicitly forwards both variables to the backend; editing the env
 file alone does not change a running container. Container recreation occurs
 only in the approved deployment workflow. Never paste unredacted Compose
@@ -302,3 +302,46 @@ performed by this implementation task. CI uses only a loopback fake HTTP server
 and empty mail credentials in the test profile.
 
 API reference: [Resend send email](https://resend.com/docs/api-reference/emails/send-email).
+
+## Customer registration (SF-144)
+
+Add `OTP_HMAC_SECRET` to each environment's existing private env. It must decode
+from Base64 to at least32 random bytes, be independent of Resend/Google keys,
+and remain outside Git and the database. Generate a different secret per dev
+and production environment, for example locally with:
+
+```bash
+python3 -c 'import base64,secrets; print(base64.b64encode(secrets.token_bytes(32)).decode())'
+```
+
+Store the output privately; never paste it into chat/Jira/logs. Preserve all
+existing env settings. Compose explicitly forwards this variable to the backend;
+only an approved deployment recreates the container. A missing, invalid Base64
+or short key disables OTP operations with503 without preventing application
+startup or demo password login. Rotation invalidates pending challenges only;
+keep the same production key across all backend instances serving both domains.
+
+Apply V7 after SF-142 review/merge, then configure Resend after SF-143 and run
+SF-144 together. The worktree currently contains uncommitted copies of these
+prerequisites for validation; it is not an independent rollout over old schema.
+Do not expose the temporary test mail server or its code-reading endpoint.
+
+New guest writes require CSRF. Bootstrap using GET `/auth/session`; send cookie
+`XSRF-TOKEN` in `X-XSRF-TOKEN`, retain the pre-auth session across issue/verify,
+and refresh CSRF after login/logout. Allowed Origin values are the two public
+HTTPS domains in staging and explicit local Vite origins for dev. No arbitrary
+credentialed CORS is enabled. IP quota currently uses the servlet peer address,
+ignoring raw X-Forwarded-For. Behind Caddy this may share a quota across clients
+until a trusted proxy chain is pinned; do not enable unrestricted forwarded
+header trust to bypass this limit.
+
+Registration reserves persistent quota before the provider call, commits a
+pending challenge, sends outside the transaction, then activates only the same
+generation. Synthetic and recipient-specific delivery failures retain the
+same202 body and four-second minimum response floor. Pending signup does not
+create a user. Verified signup creates CUSTOMER only, clears sensitive payload
+and does not log in automatically. Legacy demo login and sessions are retained.
+
+Password reset, Google login, guest checkout enforcement/cart preservation and
+real-provider acceptance remain separate tasks. Do not claim those are enabled
+by deploying this registration change.

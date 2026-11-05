@@ -40,6 +40,9 @@ springdoc:
     tags-sorter: alpha
 
 shopflow:
+  auth:
+    otp-hmac-secret: ${OTP_HMAC_SECRET:}
+    allowed-origins: http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173
   mail:
     base-url: https://api.resend.com
     api-key: ${RESEND_API_KEY:}
