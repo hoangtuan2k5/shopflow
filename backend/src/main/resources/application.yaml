@@ -40,6 +40,10 @@ springdoc:
     tags-sorter: alpha
 
 shopflow:
+  mail:
+    base-url: https://api.resend.com
+    api-key: ${RESEND_API_KEY:}
+    from: ${MAIL_FROM:}
   r2:
     endpoint: ${R2_ENDPOINT:http://localhost:9}
     access-key-id: ${R2_ACCESS_KEY_ID:}

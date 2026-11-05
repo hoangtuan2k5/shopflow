@@ -15,3 +15,8 @@ spring:
     enabled: true
     schemas: shopflow
     default-schema: shopflow
+
+shopflow:
+  mail:
+    api-key: ""
+    from: ""

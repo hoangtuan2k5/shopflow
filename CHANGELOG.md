@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Transactional email foundation**: add a bounded Resend client, bilingual verification/recovery messages and password-change notices; wire sender/key into the production backend without requiring them for catalog or demo login (SF-143).
 - **Customer identity foundation**: add verified email/Google identity constraints, OTP challenge and quota tables, and nullable order account ownership while preserving legacy data and demo accounts (SF-142).
 
 ### Changed

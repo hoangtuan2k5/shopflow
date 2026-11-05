@@ -253,3 +253,52 @@ external test is available only against a disposable loopback backend:
 -Dtest=ChatExternalTests -Dgroups=external -DexcludedGroups=none test`.
 It records exploratory model responses and verifies returned cards against
 catalog API data; it does not certify language or compatibility accuracy.
+
+## Transactional email (SF-143)
+
+Add only these settings to each environment's existing private `.env`:
+
+```dotenv
+RESEND_API_KEY=replace-with-a-resend-sending-key
+MAIL_FROM='ShopFlow <shopflow@hoangtuan.dev>'
+```
+
+Keep `/opt/shopflow/.env` and local workspace `.env` separate, mode600, outside
+Git. Never overwrite existing DB/R2/Qdrant credentials. The root `.env.example`
+is a mail-only example, not a replacement for a complete deployment file.
+Compose now explicitly forwards both variables to the backend; editing the env
+file alone does not change a running container. Container recreation occurs
+only in the approved deployment workflow. Never paste unredacted Compose
+configuration, environment output or provider responses into logs/Jira.
+
+The client uses POST `https://api.resend.com/emails`, text and HTML, with the
+challenge UUID as `Idempotency-Key`. Password-change notices use a separate
+`password-changed/<challenge UUID>` key. There are no automatic retries; an
+ambiguous timeout is a failed send for the auth caller. Missing key/sender
+throws a sanitized `EmailUnavailableException` only when mail is required;
+application startup, catalog and legacy demo login continue to work. The client
+returns the accepted provider ID, which does **not** prove delivery to Inbox.
+
+Registration/reset services must reserve quota and commit PENDING_SEND before
+calling this client outside DB transactions/locks, then update only the matching
+generation. They must return the contract's uniform202 on recipient-specific
+provider failures and must never mark a failed generation ISSUED. These services
+and their four-second response floor are subsequent tasks, not part of SF-143.
+
+Before enabling real mail, check in the Resend dashboard:
+
+1. `hoangtuan.dev` is verified and the sending key is scoped to the intended domain.
+2. Publish the exact Resend DKIM/SPF records in Cloudflare DNS and verify them;
+   preserve other mail providers' records and avoid multiple SPF records at the
+   same DNS name. Check DMARC policy/alignment and the configured sender.
+3. Cloudflare R2 is object storage; it does not configure outgoing email. Email
+   Routing is optional inbound forwarding and does not provide this sender API.
+4. Obtain owner approval for the exact test recipient before a real send. Record
+   UTC send time, redacted recipient, provider message ID/status and observed
+   Inbox/Spam result separately. Never record the OTP, key or full message body.
+
+No DNS changes, real mail, container recreation or production env edits are
+performed by this implementation task. CI uses only a loopback fake HTTP server
+and empty mail credentials in the test profile.
+
+API reference: [Resend send email](https://resend.com/docs/api-reference/emails/send-email).
