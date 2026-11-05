@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Customer identity foundation**: add verified email/Google identity constraints, OTP challenge and quota tables, and nullable order account ownership while preserving legacy data and demo accounts (SF-142).
+
+### Changed
+- **Session validation**: recheck account activity and credential version on authenticated requests so a later password reset can invalidate existing sessions (SF-142).
+
 ## [0.12.1] - 2026-10-19
 
 ### Changed

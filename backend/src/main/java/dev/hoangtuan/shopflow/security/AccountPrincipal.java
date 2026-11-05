@@ -22,14 +22,29 @@ public final class AccountPrincipal implements UserDetails {
   private final String passwordHash;
   private final String displayName;
   private final Role role;
+  private final long authVersion;
 
   public AccountPrincipal(
-      long userId, String username, String passwordHash, String displayName, Role role) {
+      long userId,
+      String username,
+      String passwordHash,
+      String displayName,
+      Role role,
+      long authVersion) {
     this.userId = userId;
     this.username = username;
     this.passwordHash = passwordHash;
     this.displayName = displayName;
     this.role = role;
+    this.authVersion = authVersion;
+  }
+
+  public long getUserId() {
+    return userId;
+  }
+
+  public long getAuthVersion() {
+    return authVersion;
   }
 
   public AuthenticatedUser toAuthenticatedUser() {

@@ -1,6 +1,8 @@
 package dev.hoangtuan.shopflow.config;
 
 import dev.hoangtuan.shopflow.model.access.Role;
+import dev.hoangtuan.shopflow.repository.jdbc.AccountRepository;
+import dev.hoangtuan.shopflow.security.AccountSessionValidationFilter;
 import dev.hoangtuan.shopflow.security.AccountUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
@@ -55,8 +58,14 @@ public class SecurityConfig {
    */
   @Bean
   SecurityFilterChain securityFilterChain(
-      HttpSecurity http, SecurityContextRepository securityContextRepository) throws Exception {
-    return http.authorizeHttpRequests(
+      HttpSecurity http,
+      SecurityContextRepository securityContextRepository,
+      AccountRepository accountRepository)
+      throws Exception {
+    return http.addFilterAfter(
+            new AccountSessionValidationFilter(accountRepository),
+            SecurityContextHolderFilter.class)
+        .authorizeHttpRequests(
             requests ->
                 requests
                     .requestMatchers(HttpMethod.GET, "/products", "/products/*")
