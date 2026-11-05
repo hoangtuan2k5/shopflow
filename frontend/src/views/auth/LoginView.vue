@@ -138,6 +138,16 @@ async function submit() {
             {{ submitting ? t('auth.submitting') : t('auth.submit') }}
           </Button>
         </form>
+        <p class="mt-4 text-center text-sm">
+          <RouterLink
+            :to="{
+              name: 'password-recovery',
+              query: { redirect: authRedirect(route.query.redirect, 'customer') ?? undefined },
+            }"
+            class="font-medium text-primary underline underline-offset-4"
+            >{{ t('recovery.forgot') }}</RouterLink
+          >
+        </p>
         <p class="mt-5 text-center text-sm">
           <RouterLink
             :to="{

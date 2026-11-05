@@ -1,6 +1,7 @@
 package dev.hoangtuan.shopflow.exception.handler;
 
 import dev.hoangtuan.shopflow.controller.AuthController;
+import dev.hoangtuan.shopflow.controller.PasswordRecoveryController;
 import dev.hoangtuan.shopflow.controller.RegistrationController;
 import dev.hoangtuan.shopflow.exception.access.CredentialsValidationException;
 import dev.hoangtuan.shopflow.exception.access.EmailUnavailableException;
@@ -17,7 +18,12 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = {AuthController.class, RegistrationController.class})
+@RestControllerAdvice(
+    assignableTypes = {
+      AuthController.class,
+      RegistrationController.class,
+      PasswordRecoveryController.class
+    })
 public class AuthErrorHandler {
 
   /**

@@ -18,10 +18,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class RegistrationRepository {
+public class EmailChallengeRepository {
   private final JdbcTemplate jdbc;
 
-  public RegistrationRepository(JdbcTemplate jdbc) {
+  public EmailChallengeRepository(JdbcTemplate jdbc) {
     this.jdbc = jdbc;
   }
 
@@ -88,12 +88,22 @@ public class RegistrationRepository {
         "shopflow.email:" + email);
   }
 
-  public boolean lockExistingUser(String email) {
-    return !jdbc.query(
-            "SELECT id FROM shopflow.users WHERE email = ? FOR UPDATE",
-            (rs, n) -> rs.getLong("id"),
-            email)
-        .isEmpty();
+  public Account lockAccount(String email) {
+    var accounts =
+        jdbc.query(
+            """
+        SELECT id, active, password_hash IS NOT NULL AS local_credential,
+          email_verified_at IS NOT NULL AS verified
+        FROM shopflow.users WHERE email = ? FOR UPDATE
+        """,
+            (rs, n) ->
+                new Account(
+                    rs.getLong("id"),
+                    rs.getBoolean("active"),
+                    rs.getBoolean("local_credential"),
+                    rs.getBoolean("verified")),
+            email);
+    return accounts.isEmpty() ? null : accounts.getFirst();
   }
 
   public Challenge find(UUID generation) {
@@ -117,6 +127,8 @@ public class RegistrationRepository {
 
   public void replace(
       String email,
+      String purpose,
+      Long userId,
       UUID generation,
       byte[] binding,
       byte[] verifier,
@@ -129,16 +141,18 @@ public class RegistrationRepository {
         INSERT INTO shopflow.auth_email_challenges (email, purpose, challenge_id, user_id,
           session_binding, otp_verifier, synthetic, status, issued_at, expires_at, resend_at,
           failed_attempts, pending_password_hash, pending_display_name, consumed_at)
-        VALUES (?, 'REGISTER', ?, NULL, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, NULL)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, NULL)
         ON CONFLICT (email, purpose) DO UPDATE SET challenge_id = EXCLUDED.challenge_id,
-          user_id = NULL, session_binding = EXCLUDED.session_binding, otp_verifier = EXCLUDED.otp_verifier,
+          user_id = EXCLUDED.user_id, session_binding = EXCLUDED.session_binding, otp_verifier = EXCLUDED.otp_verifier,
           synthetic = EXCLUDED.synthetic, status = EXCLUDED.status, issued_at = EXCLUDED.issued_at,
           expires_at = EXCLUDED.expires_at, resend_at = EXCLUDED.resend_at, failed_attempts = 0,
           pending_password_hash = EXCLUDED.pending_password_hash,
           pending_display_name = EXCLUDED.pending_display_name, consumed_at = NULL
         """,
         email,
+        purpose,
         generation,
+        synthetic ? null : userId,
         binding,
         synthetic ? null : verifier,
         synthetic,
@@ -189,6 +203,31 @@ public class RegistrationRepository {
         Timestamp.from(now),
         challenge.passwordHash(),
         challenge.displayName());
+    consume(challenge.id(), now);
+  }
+
+  public void resetPassword(Challenge challenge, String hash, Instant now) {
+    jdbc.update(
+        """
+        UPDATE shopflow.users SET password_hash = ?, auth_version = auth_version + 1, updated_at = ?
+        WHERE id = ?
+        """,
+        hash,
+        Timestamp.from(now),
+        challenge.userId());
+    consume(challenge.id(), now);
+    jdbc.update(
+        """
+        UPDATE shopflow.auth_email_challenges SET status = 'EXPIRED', otp_verifier = NULL,
+          pending_password_hash = NULL, pending_display_name = NULL
+        WHERE purpose = 'RESET_PASSWORD' AND user_id = ? AND challenge_id <> ?
+          AND status NOT IN ('CONSUMED', 'EXPIRED')
+        """,
+        challenge.userId(),
+        challenge.id());
+  }
+
+  private void consume(UUID id, Instant now) {
     jdbc.update(
         """
         UPDATE shopflow.auth_email_challenges SET status = 'CONSUMED', consumed_at = ?,
@@ -196,7 +235,7 @@ public class RegistrationRepository {
         WHERE challenge_id = ?
         """,
         Timestamp.from(now),
-        challenge.id());
+        id);
   }
 
   public void cleanup(Instant now) {
@@ -222,6 +261,7 @@ public class RegistrationRepository {
         rs.getObject("challenge_id", UUID.class),
         rs.getString("email"),
         rs.getString("purpose"),
+        rs.getObject("user_id", Long.class),
         rs.getBytes("session_binding"),
         rs.getBytes("otp_verifier"),
         rs.getBoolean("synthetic"),
@@ -242,6 +282,12 @@ public class RegistrationRepository {
     }
   }
 
+  public record Account(long id, boolean active, boolean localCredential, boolean verified) {
+    public boolean recoverable() {
+      return active && localCredential && verified;
+    }
+  }
+
   public record Rate(String scope, String key, int limit, Instant expiresAt) {}
 
   public record Bucket(String scope, byte[] digest, int count, Instant expiresAt, int limit) {}
@@ -250,6 +296,7 @@ public class RegistrationRepository {
       UUID id,
       String email,
       String purpose,
+      Long userId,
       byte[] binding,
       byte[] verifier,
       boolean synthetic,

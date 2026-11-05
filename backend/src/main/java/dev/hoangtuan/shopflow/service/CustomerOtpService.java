@@ -2,20 +2,24 @@ package dev.hoangtuan.shopflow.service;
 
 import dev.hoangtuan.shopflow.dto.access.ChallengeResponse;
 import dev.hoangtuan.shopflow.dto.access.RegistrationRequest;
+import dev.hoangtuan.shopflow.exception.access.CredentialsValidationException;
 import dev.hoangtuan.shopflow.exception.access.EmailUnavailableException;
 import dev.hoangtuan.shopflow.exception.access.InvalidCodeException;
 import dev.hoangtuan.shopflow.exception.access.OtpRateLimitException;
 import dev.hoangtuan.shopflow.integration.email.ResendEmailClient;
-import dev.hoangtuan.shopflow.repository.jdbc.RegistrationRepository;
-import dev.hoangtuan.shopflow.repository.jdbc.RegistrationRepository.Bucket;
-import dev.hoangtuan.shopflow.repository.jdbc.RegistrationRepository.Challenge;
-import dev.hoangtuan.shopflow.repository.jdbc.RegistrationRepository.Rate;
+import dev.hoangtuan.shopflow.repository.jdbc.EmailChallengeRepository;
+import dev.hoangtuan.shopflow.repository.jdbc.EmailChallengeRepository.Account;
+import dev.hoangtuan.shopflow.repository.jdbc.EmailChallengeRepository.Bucket;
+import dev.hoangtuan.shopflow.repository.jdbc.EmailChallengeRepository.Challenge;
+import dev.hoangtuan.shopflow.repository.jdbc.EmailChallengeRepository.Rate;
 import dev.hoangtuan.shopflow.security.CustomerCredentials;
+import dev.hoangtuan.shopflow.security.LoginRateLimiter;
 import dev.hoangtuan.shopflow.security.OtpVerifier;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,27 +27,32 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
-public class RegistrationService {
-  private final RegistrationRepository repository;
+public class CustomerOtpService {
+  private static final String REGISTER = "REGISTER";
+  private static final String RESET = "RESET_PASSWORD";
+  private final EmailChallengeRepository repository;
   private final TransactionTemplate transactions;
   private final PasswordEncoder encoder;
   private final OtpVerifier verifier;
   private final ResendEmailClient mail;
   private final Clock clock;
+  private final LoginRateLimiter loginLimits;
 
-  public RegistrationService(
-      RegistrationRepository repository,
+  public CustomerOtpService(
+      EmailChallengeRepository repository,
       TransactionTemplate transactions,
       PasswordEncoder encoder,
       OtpVerifier verifier,
       ResendEmailClient mail,
-      Clock clock) {
+      Clock clock,
+      LoginRateLimiter loginLimits) {
     this.repository = repository;
     this.transactions = transactions;
     this.encoder = encoder;
     this.verifier = verifier;
     this.mail = mail;
     this.clock = clock;
+    this.loginLimits = loginLimits;
   }
 
   public ChallengeResponse register(RegistrationRequest request, String sessionId, String ip) {
@@ -53,8 +62,20 @@ public class RegistrationService {
     long started = System.nanoTime();
     try {
       String hash = encoder.encode(request.password());
-      var result = transactions.execute(tx -> prepare(email, name, hash, null, sessionId, ip));
-      return deliver(result);
+      return deliver(
+          transactions.execute(tx -> prepare(email, REGISTER, name, hash, null, sessionId, ip)));
+    } finally {
+      responseFloor(started);
+    }
+  }
+
+  public ChallengeResponse forgot(String rawEmail, String sessionId, String ip) {
+    String email = CustomerCredentials.email(rawEmail);
+    requireConfigured();
+    long started = System.nanoTime();
+    try {
+      return deliver(
+          transactions.execute(tx -> prepare(email, RESET, null, null, null, sessionId, ip)));
     } finally {
       responseFloor(started);
     }
@@ -63,34 +84,40 @@ public class RegistrationService {
   public ChallengeResponse resend(UUID id, String sessionId, String ip) {
     requireConfigured();
     Challenge previous = repository.find(id);
-    if (previous == null || !"REGISTER".equals(previous.purpose())) {
+    if (previous == null) {
       countInvalidRequest(ip, "IP_SEND", 10);
       throw new InvalidCodeException();
     }
     long started = System.nanoTime();
     try {
-      var result =
-          transactions.execute(tx -> prepare(previous.email(), null, null, id, sessionId, ip));
-      return deliver(result);
+      return deliver(
+          transactions.execute(
+              tx -> prepare(previous.email(), previous.purpose(), null, null, id, sessionId, ip)));
     } finally {
       responseFloor(started);
     }
   }
 
   private Issue prepare(
-      String email, String name, String hash, UUID previousId, String sessionId, String ip) {
+      String email,
+      String purpose,
+      String name,
+      String hash,
+      UUID previousId,
+      String sessionId,
+      String ip) {
     Instant now = clock.instant();
     var buckets =
         repository.lockRates(
             List.of(
-                rate("EMAIL_SEND", email + "\0REGISTER", 3, now),
+                rate("EMAIL_SEND", email + "\0" + purpose, 3, now),
                 rate("IP_SEND", ip, 10, now),
                 rate("MAIL_DAILY", now.atOffset(ZoneOffset.UTC).toLocalDate().toString(), 90, now)),
             now);
     check(buckets.get("IP_SEND"), now);
     repository.lockEmail(email);
-    boolean existing = repository.lockExistingUser(email);
-    Challenge old = repository.lockChallenge(email, "REGISTER");
+    Account account = repository.lockAccount(email);
+    Challenge old = repository.lockChallenge(email, purpose);
     if (previousId != null
         && (!bound(old, previousId, sessionId)
             || !old.expiresAt().isAfter(now)
@@ -98,17 +125,15 @@ public class RegistrationService {
             || old.status().equals("EXPIRED"))) {
       repository.increment(buckets.get("IP_SEND"));
       if (old != null && !old.expiresAt().isAfter(now)) repository.expire(old.id());
-      return new Issue(null, null, null, null, new InvalidCodeException());
+      return new Issue(null, null, purpose, null, null, new InvalidCodeException());
     }
     if (old != null && !old.expiresAt().isAfter(now)) repository.expire(old.id());
     if (old != null
         && old.status().equals("PENDING_SEND")
-        && !old.issuedAt().plusSeconds(3).isAfter(now)) {
-      repository.delivery(old.id(), false);
-    }
-    if (old != null && old.resendAt().isAfter(now)) {
-      return new Issue(null, null, null, null, new OtpRateLimitException(now, old.resendAt()));
-    }
+        && !old.issuedAt().plusSeconds(3).isAfter(now)) repository.delivery(old.id(), false);
+    if (old != null && old.resendAt().isAfter(now))
+      return new Issue(
+          null, null, purpose, null, null, new OtpRateLimitException(now, old.resendAt()));
     for (Bucket bucket : buckets.values()) check(bucket, now);
     for (Bucket bucket : buckets.values()) repository.increment(bucket);
     UUID id = UUID.randomUUID();
@@ -117,17 +142,26 @@ public class RegistrationService {
       name = old.displayName();
       hash = old.passwordHash();
     }
-    boolean synthetic = existing || (previousId != null && old.synthetic());
+    boolean synthetic =
+        REGISTER.equals(purpose) ? account != null : account == null || !account.recoverable();
+    if (previousId != null)
+      synthetic |=
+          old.synthetic()
+              || (RESET.equals(purpose)
+                  && !java.util.Objects.equals(
+                      old.userId(), account == null ? null : account.id()));
     repository.replace(
         email,
+        purpose,
+        synthetic || REGISTER.equals(purpose) ? null : account.id(),
         id,
         verifier.sessionBinding(sessionId),
-        verifier.code(email, "REGISTER", id, otp),
+        verifier.code(email, purpose, id, otp),
         synthetic,
         hash,
         name,
         now);
-    return new Issue(id, email, synthetic ? null : name, synthetic ? null : otp, null);
+    return new Issue(id, email, purpose, synthetic ? null : name, synthetic ? null : otp, null);
   }
 
   private ChallengeResponse deliver(Issue issue) {
@@ -135,10 +169,12 @@ public class RegistrationService {
     if (issue.otp() != null) {
       boolean accepted = false;
       try {
-        mail.sendRegistrationCode(issue.email(), issue.name(), issue.otp(), issue.id());
+        if (REGISTER.equals(issue.purpose()))
+          mail.sendRegistrationCode(issue.email(), issue.name(), issue.otp(), issue.id());
+        else mail.sendResetCode(issue.email(), issue.otp(), issue.id());
         accepted = true;
       } catch (EmailUnavailableException ignored) {
-        // Same response for delivery failure and synthetic challenges prevents enumeration.
+        // Delivery failure and synthetic challenges share the public response.
       }
       boolean success = accepted;
       transactions.executeWithoutResult(tx -> repository.delivery(issue.id(), success));
@@ -148,6 +184,26 @@ public class RegistrationService {
   }
 
   public void verify(UUID id, String otp, String sessionId, String ip) {
+    verifyProof(id, otp, sessionId, ip, REGISTER, null);
+  }
+
+  public void reset(UUID id, String otp, String newPassword, String sessionId, String ip) {
+    if (!CustomerCredentials.validNewPassword(newPassword))
+      throw new CredentialsValidationException(
+          Map.of(
+              "newPassword",
+              "Use at least 8 characters with uppercase, lowercase, a number and a symbol; maximum 72 UTF-8 bytes"));
+    String email = verifyProof(id, otp, sessionId, ip, RESET, newPassword);
+    loginLimits.clear(email);
+    try {
+      mail.sendPasswordChanged(email, id);
+    } catch (EmailUnavailableException ignored) {
+      // Notification failure must not undo the committed credential change.
+    }
+  }
+
+  private String verifyProof(
+      UUID id, String otp, String sessionId, String ip, String purpose, String newPassword) {
     verifier.requireConfigured();
     Challenge lookup = repository.find(id);
     VerifyResult result;
@@ -158,16 +214,16 @@ public class RegistrationService {
                 Instant now = clock.instant();
                 var limits = new java.util.ArrayList<Rate>();
                 limits.add(rate("IP_VERIFY", ip, 30, now));
-                if (lookup != null && lookup.purpose().equals("REGISTER"))
-                  limits.add(rate("EMAIL_VERIFY_FAILURE", lookup.email() + "\0REGISTER", 5, now));
+                if (lookup != null && lookup.purpose().equals(purpose))
+                  limits.add(rate("EMAIL_VERIFY_FAILURE", lookup.email() + "\0" + purpose, 5, now));
                 var buckets = repository.lockRates(limits, now);
                 check(buckets.get("IP_VERIFY"), now);
                 repository.increment(buckets.get("IP_VERIFY"));
-                if (lookup == null || !lookup.purpose().equals("REGISTER"))
+                if (lookup == null || !lookup.purpose().equals(purpose))
                   return new VerifyResult(false, null);
                 repository.lockEmail(lookup.email());
-                boolean existing = repository.lockExistingUser(lookup.email());
-                Challenge current = repository.lockChallenge(lookup.email(), "REGISTER");
+                Account account = repository.lockAccount(lookup.email());
+                Challenge current = repository.lockChallenge(lookup.email(), purpose);
                 if (!bound(current, id, sessionId)) return new VerifyResult(false, null);
                 if (!current.expiresAt().isAfter(now)) {
                   repository.expire(id);
@@ -183,7 +239,7 @@ public class RegistrationService {
                   return new VerifyResult(false, failures.expiresAt());
                 boolean matches =
                     verifier.matches(
-                        current.verifier(), verifier.code(current.email(), "REGISTER", id, otp));
+                        current.verifier(), verifier.code(current.email(), purpose, id, otp));
                 if (!matches || current.synthetic() || !current.status().equals("ISSUED")) {
                   repository.failedAttempt(id);
                   repository.increment(failures);
@@ -193,11 +249,21 @@ public class RegistrationService {
                           ? failures.expiresAt()
                           : null);
                 }
-                if (existing) {
-                  repository.expire(id);
-                  return new VerifyResult(false, null);
+                if (REGISTER.equals(purpose)) {
+                  if (account != null) {
+                    repository.expire(id);
+                    return new VerifyResult(false, null);
+                  }
+                  repository.activate(current, now);
+                } else {
+                  if (account == null
+                      || !account.recoverable()
+                      || !java.util.Objects.equals(current.userId(), account.id())) {
+                    repository.expire(id);
+                    return new VerifyResult(false, null);
+                  }
+                  repository.resetPassword(current, encoder.encode(newPassword), now);
                 }
-                repository.activate(current, now);
                 return new VerifyResult(true, null);
               });
     } catch (org.springframework.dao.DuplicateKeyException collision) {
@@ -207,6 +273,7 @@ public class RegistrationService {
     if (result.retryAt() != null)
       throw new OtpRateLimitException(clock.instant(), result.retryAt());
     if (!result.success()) throw new InvalidCodeException();
+    return lookup.email();
   }
 
   private boolean bound(Challenge challenge, UUID id, String sessionId) {
@@ -259,7 +326,8 @@ public class RegistrationService {
     }
   }
 
-  private record Issue(UUID id, String email, String name, String otp, RuntimeException error) {}
+  private record Issue(
+      UUID id, String email, String purpose, String name, String otp, RuntimeException error) {}
 
   private record VerifyResult(boolean success, Instant retryAt) {}
 }

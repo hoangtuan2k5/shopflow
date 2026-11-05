@@ -6,7 +6,7 @@ import { z } from 'zod'
 import {
   ApiClientError,
   registerAccount,
-  resendRegistrationCode,
+  resendOtp,
   verifyRegistration,
   type ChallengeResponse,
 } from '@/api'
@@ -14,6 +14,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { authRedirect } from '@/router/authRedirect'
+import { validNewPassword } from '@/lib/passwordPolicy'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -72,15 +73,7 @@ async function register() {
   if (![...displayName.value.trim()].length || [...displayName.value.trim()].length > 255)
     errors.value.displayName = 'invalidName'
   const value = password.value
-  if (
-    [...value].length < 8 ||
-    new TextEncoder().encode(value).length > 72 ||
-    !/\p{Lu}/u.test(value) ||
-    !/\p{Ll}/u.test(value) ||
-    !/[0-9]/.test(value) ||
-    !/[\p{P}\p{S}]/u.test(value)
-  )
-    errors.value.password = 'invalidPassword'
+  if (!validNewPassword(value)) errors.value.password = 'invalidPassword'
   if (value !== confirmPassword.value) errors.value.confirm = 'mismatch'
   if (Object.keys(errors.value).length) {
     await nextTick()
@@ -136,7 +129,7 @@ async function resend() {
   submitting.value = true
   errorKey.value = ''
   try {
-    acceptChallenge(await resendRegistrationCode(challenge.value.challengeId))
+    acceptChallenge(await resendOtp(challenge.value.challengeId))
   } catch (error) {
     reject(error)
   } finally {

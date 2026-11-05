@@ -96,7 +96,9 @@ public class SecurityConfig {
                         "/auth/session",
                         "/auth/registrations",
                         "/auth/registrations/verify",
-                        "/auth/otp/resend")
+                        "/auth/otp/resend",
+                        "/auth/password/forgot",
+                        "/auth/password/reset")
                     .permitAll()
                     .requestMatchers("/actuator/health", "/actuator/health/*")
                     .permitAll()

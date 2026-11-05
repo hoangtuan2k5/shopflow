@@ -381,7 +381,7 @@ Copyright (c) 2026 ShopFlow Team.
 
 Backend dùng HTTPS Resend, không cần SMTP. Xem [cấu hình và kiểm thử](docs/deployment.md#transactional-email-sf-143).
 Phần client có email song ngữ Việt–Anh cho xác minh đăng ký, reset OTP và thông
-báo đổi mật khẩu; đăng ký/xác minh OTP đã được nối ở SF-144; reset và Google thuộc task tiếp theo.
+báo đổi mật khẩu; đăng ký/xác minh OTP đã được nối ở SF-144; reset mật khẩu được nối ở SF-145; Google thuộc task tiếp theo.
 Host Maven cần nạp env như hướng dẫn trên; backend không tự đọc `.env`.
 Không chép đè `.env` production bằng file workspace hoặc file example.
 
@@ -395,3 +395,14 @@ lưu password, OTP hoặc challenge trong storage/URL.
 Cần thêm `OTP_HMAC_SECRET` vào env trước khi bật luồng. Thiếu secret hoặc mail
 config chỉ vô hiệu phần OTP, không chặn catalog/demo login. Xem [QA](docs/qa-customer-registration.md)
 và [deployment](docs/deployment.md#customer-registration-sf-144).
+
+### Quên mật khẩu (SF-145)
+
+Từ màn hình đăng nhập, chọn “Quên mật khẩu?” hoặc vào `/forgot-password`.
+Nhập email, sau đó nhập OTP và mật khẩu mới trong cùng form. Mã có hạn10 phút,
+chỉ dùng một lần và chịu giới hạn gửi/nhập sai. Response không cho biết email
+có tài khoản hay chỉ Google. Reset thành công yêu cầu đăng nhập lại và vô hiệu
+các phiên cũ; chỉ yêu cầu gửi OTP không làm mất phiên hiện có.
+
+Xem [bằng chứng QA](docs/qa-password-recovery.md). Phần này chưa được bật
+trên production.
