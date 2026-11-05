@@ -289,6 +289,8 @@ Mặc định FE chạy ở `http://localhost:5173` và gọi tới backend qua 
 | `DB_URL` | `jdbc:postgresql://localhost:5432/shopflow` | JDBC URL tới PostgreSQL. Dùng `jdbc:postgresql://localhost:5433/shopflow` nếu chạy PostgreSQL bằng `docker-compose.yml`. |
 | `DB_USERNAME` | `postgres` | Username kết nối database. |
 | `DB_PASSWORD` | `postgres` | Password kết nối database. |
+| `RESEND_API_KEY` | Rỗng | Key gửi thư Resend; thiếu thì phần gửi email không khả dụng, catalog/demo login vẫn hoạt động. |
+| `MAIL_FROM` | Rỗng | Sender đã xác minh, ví dụ `ShopFlow <shopflow@hoangtuan.dev>`. |
 | `GEMINI_API_KEY` | Rỗng | Key AI Studio cho Gemini Embedding 2; thiếu key thì API index/search trả 503. |
 | `QDRANT_URL` | `http://localhost:6333` | Local backend trên host; production dùng `http://qdrant:6333` trong Docker. |
 | `QDRANT_API_KEY` | Rỗng | Local có thể bỏ trống; production bắt buộc có key riêng. |
@@ -373,3 +375,11 @@ Branch `main` và `develop` nên yêu cầu Pull Request và CI pass trước kh
 MIT License. Xem chi tiết tại [LICENSE](LICENSE).
 
 Copyright (c) 2026 ShopFlow Team.
+
+### Transactional email (SF-143)
+
+Backend dùng HTTPS Resend, không cần SMTP. Xem [cấu hình và kiểm thử](docs/deployment.md#transactional-email-sf-143).
+Phần client có email song ngữ Việt–Anh cho xác minh đăng ký, reset OTP và thông
+báo đổi mật khẩu; các endpoint/luồng auth được triển khai ở task tiếp theo.
+Host Maven cần nạp env như hướng dẫn trên; backend không tự đọc `.env`.
+Không chép đè `.env` production bằng file workspace hoặc file example.
