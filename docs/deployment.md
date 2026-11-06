@@ -438,3 +438,22 @@ ownership/checkout enforcement is SF-148; this change does not claim those done.
 
 References: [Spring OAuth2 Login](https://docs.spring.io/spring-security/reference/7.0/servlet/oauth2/login/core.html),
 [Google OIDC](https://developers.google.com/identity/openid-connect/openid-connect).
+
+## Browser cart persistence (SF-147)
+
+No new backend configuration, schema or service. Browser key `shopflow.cart.v1`
+stores version1 plus product ID/quantity pairs only, bounded to64 KiB. Each
+origin has its own cart. Product display is reloaded via `/products/{id}`, never
+from stored names/prices. Unknown/unavailable/out-of-stock items prevent checkout
+until removal or successful refresh. API checkout remains authoritative.
+
+Blocked/quota-limited storage falls back to RAM with a visible warning, including
+on the login page before Google navigation. An older snapshot is removed after
+a failed save so reload cannot silently restore different items. Do not promise
+reload/OAuth durability when the browser refuses storage. No shipping PII, user
+identity, credentials, proof or orderRef is persisted.
+
+Logout/account change clears checkout form/order/payment state while preserving
+the unplaced cart. Only the existing explicit start-over flow clears the cart;
+failed/pending order requests leave it intact. Return intent opens the restored
+form without posting an order. Login gating/owner enforcement comes in SF-148.

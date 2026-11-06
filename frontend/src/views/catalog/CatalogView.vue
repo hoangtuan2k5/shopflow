@@ -32,7 +32,9 @@ import {
   type SimulatedPaymentResult,
   type StockStatus,
 } from '@/api'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useCartStore } from '@/stores/cart'
 import type { ProductListItem } from '@/api/catalog'
 import { useProductPages } from '@/composables/useProductPages'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -53,10 +55,13 @@ import {
 const { t } = useI18n()
 const session = useSessionStore()
 const queryClient = useQueryClient()
+const cart = useCartStore()
+const route = useRoute()
+const router = useRouter()
+const { quantities: selectedQuantities, products: selectedProducts } = storeToRefs(cart)
+void cart.refresh()
 
 const selectedProductId = ref<number | null>(null)
-const selectedQuantities = ref<Record<number, number>>({})
-const selectedProducts = ref<Record<number, ProductListItem>>({})
 const searchQuery = ref('')
 const normalizedSearch = ref('')
 let searchTimer: ReturnType<typeof setTimeout> | undefined
@@ -151,9 +156,7 @@ const checkoutLines = computed(() =>
     return quantity ? [{ product, quantity }] : []
   }),
 )
-const selectedItemCount = computed(() =>
-  checkoutLines.value.reduce((total, line) => total + line.quantity, 0),
-)
+const selectedItemCount = computed(() => cart.itemCount)
 const cartTotal = computed(() =>
   checkoutLines.value.reduce((total, line) => total + line.product.price * line.quantity, 0),
 )
@@ -203,38 +206,36 @@ function scrollToProducts() {
 }
 
 function addToCart(product: ProductListItem) {
-  if (product.stockStatus === 'OUT_OF_STOCK') return
-  selectedProducts.value = { ...selectedProducts.value, [product.id]: product }
-  selectedQuantities.value = {
-    ...selectedQuantities.value,
-    [product.id]: (selectedQuantities.value[product.id] ?? 0) + 1,
-  }
+  cart.add(product)
   closeProduct()
 }
 
 function updateQuantity(productId: number, quantity: number) {
-  if (quantity <= 0) {
-    removeFromCart(productId)
-    return
-  }
-  selectedQuantities.value = { ...selectedQuantities.value, [productId]: quantity }
+  cart.update(productId, quantity)
 }
 
 function removeFromCart(productId: number) {
-  const next = { ...selectedQuantities.value }
-  delete next[productId]
-  selectedQuantities.value = next
-  const remaining = { ...selectedProducts.value }
-  delete remaining[productId]
-  selectedProducts.value = remaining
+  cart.remove(productId)
 }
 
 function openCheckout() {
-  if (checkoutLines.value.length === 0) return
+  if (checkoutLines.value.length === 0 || cart.loading || cart.issues.length > 0) return
   cartOpen.value = false
   void nextTick(() => {
     checkoutOpen.value = true
+    if (route.query.checkout !== '1') {
+      void router.replace({ path: route.path, query: { ...route.query, checkout: '1' } })
+    }
   })
+}
+
+function setCheckoutOpen(open: boolean) {
+  checkoutOpen.value = open
+  if (!open && route.query.checkout === '1') {
+    const query = { ...route.query }
+    delete query.checkout
+    void router.replace({ path: route.path, query })
+  }
 }
 
 type CheckoutFormValues = {
@@ -249,6 +250,7 @@ type CheckoutFormValues = {
 }
 
 function submitOrder(values: CheckoutFormValues) {
+  if (cart.loading || cart.issues.length > 0 || checkoutLines.value.length === 0) return
   const body: CreateOrderRequest = {
     customer: {
       fullName: values.fullName,
@@ -280,12 +282,32 @@ function simulatePayment(result: SimulatedPaymentResult) {
 }
 
 function startOver() {
-  selectedQuantities.value = {}
-  selectedProducts.value = {}
+  cart.clear()
   orderMutation.reset()
   paymentMutation.reset()
-  checkoutOpen.value = false
+  setCheckoutOpen(false)
 }
+
+const checkoutIdentity = ref(0)
+watch(
+  () => session.user?.userId,
+  () => {
+    checkoutIdentity.value += 1
+    checkoutOpen.value = false
+    orderMutation.reset()
+    paymentMutation.reset()
+  },
+)
+
+watch(
+  () => [cart.ready, cart.loading, route.query.checkout] as const,
+  ([ready, loading, intent]) => {
+    if (!ready || loading || intent !== '1' || cart.itemCount === 0) return
+    if (cart.issues.length > 0) cartOpen.value = true
+    else openCheckout()
+  },
+  { immediate: true },
+)
 
 function closeProduct() {
   selectedProductId.value = null
@@ -351,6 +373,20 @@ function closeProduct() {
     </header>
 
     <main class="mx-auto grid max-w-7xl gap-5 px-2.5 pb-24 pt-3 sm:px-6 sm:pt-6">
+      <p
+        v-if="cart.storageWarning"
+        class="rounded-lg border border-border bg-card p-4 text-sm"
+        role="alert"
+      >
+        {{ t('cartPersistence.storageWarning') }}
+      </p>
+      <p
+        v-if="cart.quantityWarning"
+        class="rounded-lg border border-destructive/40 bg-card p-4 text-sm"
+        role="alert"
+      >
+        {{ t('cartPersistence.quantityWarning') }}
+      </p>
       <section
         class="relative min-h-56 overflow-hidden rounded-xl bg-[radial-gradient(circle_at_82%_20%,rgba(30,245,184,0.28),transparent_23%),linear-gradient(120deg,#11204a_0%,#1b3778_58%,#087861_130%)] text-white shadow-[0_18px_50px_rgba(20,37,83,0.18)] sm:min-h-72 sm:rounded-2xl"
       >
@@ -438,10 +474,7 @@ function closeProduct() {
             <h2 class="mt-1 text-2xl font-black tracking-tight text-primary sm:text-3xl">
               {{ t('catalog.section.title') }}
             </h2>
-            <p
-              v-if="productsQuery.data.value"
-              class="mt-2 text-sm text-muted-foreground"
-            >
+            <p v-if="productsQuery.data.value" class="mt-2 text-sm text-muted-foreground">
               {{ t('catalog.loadedCount', products.length) }} ·
               {{ t('catalog.loadedInStockCount', loadedInStockCount) }}
             </p>
@@ -633,7 +666,10 @@ function closeProduct() {
       <span>{{ currency.format(cartTotal) }}</span>
     </Button>
 
-    <ProductAdvisoryChat :cart-visible="selectedItemCount > 0" @product="(id) => (selectedProductId = id)" />
+    <ProductAdvisoryChat
+      :cart-visible="selectedItemCount > 0"
+      @product="(id) => (selectedProductId = id)"
+    />
 
     <Dialog :open="selectedProductId !== null" @update:open="(open) => !open && closeProduct()">
       <DialogContent
@@ -738,6 +774,12 @@ function closeProduct() {
             <DialogDescription>
               {{ t('catalog.cartPanel.itemsSelected', selectedItemCount) }}
             </DialogDescription>
+            <p v-if="cart.storageWarning" class="mt-2 text-sm text-destructive" role="alert">
+              {{ t('cartPersistence.storageWarning') }}
+            </p>
+            <p v-if="cart.quantityWarning" class="mt-2 text-sm text-destructive" role="alert">
+              {{ t('cartPersistence.quantityWarning') }}
+            </p>
           </div>
           <DialogClose as-child>
             <Button
@@ -750,7 +792,7 @@ function closeProduct() {
           </DialogClose>
         </div>
 
-        <div v-if="checkoutLines.length === 0" class="grid place-items-center p-8 text-center">
+        <div v-if="selectedItemCount === 0" class="grid place-items-center p-8 text-center">
           <div>
             <IconShoppingCart
               class="mx-auto text-muted-foreground"
@@ -763,6 +805,31 @@ function closeProduct() {
           </div>
         </div>
         <div v-else class="overflow-y-auto px-5">
+          <p v-if="cart.loading" class="py-4 text-sm" role="status">
+            {{ t('cartPersistence.refreshing') }}
+          </p>
+          <div
+            v-else-if="cart.issues.length"
+            class="my-4 rounded-lg border border-destructive/30 p-3 text-sm"
+            role="alert"
+          >
+            <p>{{ t('cartPersistence.unavailable') }}</p>
+            <ul class="mt-2 grid gap-2">
+              <li
+                v-for="id in cart.issues"
+                :key="id"
+                class="flex items-center justify-between gap-2"
+              >
+                <span>{{ selectedProducts[id]?.name ?? `#${id}` }}</span>
+                <Button variant="outline" size="sm" @click="removeFromCart(id)">
+                  {{ t('cartPersistence.remove') }}
+                </Button>
+              </li>
+            </ul>
+            <Button class="mt-3" variant="outline" size="sm" @click="cart.refresh()">{{
+              t('cartPersistence.retry')
+            }}</Button>
+          </div>
           <article
             v-for="line in checkoutLines"
             :key="line.product.id"
@@ -823,7 +890,7 @@ function closeProduct() {
           <Button
             class="mt-4 h-12 w-full bg-success font-black hover:bg-success/90"
             type="button"
-            :disabled="checkoutLines.length === 0"
+            :disabled="checkoutLines.length === 0 || cart.loading || cart.issues.length > 0"
             @click="openCheckout"
           >
             {{ t('catalog.cartPanel.checkout') }}
@@ -833,7 +900,7 @@ function closeProduct() {
       </DialogContent>
     </Dialog>
 
-    <Dialog v-model:open="checkoutOpen">
+    <Dialog :open="checkoutOpen" @update:open="setCheckoutOpen">
       <DialogContent
         class="max-h-[calc(100dvh-1rem)] w-[min(calc(100%-1rem),68rem)] max-w-none overflow-y-auto p-0 sm:max-h-[calc(100dvh-2rem)]"
       >
@@ -851,6 +918,7 @@ function closeProduct() {
           </Button>
         </DialogClose>
         <CheckoutForm
+          :key="checkoutIdentity"
           :lines="checkoutLines"
           :submitting="orderMutation.isPending.value"
           :error="orderError"
