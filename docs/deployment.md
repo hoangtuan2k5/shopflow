@@ -457,3 +457,27 @@ Logout/account change clears checkout form/order/payment state while preserving
 the unplaced cart. Only the existing explicit start-over flow clears the cart;
 failed/pending order requests leave it intact. Return intent opens the restored
 form without posting an order. Login gating/owner enforcement comes in SF-148.
+
+## Authenticated checkout cutover (SF-148)
+
+Requires V7 and the reviewed SF-142–147 prerequisites. No new environment
+variable or migration. POST orders/payments now require a valid internal account
+and CSRF. All demo/staff/customer roles can buy; payment belongs exclusively to
+the creating account, with no shop-owner override. Owner comes from the session,
+not request fields or shipping email. API response shapes are retained.
+
+Account row locking prevents deactivation/deletion during the transaction;
+checkout/payment transactions for the same account serialize. Existing sorted
+stock locks and atomic reserve/release remain. No load benchmark was run.
+
+Before approving a release, inventory legacy PENDING_PAYMENT orders (owner null)
+and their reserved items. They remain unchanged but cannot pay through storefront.
+Do not claim by email, cancel, release stock or change migrations to make them
+pass. Prepare a restorable backup and any operational decision separately.
+
+Smoke after an approved rollout: guest browse/add works; guest order/payment401
+with CSRF; each role/demo can buy/pay its own order; another account and legacy
+order receive generic404 with no reserve/movement changes; first write after
+login has real cookie CSRF; 401 mid-checkout keeps cart/intent without auto-submit.
+Local/CI evidence is in `docs/qa-checkout-ownership.md`; public-provider/domain
+acceptance and final rollout readiness are SF-149.

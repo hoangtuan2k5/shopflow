@@ -91,9 +91,9 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, "/chat/messages")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/orders")
-                    .permitAll()
+                    .authenticated()
                     .requestMatchers(HttpMethod.POST, "/orders/*/payments")
-                    .permitAll()
+                    .authenticated()
                     .requestMatchers(
                         "/auth/login",
                         "/auth/logout",

@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Customer identity foundation**: add verified email/Google identity constraints, OTP challenge and quota tables, and nullable order account ownership while preserving legacy data and demo accounts (SF-142).
 
 ### Changed
+- **Authenticated checkout**: require login to place orders, bind ownership from the server session and restrict simulated payments to that account; preserve legacy owner-null orders without releasing their stock (SF-148).
 - **Session cookies**: use SameSite=Lax for the Google GET callback while retaining Secure in production, HttpOnly and CSRF protection for writes (SF-146).
 - **Login**: accept verified customer email alongside legacy demo usernames, preserve session rotation, normalize attempt limits and validate internal return paths (SF-144).
 - **Session validation**: recheck account activity and credential version on authenticated requests so a later password reset can invalidate existing sessions (SF-142).

@@ -61,11 +61,20 @@ class CsrfTokenRoundTripTests {
   }
 
   @Test
-  void letsAGuestPlaceAnOrderWithTheTokenItWasHanded() throws Exception {
+  void rejectsGuestOrdersEvenWithTheTokenItWasHanded() throws Exception {
     Cookie token = tokenFromRejectedRequest(order());
 
     mockMvc
         .perform(order().cookie(token).header("X-XSRF-TOKEN", token.getValue()))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void letsAnEmployeeSubmitAnOrderWithItsRealCookieToken() throws Exception {
+    MockHttpSession session = signIn();
+    Cookie token = tokenFromRejectedRequest(order().session(session));
+    mockMvc
+        .perform(order().session(session).cookie(token).header("X-XSRF-TOKEN", token.getValue()))
         .andExpect(status().isBadRequest());
   }
 

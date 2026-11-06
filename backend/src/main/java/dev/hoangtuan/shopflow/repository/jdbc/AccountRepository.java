@@ -49,6 +49,15 @@ public class AccountRepository {
     return states.isEmpty() ? null : states.getFirst();
   }
 
+  public boolean lockActiveForCheckout(long userId) {
+    return !jdbcTemplate
+        .query(
+            "SELECT id FROM shopflow.users WHERE id = ? AND active = TRUE FOR UPDATE",
+            (rs, n) -> rs.getLong("id"),
+            userId)
+        .isEmpty();
+  }
+
   public record SessionState(boolean active, long authVersion) {}
 
   public record AccountData(

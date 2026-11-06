@@ -166,7 +166,7 @@ export const vi: typeof en = {
     signIn: 'Đăng nhập',
     signOut: 'Đăng xuất',
     workspace: 'Khu vực làm việc',
-    guestHint: 'Bạn có thể xem hàng mà không cần đăng nhập.',
+    guestHint: 'Bạn có thể xem và thêm hàng tự do. Đăng nhập khi đặt hàng.',
   },
   productImages: {
     title: 'Ảnh sản phẩm',

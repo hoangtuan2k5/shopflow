@@ -18,7 +18,7 @@ public class PaymentOrderRepository {
     List<OrderPaymentData> orders =
         jdbcTemplate.query(
             """
-            SELECT id, status, payment_method, total_amount
+            SELECT id, status, payment_method, total_amount, account_user_id
             FROM shopflow.orders
             WHERE order_ref = ?
             FOR UPDATE
@@ -28,7 +28,8 @@ public class PaymentOrderRepository {
                     resultSet.getLong("id"),
                     resultSet.getString("status"),
                     PaymentMethod.valueOf(resultSet.getString("payment_method")),
-                    resultSet.getBigDecimal("total_amount")),
+                    resultSet.getBigDecimal("total_amount"),
+                    resultSet.getObject("account_user_id", Long.class)),
             orderRef);
     return orders.isEmpty() ? null : orders.getFirst();
   }
@@ -48,5 +49,6 @@ public class PaymentOrderRepository {
     }
   }
 
-  public record OrderPaymentData(Long id, String status, PaymentMethod method, BigDecimal amount) {}
+  public record OrderPaymentData(
+      Long id, String status, PaymentMethod method, BigDecimal amount, Long accountUserId) {}
 }

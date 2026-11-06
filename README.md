@@ -429,4 +429,15 @@ JSON sai, ID/số lượng không hợp lệ, dữ liệu quá64 KiB hoặc stor
 làm crash. Giỏ RAM vẫn dùng được khi không lưu được, kèm cảnh báo có thể mất
 qua reload/Google. Logout/đổi tài khoản giữ giỏ, xóa PII và kết quả checkout;
 chỉ “Bắt đầu đơn mới” xóa giỏ theo luồng hiện có. Không lưu địa chỉ hoặc orderRef.
-Xem [kiểm chứng](docs/qa-cart-persistence.md). Login-required checkout thuộc SF-148.
+Xem [kiểm chứng](docs/qa-cart-persistence.md). Login-required checkout được nối ở SF-148.
+
+### Checkout và chủ đơn (SF-148)
+
+Khách vẫn xem/thêm giỏ tự do; bấm checkout cần đăng nhập và quay lại form cùng
+giỏ, không tự gửi đơn. Mọi role/demo được mua hàng nhưng chỉ account tạo đơn
+được thanh toán. Backend tự gán owner, từ chối field cố gán account/role và
+không dùng customer email làm owner. Biết orderRef không đủ quyền thanh toán.
+
+Đơn cũ owner null được giữ nguyên và chặn payment qua storefront; không tự
+gán theo email, hủy hoặc giải phóng reservation. Payment vẫn mô phỏng CARD.
+Xem [kiểm chứng](docs/qa-checkout-ownership.md) và [contract](docs/api-customer-identity-spec.md).

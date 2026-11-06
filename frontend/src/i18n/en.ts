@@ -166,7 +166,7 @@ export const en = {
     signIn: 'Sign in',
     signOut: 'Sign out',
     workspace: 'Workspace',
-    guestHint: 'Browsing and ordering do not require an account.',
+    guestHint: 'Browse and add to your cart freely. Sign in to place an order.',
   },
   productImages: {
     title: 'Product images',
