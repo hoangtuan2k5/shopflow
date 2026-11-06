@@ -11,6 +11,9 @@ test.beforeEach(async ({ page }) => {
 test('Google start contains only a validated internal destination', async ({ page }) => {
   await page.goto('/login?redirect=/customer?checkout=1')
   const google = page.getByRole('link', { name: 'Continue with Google' })
+  await expect(google.locator('img')).toHaveAttribute('src', '/brand/google-g.png')
+  await expect(google.locator('img')).toHaveJSProperty('naturalWidth', 200)
+  await page.screenshot({ path: '/tmp/shopflow-google-button.png' })
   await expect(google).toHaveAttribute(
     'href',
     '/api/oauth2/authorization/google?returnTo=%2Fcustomer%3Fcheckout%3D1',

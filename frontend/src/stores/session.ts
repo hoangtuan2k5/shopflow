@@ -22,6 +22,15 @@ export const useSessionStore = defineStore('session', () => {
   const user = ref<AuthenticatedUser | null>(null)
   const resolved = ref(false)
 
+  const accountLabel = computed(() => {
+    const characters = [
+      ...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(
+        user.value?.displayName ?? '',
+      ),
+    ].map(({ segment }) => segment)
+    return characters.length > 24 ? characters.slice(0, 23).join('') + '…' : characters.join('')
+  })
+
   const isAuthenticated = computed(() => user.value !== null)
   const roleKey = computed<RoleKey | null>(() => (user.value ? roleKeys[user.value.role] : null))
   const homePath = computed(() => (roleKey.value ? `/${roleKey.value}` : '/customer'))
@@ -73,6 +82,7 @@ export const useSessionStore = defineStore('session', () => {
 
   return {
     user,
+    accountLabel,
     resolved,
     isAuthenticated,
     roleKey,
