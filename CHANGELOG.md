@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Password recovery**: add session-bound email OTP reset with atomic password/version updates, invalidation of old sessions and a bilingual recovery screen; requesting a code leaves current sessions active (SF-145).
 - **Customer registration**: add email/password signup with session-bound verification codes, persistent OTP quotas, Resend delivery state and bilingual registration screens; create CUSTOMER accounts only after proof (SF-144).
-- **Transactional email foundation**: add a bounded Resend client, bilingual verification/recovery messages and password-change notices; wire sender/key into the production backend without requiring them for catalog or demo login (SF-143).
+- **Transactional email foundation**: add a bounded Resend client, website-selected English/Vietnamese verification/recovery messages and password-change notices; wire sender/key into the production backend without requiring them for catalog or demo login (SF-143).
 - **Customer identity foundation**: add verified email/Google identity constraints, OTP challenge and quota tables, and nullable order account ownership while preserving legacy data and demo accounts (SF-142).
 
 ### Changed
@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Session cookies**: use SameSite=Lax for the Google GET callback while retaining Secure in production, HttpOnly and CSRF protection for writes (SF-146).
 - **Login**: accept verified customer email alongside legacy demo usernames, preserve session rotation, normalize attempt limits and validate internal return paths (SF-144).
 - **Session validation**: recheck account activity and credential version on authenticated requests so a later password reset can invalidate existing sessions (SF-142).
+
+### Fixed
+
+- **Login interface**: display the official Google icon, show bounded account names instead of Workspace and keep narrow headers readable without distorting the ShopFlow logo (SF-146).
 
 ## [0.12.1] - 2026-10-19
 
