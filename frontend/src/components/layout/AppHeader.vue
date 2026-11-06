@@ -34,7 +34,11 @@ async function signOut() {
 
       <div class="flex items-center gap-2">
         <p v-if="session.user" class="hidden text-sm sm:block">
-          <span class="font-medium">{{ session.user.displayName }}</span>
+          <span
+            class="inline-block max-w-48 truncate align-middle font-medium"
+            :title="session.user.displayName"
+            >{{ session.accountLabel }}</span
+          >
         </p>
         <LanguageSwitcher />
         <Button

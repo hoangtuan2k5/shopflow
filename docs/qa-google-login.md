@@ -84,3 +84,22 @@ Live acceptance còn cần chủ tài khoản thử trên từng public domain: 
 callback/session, first CSRF write, logout, cancellation và collision/link;
 kiểm tra cookie Secure/HttpOnly/Lax thực tế. Hai domain dùng chung database,
 không có cookie SSO. Cart persistence thuộc SF-147, owner checkout thuộc SF-148.
+
+## Account navigation and Google button follow-up
+
+The Google login link uses the official local PNG from
+https://developers.google.com/static/identity/images/g-logo.png on a white button,
+with its original aspect ratio retained. Branding reference:
+https://developers.google.com/identity/branding-guidelines.
+
+The storefront link shows the authenticated display name rather than Workspace.
+Its label has at most24 grapheme clusters (23 plus an ellipsis for long names);
+the complete name remains in the title and accessible label. This only limits
+presentation, not the stored account name. Staff headers reuse the same label.
+Responsive checks cover320,390,768,1024 and1280px with a long Vietnamese name and
+a family emoji; no horizontal overflow. Existing role destinations are retained.
+
+`npm --prefix frontend run test:e2e`:99 passed after the follow-up; build and
+lint:ci passed. Screenshots of the Google button and mobile/desktop account labels
+were inspected. Session APIs in these UI tests are mocked; backend OAuth behavior
+is unchanged. These local UI changes have not been deployed by release PR155.
