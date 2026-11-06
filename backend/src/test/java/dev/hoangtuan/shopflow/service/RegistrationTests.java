@@ -78,6 +78,35 @@ class RegistrationTests {
   }
 
   @Test
+  void websiteLanguageReachesEmailDelivery() throws Exception {
+    when(mail.sendRegistrationCode(anyString(), anyString(), anyString(), any(UUID.class)))
+        .thenAnswer(
+            inv -> {
+              assertThat(
+                      org.springframework.context.i18n.LocaleContextHolder.getLocale()
+                          .getLanguage())
+                  .isEqualTo("vi");
+              return UUID.randomUUID().toString();
+            });
+    mvc.perform(
+            postJson(
+                    "/auth/registrations",
+                    Map.of(
+                        "email",
+                        "language@example.com",
+                        "password",
+                        "Abcdef1!",
+                        "displayName",
+                        "Khách"))
+                .header("Accept-Language", "vi")
+                .with(csrf()))
+        .andExpect(status().isAccepted());
+    verify(mail)
+        .sendRegistrationCode(
+            eq("language@example.com"), eq("Khách"), anyString(), any(UUID.class));
+  }
+
+  @Test
   void activatesOnlyAfterProofThenLogsInByEmailWithoutTechnicalAlias() throws Exception {
     MvcResult issued = register("  Buyer@EXAMPLE.com  ", "Abcdef1!", "  Khách  ");
     UUID id = id(issued);

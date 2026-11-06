@@ -500,3 +500,14 @@ Existing legacy pending orders must retain null owners/reservations. An old app
 may still fit the additive schema but reopens guest payment; rollback requires
 an approved checkout maintenance block/forward-fix plan, not blind DB restore.
 No old unrelated Jira issue is completed by this auth rollout.
+
+### Transactional email appearance and language
+
+Registration, reset OTP and password-change emails use the existing ShopFlow PNG
+logo rendered into an opaque white PNG banner embedded as a CID attachment,
+with a text alternative when images are hidden. The banner needs no public image URL.
+The website sends its current `en` or `vi` selection in `Accept-Language` for each
+mail-producing request, including resends and reset confirmation. Spring's request
+locale selects a single language for subject, HTML and plain text; Vietnamese is
+used for `vi`, English for other locales. This does not change the sender avatar,
+OTP lifetime, proof binding or resend limits.
