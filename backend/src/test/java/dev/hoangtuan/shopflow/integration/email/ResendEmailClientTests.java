@@ -10,6 +10,7 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -36,6 +38,7 @@ class ResendEmailClientTests {
 
   @BeforeEach
   void startServer() throws Exception {
+    LocaleContextHolder.setLocale(Locale.ENGLISH);
     server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     executor = Executors.newVirtualThreadPerTaskExecutor();
     server.setExecutor(executor);
@@ -75,6 +78,7 @@ class ResendEmailClientTests {
   void stopServer() {
     server.stop(0);
     executor.shutdownNow();
+    LocaleContextHolder.resetLocaleContext();
   }
 
   @Test
@@ -94,16 +98,19 @@ class ResendEmailClientTests {
     assertThat(request.body().get("to").get(0).asText()).isEqualTo("buyer@example.com");
     assertThat(request.body().get("subject").asText()).contains("Verify email");
     assertThat(request.body().get("text").asText())
-        .contains("012345", "10 phút", "60 giây", "10 minutes", "once");
+        .contains("012345", "60 seconds", "10 minutes", "once")
+        .doesNotContain("Mã xác minh", "Xin chào");
     assertThat(request.body().get("html").asText())
         .contains("&lt;img", "&gt;&amp;", "012345")
-        .doesNotContain("<img");
+        .doesNotContain("<img src=x", "onerror=alert(1)>&")
+        .contains("cid:shopflow-banner", "alt=\"ShopFlow\"");
     UUID reset = UUID.randomUUID();
     client.sendResetCode("buyer@example.com", "654321", reset);
     request = requests.remove();
     assertThat(request.idempotency()).isEqualTo(reset.toString());
     assertThat(request.body().get("subject").asText()).contains("Reset password");
     assertThat(request.body().get("text").asText()).contains("654321", "ignore this email");
+    assertThat(request.body().get("html").asText()).contains("cid:shopflow-banner", "654321");
   }
 
   @Test
@@ -117,7 +124,51 @@ class ResendEmailClientTests {
     assertThat(request.body().get("text").asText())
         .contains("contact ShopFlow support")
         .doesNotContain("Verification code:");
-    assertThat(request.body().get("html").asText()).contains("<h1>ShopFlow</h1>");
+    assertThat(request.body().get("html").asText())
+        .contains("cid:shopflow-banner", "alt=\"ShopFlow\"", "contact ShopFlow support");
+  }
+
+  @Test
+  void vietnameseEmailsUseOnlyVietnameseAndHaveAWhiteLogoBackground() {
+    LocaleContextHolder.setLocale(Locale.forLanguageTag("vi-VN"));
+    var client = client("fake-key", "ShopFlow <shopflow@hoangtuan.dev>");
+    client.sendRegistrationCode("buyer@example.com", "Khách", "012345", UUID.randomUUID());
+    Request registration = requests.remove();
+    assertThat(registration.body().get("subject").asText()).isEqualTo("ShopFlow — Xác minh email");
+    assertThat(registration.body().get("text").asText())
+        .contains("Xin chào Khách", "Mã xác minh: 012345", "10 phút", "60 giây")
+        .doesNotContain("Hello", "Verification code", "This code");
+    assertThat(registration.body().get("html").asText())
+        .contains("background-color:#ffffff", "cid:shopflow-banner", "alt=\"ShopFlow\"");
+    client.sendResetCode("buyer@example.com", "654321", UUID.randomUUID());
+    Request reset = requests.remove();
+    assertThat(reset.body().get("subject").asText()).isEqualTo("ShopFlow — Đặt lại mật khẩu");
+    assertThat(reset.body().get("text").asText()).contains("654321").doesNotContain("Verification");
+    client.sendPasswordChanged("buyer@example.com", UUID.randomUUID());
+    Request changed = requests.remove();
+    assertThat(changed.body().get("subject").asText()).isEqualTo("ShopFlow — Mật khẩu đã thay đổi");
+    assertThat(changed.body().get("text").asText())
+        .contains("Mật khẩu tài khoản")
+        .doesNotContain("Your account");
+  }
+
+  @Test
+  void embedsAnOpaqueWhiteBannerWithMatchingContentId() throws Exception {
+    client("fake-key", "ShopFlow <shopflow@hoangtuan.dev>")
+        .sendResetCode("buyer@example.com", "123456", UUID.randomUUID());
+    Request request = requests.remove();
+    JsonNode attachment = request.body().get("attachments").get(0);
+    assertThat(attachment.get("content_id").asText()).isEqualTo("shopflow-banner");
+    assertThat(attachment.get("filename").asText()).isEqualTo("shopflow-banner.png");
+    var image =
+        javax.imageio.ImageIO.read(
+            new java.io.ByteArrayInputStream(
+                java.util.Base64.getDecoder().decode(attachment.get("content").asText())));
+    assertThat(image.getWidth()).isEqualTo(1200);
+    assertThat(image.getHeight()).isEqualTo(280);
+    for (int[] point : new int[][] {{0, 0}, {1199, 0}, {0, 279}, {1199, 279}})
+      assertThat(image.getRGB(point[0], point[1])).isEqualTo(0xffffffff);
+    assertThat(request.body().get("html").asText()).contains("src=\"cid:shopflow-banner\"");
   }
 
   @Test

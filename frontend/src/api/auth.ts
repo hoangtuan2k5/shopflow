@@ -1,4 +1,5 @@
 import { httpClient, request } from './httpClient'
+import { i18n } from '@/i18n'
 
 export type UserRole = 'CUSTOMER' | 'WAREHOUSE' | 'SHOP_OWNER'
 
@@ -68,7 +69,12 @@ export interface ChallengeResponse {
 
 export async function registerAccount(data: RegistrationRequest) {
   await getSession()
-  return request<ChallengeResponse>({ method: 'POST', url: '/auth/registrations', data })
+  return request<ChallengeResponse>({
+    method: 'POST',
+    url: '/auth/registrations',
+    data,
+    headers: { 'Accept-Language': i18n.global.locale.value },
+  })
 }
 
 export async function verifyRegistration(challengeId: string, otp: string) {
@@ -85,6 +91,7 @@ export async function resendOtp(challengeId: string) {
   return request<ChallengeResponse>({
     method: 'POST',
     url: '/auth/otp/resend',
+    headers: { 'Accept-Language': i18n.global.locale.value },
     data: { challengeId },
   })
 }
@@ -94,6 +101,7 @@ export async function requestPasswordReset(email: string) {
   return request<ChallengeResponse>({
     method: 'POST',
     url: '/auth/password/forgot',
+    headers: { 'Accept-Language': i18n.global.locale.value },
     data: { email },
   })
 }
@@ -104,5 +112,10 @@ export async function resetPassword(data: {
   newPassword: string
 }) {
   await getSession()
-  return request<void>({ method: 'POST', url: '/auth/password/reset', data })
+  return request<void>({
+    method: 'POST',
+    url: '/auth/password/reset',
+    data,
+    headers: { 'Accept-Language': i18n.global.locale.value },
+  })
 }

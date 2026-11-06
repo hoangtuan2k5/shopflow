@@ -25,10 +25,12 @@ test.beforeEach(async ({ page }) => {
 
 test('Forgot password link leads to a combined reset form without auto-login', async ({ page }) => {
   await page.route('**/api/auth/password/forgot', async (route) => {
+    expect(route.request().headers()['accept-language']).toBe('en')
     expect(route.request().postDataJSON()).toEqual({ email: 'buyer@example.com' })
     await route.fulfill({ status: 202, json: challenge })
   })
   await page.route('**/api/auth/password/reset', async (route) => {
+    expect(route.request().headers()['accept-language']).toBe('en')
     expect(route.request().postDataJSON()).toEqual({
       challengeId: challenge.challengeId,
       otp: '012345',

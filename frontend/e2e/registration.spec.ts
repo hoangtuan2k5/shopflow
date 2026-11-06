@@ -21,6 +21,7 @@ test.beforeEach(async ({ page }) => {
 
 test('registration verifies without auto-login or storing credentials', async ({ page }) => {
   await page.route('**/api/auth/registrations', async (route) => {
+    expect(route.request().headers()['accept-language']).toBe('en')
     expect(route.request().postDataJSON()).toEqual({
       email: 'buyer@example.com',
       password: 'Abcdef1!',
@@ -130,4 +131,26 @@ test('missing mail configuration shows a generic error without a redirect loop',
     'We could not complete this request. Please try again later.',
   )
   await expect(page).toHaveURL(/\/register$/)
+})
+
+test('OTP resend uses the current website language after switching', async ({ page }) => {
+  await page.clock.install()
+  await page.route('**/api/auth/registrations', async (route) => {
+    expect(route.request().headers()['accept-language']).toBe('en')
+    await route.fulfill({ status: 202, json: challenge })
+  })
+  let resent = false
+  await page.route('**/api/auth/otp/resend', async (route) => {
+    expect(route.request().headers()['accept-language']).toBe('vi')
+    resent = true
+    await route.fulfill({ status: 202, json: challenge })
+  })
+  await page.goto('/register')
+  await fillRegistration(page)
+  await page.getByRole('button', { name: 'Send verification code' }).click()
+  await expect(page.getByRole('heading', { name: 'Verify your email' })).toBeVisible()
+  await page.getByRole('combobox', { name: 'Language' }).selectOption('vi')
+  await page.clock.fastForward(61_000)
+  await page.getByRole('button', { name: 'Gửi lại mã', exact: true }).click()
+  await expect.poll(() => resent).toBe(true)
 })
