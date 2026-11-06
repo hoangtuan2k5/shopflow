@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Authentication rollout evidence**: rehearse V6/V7 pg_dump/restore with preserved legacy/demo data, record provider/env readiness and keep live Google/Inbox and production approval gates explicit (SF-149).
+
 - **Persistent guest carts**: retain product IDs and quantities across login and OAuth navigation, reload current catalog data, handle unavailable storage/items and clear private checkout state on account changes (SF-147).
 
 - **Google sign-in**: add validated OIDC login and explicit password-confirmed linking for email collisions, with fixed callbacks on both storefront domains and bilingual UI (SF-146).

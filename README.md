@@ -441,3 +441,11 @@ không dùng customer email làm owner. Biết orderRef không đủ quyền tha
 Đơn cũ owner null được giữ nguyên và chặn payment qua storefront; không tự
 gán theo email, hủy hoặc giải phóng reservation. Payment vẫn mô phỏng CARD.
 Xem [kiểm chứng](docs/qa-checkout-ownership.md) và [contract](docs/api-customer-identity-spec.md).
+
+### Nghiệm thu và rollout tài khoản khách (SF-149)
+
+Implementation đã có trên develop; [ma trận tích hợp](docs/qa-customer-authentication.md)
+phân biệt test tự động, DB/backup-restore dùng một lần, probe provider và các
+mục live chưa chạy. `.env` đủ biến không tự cập nhật container đang chạy.
+Chưa tuyên bố release-ready khi chưa nghiệm thu Google hai domain/Inbox thật
+và được duyệt backup/rollout; không tự deploy hoặc xử lý legacy orders.

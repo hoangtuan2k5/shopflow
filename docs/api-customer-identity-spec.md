@@ -1,8 +1,9 @@
 # ShopFlow — Customer Identity and Checkout Contract (SF-141)
 
-**Phiên bản:** 1.0 — 04/11/2026
+**Phiên bản:** 1.1 — 06/11/2026
 
-**Trạng thái:** Contract đích để review; chưa triển khai.
+**Trạng thái:** SF-142–SF-148 đã thực hiện trong source; live acceptance và rollout
+chưa hoàn tất. Xem [ma trận SF-149](qa-customer-authentication.md).
 
 **Jira:** [SF-140](https://tuanwork.atlassian.net/browse/SF-140),
 [SF-141](https://tuanwork.atlassian.net/browse/SF-141); triển khai SF-142–SF-149.
@@ -11,8 +12,9 @@
 
 Baseline source là `13b92154` trên `develop` (v0.12.1): username/password,
 session in-memory, `SameSite=Strict`, login/session/logout, guest order/payment.
-Các API mới dưới đây **chưa tồn tại**. SF-141 chỉ sửa tài liệu, không sửa Java,
-Vue, migration SQL, OpenAPI snapshot, Compose hoặc `.env`.
+Tại thời điểm SF-141, các API mới chưa tồn tại và task đó chỉ sửa tài liệu.
+SF-142–SF-148 sau đó bổ sung implementation; baseline trên là lịch sử, không
+phải trạng thái source hiện tại hoặc bằng chứng production đã cập nhật.
 
 Contract này có hiệu lực khi các task triển khai được nghiệm thu và cutover;
 nó thay phần guest checkout và giới hạn auth cũ trong

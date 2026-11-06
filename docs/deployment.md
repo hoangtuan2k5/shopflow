@@ -481,3 +481,22 @@ order receive generic404 with no reserve/movement changes; first write after
 login has real cookie CSRF; 401 mid-checkout keeps cart/intent without auto-submit.
 Local/CI evidence is in `docs/qa-checkout-ownership.md`; public-provider/domain
 acceptance and final rollout readiness are SF-149.
+
+## Customer authentication release gates (SF-149)
+
+Use [the integration matrix and reviewed backup/rollback checklist](qa-customer-authentication.md)
+before a release. Source integration and disposable restore checks are complete;
+live Google/Inbox and production backup/approval remain separate gates. Do not
+interpret .env presence or a synthetic invalid-code response as live acceptance.
+
+At the 2026-11-06 read-only baseline, production was V6; the running backend
+lacked the five new auth/mail variables despite both env files being ready.
+The existing main workflow validates applied checksums with pending migrations
+allowed, then recreates Compose services; backend startup applies V7. A reviewed
+backup must precede that approved action. Do not manually migrate or restore
+production as part of a read-only readiness check.
+
+Existing legacy pending orders must retain null owners/reservations. An old app
+may still fit the additive schema but reopens guest payment; rollback requires
+an approved checkout maintenance block/forward-fix plan, not blind DB restore.
+No old unrelated Jira issue is completed by this auth rollout.
