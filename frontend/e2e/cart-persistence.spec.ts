@@ -109,6 +109,7 @@ test('Checkout return opens the restored form without creating an order automati
     key,
   )
   await catalog(page)
+  await mockSession(page, 'CUSTOMER')
   let orders = 0
   await page.route('**/api/orders', () => {
     orders += 1
@@ -183,6 +184,7 @@ test('Deleted or out-of-stock items remain visible as issues until removed or re
     key,
   )
   await catalog(page)
+  await mockSession(page, 'CUSTOMER')
   await page.route('**/api/products/1', (route) =>
     route.fulfill({ status: 404, json: { message: 'Not found' } }),
   )
@@ -218,7 +220,7 @@ test('A 401 clears checkout PII but retains cart items for the next account', as
   await page.getByRole('button', { name: 'Place order', exact: true }).click()
   await expect(page).toHaveURL(/\/login/)
   expect(new URL(page.url()).searchParams.get('redirect')).toBe('/customer?checkout=1')
-  await mockSession(page, null)
+  await mockSession(page, 'WAREHOUSE')
   await page.goto('/customer?checkout=1')
   await expect(page.getByLabel('Customer name')).toHaveValue('')
   await expect(page.getByLabel('Address')).toHaveValue('')

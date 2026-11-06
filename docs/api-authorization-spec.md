@@ -1,13 +1,13 @@
 # ShopFlow — Authorization API Specification
 
-**Phiên bản:** 1.2 (baseline + contract đích SF-141)
+**Phiên bản:** 1.3 (authenticated checkout SF-148)
 
-**Ngày cập nhật:** 04/11/2026
+**Ngày cập nhật:** 06/11/2026
 
-> Các mục cũ mô tả quyền đã triển khai ở v0.12.1. Ma trận đích SF-141 ở mục 11
-> dưới đây **thay quyền guest order/payment sau cutover**; chưa được bật bởi
-> thay đổi tài liệu này. Quyền vận hành không đổi. Request/response auth mới
-> nằm trong [Customer Identity Contract](api-customer-identity-spec.md).
+> SF-148 đã thực hiện login-required checkout/ownership trong source trên develop.
+> Production chỉ đổi sau release được chủ repo duyệt. Ma trận storefront ở mục 11
+> áp dụng cho code hiện tại; quyền vận hành không đổi. Xem
+> [Customer Identity Contract](api-customer-identity-spec.md).
 
 **Liên quan:**
 
@@ -40,23 +40,17 @@ Guest là người dùng hợp lệ, không phải người dùng hạng hai. Gu
 
 - xem danh sách và chi tiết sản phẩm;
 - thêm sản phẩm vào giỏ (giỏ nằm ở trình duyệt, không có API);
-- tạo đơn hàng;
-- thanh toán cho chính đơn vừa tạo, bằng `orderRef` nhận được (xem mục 5);
 - tra cứu đơn bằng mã đơn nếu hệ thống có hỗ trợ.
 
-Guest **không được**: xem lịch sử đơn hàng, quản lý tài khoản, lưu địa chỉ giao
-hàng, quản lý thông tin cá nhân.
+Guest **không được** tạo đơn hoặc thanh toán; cần đăng nhập ở checkout. Các
+API lịch sử đơn, quản lý tài khoản/địa chỉ vẫn ngoài phạm vi này.
 
 ### 2.2 Customer — khách đã đăng nhập
 
-Có toàn bộ quyền của Guest, cộng thêm: quản lý tài khoản, xem lịch sử đơn hàng,
-quản lý địa chỉ giao hàng, theo dõi toàn bộ đơn của mình.
-
-**Trạng thái hiện tại:** không endpoint nào trong số các quyền bổ sung này tồn
-tại. Đơn hàng hiện là guest order — bảng `orders` chỉ lưu snapshot tên, email,
-điện thoại và **không có khóa ngoại tới tài khoản**. Vì vậy vai trò `CUSTOMER`
-hôm nay chỉ là một danh tính đăng nhập được, chưa mở thêm khả năng nào. Nối đơn
-hàng với tài khoản là việc riêng, cần migration và thay đổi `OrderService`.
+Customer được xem/thêm giỏ, tạo đơn gắn tài khoản và thanh toán đơn của chính
+mình. `orders.account_user_id` tách khỏi customer snapshot/customer_id. Đơn cũ
+owner null giữ nguyên và không thanh toán qua storefront. API lịch sử đơn và
+quản lý địa chỉ/tài khoản chưa được bổ sung bởi SF-148.
 
 ### 2.3 Warehouse — nhân viên kho
 
@@ -86,8 +80,8 @@ tiền · dashboard · doanh thu và báo cáo · cấu hình cửa hàng.
 | `GET /products` | ✓ | ✓ | ✓ | ✓ |
 | `GET /products/{id}` | ✓ | ✓ | ✓ | ✓ |
 | `POST /products/{id}/image` | — | — | — | ✓ |
-| `POST /orders` | ✓ | ✓ | ✓ | ✓ |
-| `POST /orders/{orderRef}/payments` | ✓ | ✓ | ✓ | ✓ |
+| `POST /orders` | — | ✓ | ✓ | ✓ |
+| `POST /orders/{orderRef}/payments` | — | own | own | own |
 | `POST /auth/login` | ✓ | ✓ | ✓ | ✓ |
 | `POST /auth/logout` | ✓ | ✓ | ✓ | ✓ |
 | `GET /auth/session` | ✓ | ✓ | ✓ | ✓ |
@@ -138,18 +132,17 @@ trạng thái. Hai lớp:
    header `X-XSRF-TOKEN`. Axios hỗ trợ sẵn cặp tên này nên chi phí frontend gần
    bằng không.
 
-Ba endpoint công khai không dùng phiên — `POST /orders` và
-`POST /orders/{orderRef}/payments` — vẫn cần token vì trình duyệt của guest cũng
-có cookie CSRF. `POST /auth/login` được miễn: người gọi chưa có phiên để bảo vệ.
+`POST /orders` và `POST /orders/{orderRef}/payments` cần phiên và cookie/header
+CSRF hợp lệ. Guest có CSRF đúng vẫn401. `POST /auth/login` giữ ngoại lệ CSRF
+hiện có; auth endpoints còn kiểm Origin.
 
-## 5. Vì sao thanh toán không nằm trong ma trận vai trò
+## 5. Thanh toán theo chủ đơn
 
-Guest phải thanh toán được, nên endpoint không thể yêu cầu vai trò. Việc kiểm
-soát nằm ở chỗ khác: đơn hàng được định danh bằng `orderRef` không đoán được
-thay vì id tuần tự (xem [SF-85](https://tuanwork.atlassian.net/browse/SF-85) và
-[`api-payment-simulation-spec.md`](./api-payment-simulation-spec.md)). Ai giữ
-tham chiếu thì trả được tiền cho đơn đó — đúng bằng khả năng mà người đặt đơn
-cần có.
+Mọi role hợp lệ đều được mua hàng, nhưng chỉ account tạo đơn được thanh toán.
+`orderRef` vẫn opaque, không thay authorization. Sau khóa order, service kiểm
+account_user_id trước status/duplicate và trước mọi write/release. Wrong-owner,
+reference sai/không tồn tại hoặc legacy owner null cùng404 `Order not found`;
+SHOP_OWNER không có ngoại lệ. Đúng owner nhưng đã resolve vẫn409.
 
 ## 6. Đường kỹ thuật không thuộc nghiệp vụ
 
@@ -200,7 +193,8 @@ không phải chặn cả endpoint. Chưa làm trong SF-73.
 2. Với mỗi endpoint không công khai: sai vai trò trả `403`.
 3. Với mỗi endpoint: đúng vai trò thành công.
 4. Sau một request bị chặn, dữ liệu liên quan không đổi.
-5. Guest xem catalog, tạo đơn và thanh toán bằng `orderRef` — cả ba thành công.
+5. Guest xem/thêm giỏ được; order/payment401. Ba role/demo chỉ thanh toán đơn
+   của chính mình; other-owner/legacy404 không thay reservation.
 6. WAREHOUSE chuyển return sang `RESTOCKED` thành công; sang `APPROVED` hoặc
    `REJECTED` trả `403` và trạng thái return không đổi.
 7. SHOP_OWNER thực hiện được cả ba chuyển trạng thái của return.

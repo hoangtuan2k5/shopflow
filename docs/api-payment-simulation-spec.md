@@ -1,13 +1,12 @@
 # ShopFlow — Payment Simulation API Specification
 
-**Phiên bản:** 1.2 (baseline + contract đích SF-141)
+**Phiên bản:** 1.3 (payment ownership SF-148)
 
-**Ngày cập nhật:** 04/11/2026
+**Ngày cập nhật:** 06/11/2026
 
-> Mục 1–6 là baseline guest payment đã triển khai. Mục 8 là contract đích
-> SF-141, thay capability-only payment bằng login + ownership sau cutover;
-> task tài liệu chưa thay API thực tế. Xem
-> [Customer Identity Contract](api-customer-identity-spec.md).
+> SF-148 đã thực hiện login + ownership trong source trên develop. Production
+> chỉ đổi sau release được duyệt. `orderRef` vẫn opaque nhưng không đủ quyền
+> thanh toán; xem [Customer Identity Contract](api-customer-identity-spec.md).
 
 **Liên quan:**
 
@@ -36,21 +35,16 @@ MVP không hỗ trợ retry, refund, webhook, polling, COD hoặc nhiều paymen
 
 ### Vì sao định danh bằng `orderRef` chứ không phải `orderId`
 
-Thanh toán mở cho khách vãng lai nên không thể chặn bằng vai trò. Nếu đường dẫn
-mang `orderId` — một `BIGSERIAL` tăng dần — thì bất kỳ ai cũng dò được id của
-người khác và:
+`orderRef` là UUID ngẫu nhiên giữ public API tách khỏi ID tuần tự nội bộ.
+Từ SF-148, caller còn phải đăng nhập và là chính `orders.account_user_id`.
+Server lấy user ID từ principal, không từ JSON/email hoặc quyền SHOP_OWNER.
+Guest có CSRF hợp lệ vẫn401. Sau structural validation và SELECT FOR UPDATE,
+owner được kiểm trước status/duplicate và trước payment/status/reservation write.
 
-- gửi `FAILED` để ép đơn của họ sang `PAYMENT_FAILED`, giải phóng tồn kho đang giữ;
-- gửi `SUCCESS` để đánh dấu đơn của họ đã thanh toán mà không trả tiền.
-
-`orderRef` là một UUID ngẫu nhiên gắn với order lúc tạo và trả về trong response
-của `POST /orders`. Nó hoạt động như một capability: chỉ người nhận được tham
-chiếu mới thanh toán được cho order đó. Order vẫn được tham chiếu nội bộ bằng
-`orderId`; chỉ đường thanh toán dùng `orderRef`.
-
-`orderRef` không tồn tại hoặc sai định dạng đều trả `404`, không phân biệt.
-
----
+Wrong-owner, reference sai/không tồn tại và legacy owner null cùng trả404
+`Order not found`, không đổi dữ liệu. Đúng owner nhưng order không eligible hoặc
+đã có payment vẫn409. Legacy PENDING_PAYMENT giữ nguyên reservation; không
+backfill owner theo snapshot hoặc tự hủy/release.
 
 ## 2. Request
 
@@ -138,7 +132,7 @@ Error body tối thiểu:
 | HTTP | Trường hợp |
 | --- | --- |
 | `400 Bad Request` | Body malformed; result thiếu/không hợp lệ; failureReason sai quy tắc |
-| `404 Not Found` | Không có order mang `orderRef` |
+| `404 Not Found` | Reference sai/không tồn tại, wrong-owner hoặc legacy owner null |
 | `409 Conflict` | Order không còn `PENDING_PAYMENT` hoặc đã có payment attempt |
 
 Request bị từ chối không tạo payment và không đổi order, inventory hay movement.
@@ -172,6 +166,7 @@ thành công và tối đa một payment row được tạo.
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 1.3 | 2026-11-06 | Triển khai login/ownership SF-148 trong source; giữ legacy order null owner, không auto-release. |
 | 1.2 | 2026-11-04 | Thêm delta đích login/ownership và legacy guest policy SF-141; chưa triển khai. |
 | 1.1 | 2026-07-26 | Đổi định danh đường thanh toán từ `orderId` sang `orderRef` để chặn dò id |
 | 1.0 | 2026-07-21 | Chốt payment states, endpoint, payload, side effects và error semantics |

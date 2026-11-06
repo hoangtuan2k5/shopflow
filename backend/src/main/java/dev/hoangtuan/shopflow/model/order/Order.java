@@ -24,15 +24,15 @@ public class Order {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  /**
-   * Tham chiếu công khai, không đoán được, dùng thay cho id tuần tự khi khách vãng lai thanh toán.
-   * Biết id không đủ để trả tiền cho một đơn hàng.
-   */
+  // The opaque reference is public; payment ownership is checked separately.
   @Column(name = "order_ref", nullable = false, length = 36, updatable = false)
   private String orderRef;
 
   @Column(name = "customer_id")
   private Long customerId;
+
+  @Column(name = "account_user_id", updatable = false)
+  private Long accountUserId;
 
   @Embedded private CustomerSnapshot customer;
 
@@ -68,12 +68,14 @@ public class Order {
       CustomerSnapshot customer,
       ShippingAddress shippingAddress,
       PaymentMethod paymentMethod,
-      BigDecimal totalAmount) {
+      BigDecimal totalAmount,
+      Long accountUserId) {
     this.orderRef = java.util.UUID.randomUUID().toString();
     this.customer = customer;
     this.shippingAddress = shippingAddress;
     this.paymentMethod = paymentMethod;
     this.totalAmount = totalAmount;
+    this.accountUserId = accountUserId;
   }
 
   @jakarta.persistence.PrePersist
@@ -99,6 +101,10 @@ public class Order {
 
   public String getOrderRef() {
     return orderRef;
+  }
+
+  public Long getAccountUserId() {
+    return accountUserId;
   }
 
   Long getCustomerId() {

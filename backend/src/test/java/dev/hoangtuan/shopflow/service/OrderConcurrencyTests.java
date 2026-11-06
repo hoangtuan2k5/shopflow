@@ -58,8 +58,8 @@ class OrderConcurrencyTests {
     ExecutorService executor = Executors.newFixedThreadPool(2);
 
     try {
-      Future<OrderResponse> first = submit(executor, start, request);
-      Future<OrderResponse> second = submit(executor, start, request);
+      Future<OrderResponse> first = submit(executor, start, request, 1L);
+      Future<OrderResponse> second = submit(executor, start, request, 3L);
 
       int successfulOrders = 0;
       int insufficientOrders = 0;
@@ -93,11 +93,11 @@ class OrderConcurrencyTests {
   }
 
   private Future<OrderResponse> submit(
-      ExecutorService executor, CyclicBarrier start, CreateOrderRequest request) {
+      ExecutorService executor, CyclicBarrier start, CreateOrderRequest request, long userId) {
     return executor.submit(
         () -> {
           start.await(15, TimeUnit.SECONDS);
-          return orderService.createOrder(request);
+          return orderService.createOrder(request, userId);
         });
   }
 

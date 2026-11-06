@@ -1,12 +1,12 @@
 # ShopFlow — Customer Order API Specification
 
-**Phiên bản:** 1.6 (baseline + contract đích SF-141)
-**Ngày cập nhật:** 04/11/2026
+**Phiên bản:** 1.7 (authenticated ownership SF-148)
+**Ngày cập nhật:** 06/11/2026
 
-> Phần baseline dưới đây giữ hành vi order đã triển khai. Mục 10 ghi delta
-> authenticated checkout SF-141, thay quyền guest khi cutover; chưa có code
-> hoặc migration mới trong task tài liệu. Xem
-> [Customer Identity Contract](api-customer-identity-spec.md).
+> SF-148 đã triển khai authenticated checkout trong source: owner lấy từ phiên,
+> gán trong transaction và không có owner field ở JSON. Production chỉ đổi sau
+> release được duyệt. Xem [Customer Identity Contract](api-customer-identity-spec.md).
+
 **Liên quan:**
 - [SF-3: Create Customer Order](https://tuanwork.atlassian.net/browse/SF-3)
 - [SF-46: Fix Customer Order Validation and Payment Handoff Gaps](https://tuanwork.atlassian.net/browse/SF-46)
@@ -48,9 +48,12 @@ và lệnh chạy nằm trong [QA Customer Order](./qa-customer-order.md).
 
 ### Quyền truy cập và CSRF
 
-- Guest và mọi vai trò đăng nhập đều được tạo đơn; không yêu cầu tài khoản.
+- Guest xem/thêm giỏ tự do nhưng `POST /orders` cần phiên hợp lệ. CUSTOMER,
+  WAREHOUSE, SHOP_OWNER và demo đều được mua; owner lấy từ principal nội bộ.
 - `POST /orders` vẫn yêu cầu cookie `XSRF-TOKEN` và header `X-XSRF-TOKEN`
-  chứa cùng giá trị. Thiếu token trả `401` trước khi tạo đơn; token sai trả `403`.
+  chứa cùng giá trị. Thiếu/sai CSRF bị từ chối trước side effect; guest có token
+  hợp lệ vẫn401. Client không gửi `accountUserId`, `userId` hoặc `role`; root
+  field ngoài schema bị400. Customer email có thể khác email account.
 - Client gọi `GET /auth/session` trước khi gửi đơn và giữ cookie được cấp. Nếu
   chưa có cookie token, response từ chối request ghi thiếu token cũng cấp
   `XSRF-TOKEN`; client giữ cookie rồi gửi lại với header đúng. Vòng cookie/header
@@ -561,6 +564,7 @@ export function createOrder(body: CreateOrderRequest) {
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.7 | 2026-11-06 | Triển khai login/ownership SF-148 trong source; giữ legacy order null owner, không auto-release. |
 | 1.6 | 2026-11-04 | Thêm contract đích gắn order với account và login-required checkout SF-141; chưa triển khai. |
 | 1.5 | 2026-10-12 | Duy trì contract trong repository; bổ sung CSRF, giới hạn field, orderRef và liên kết QA/payment (SF-125) |
 | 1.4 | 2026-07-26 | Bổ sung `orderRef` vào response; đây là định danh dùng cho đường thanh toán |

@@ -3,12 +3,15 @@ package dev.hoangtuan.shopflow.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import dev.hoangtuan.shopflow.model.access.Role;
+import dev.hoangtuan.shopflow.security.AccountPrincipal;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +40,13 @@ class PaymentControllerTests {
     mockMvc =
         MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .apply(springSecurity())
-            .defaultRequest(get("/").with(csrf()))
+            .defaultRequest(
+                get("/")
+                    .with(
+                        user(
+                            new AccountPrincipal(
+                                1L, "customer", null, "Customer", Role.CUSTOMER, 0)))
+                    .with(csrf()))
             .build();
   }
 
@@ -334,8 +343,8 @@ class PaymentControllerTests {
         """
         INSERT INTO shopflow.orders (
           customer_name, receiver_name, receiver_phone, address_line, city,
-          status, payment_method, total_amount
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          status, payment_method, total_amount, account_user_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
         """,
         "Guest",
         "Guest",

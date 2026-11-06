@@ -218,8 +218,17 @@ function removeFromCart(productId: number) {
   cart.remove(productId)
 }
 
+function goToCheckoutLogin() {
+  cartOpen.value = false
+  void router.push({ name: 'login', query: { redirect: '/customer?checkout=1' } })
+}
+
 function openCheckout() {
   if (checkoutLines.value.length === 0 || cart.loading || cart.issues.length > 0) return
+  if (!session.isAuthenticated) {
+    goToCheckoutLogin()
+    return
+  }
   cartOpen.value = false
   void nextTick(() => {
     checkoutOpen.value = true
@@ -251,6 +260,10 @@ type CheckoutFormValues = {
 
 function submitOrder(values: CheckoutFormValues) {
   if (cart.loading || cart.issues.length > 0 || checkoutLines.value.length === 0) return
+  if (!session.isAuthenticated) {
+    goToCheckoutLogin()
+    return
+  }
   const body: CreateOrderRequest = {
     customer: {
       fullName: values.fullName,
@@ -277,6 +290,10 @@ function submitOrder(values: CheckoutFormValues) {
 
 function simulatePayment(result: SimulatedPaymentResult) {
   if (!createdOrder.value) return
+  if (!session.isAuthenticated) {
+    goToCheckoutLogin()
+    return
+  }
   paymentMutation.reset()
   paymentMutation.mutate({ orderRef: createdOrder.value.orderRef, result })
 }

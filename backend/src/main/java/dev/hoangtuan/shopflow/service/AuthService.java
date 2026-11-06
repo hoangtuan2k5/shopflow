@@ -115,6 +115,15 @@ public class AuthService {
   }
 
   private AccountPrincipal principalOf(Authentication authentication) {
-    return (AccountPrincipal) authentication.getPrincipal();
+    if (authentication == null
+        || !(authentication.getPrincipal() instanceof AccountPrincipal principal)) {
+      throw new org.springframework.security.authentication
+          .AuthenticationCredentialsNotFoundException("Sign in required");
+    }
+    return principal;
+  }
+
+  public long currentUserId() {
+    return principalOf(SecurityContextHolder.getContext().getAuthentication()).getUserId();
   }
 }

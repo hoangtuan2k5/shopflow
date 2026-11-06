@@ -204,6 +204,7 @@ test('Loading prevents duplicate sends, blank input is disabled, Escape restores
 
 test('Mobile assistant trigger leaves the cart bar and checkout accessible', async ({ page }) => {
   await setup(page)
+  await mockSession(page, 'CUSTOMER')
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/customer')
   await page.getByRole('button', { name: 'Add to cart' }).first().click()

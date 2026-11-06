@@ -1,5 +1,6 @@
 package dev.hoangtuan.shopflow.dto.order;
 
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import dev.hoangtuan.shopflow.model.order.ShippingAddress;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -15,6 +16,11 @@ public record CreateOrderRequest(
     @NotNull @Valid ShippingAddress shippingAddress,
     @NotBlank String paymentMethod,
     @NotEmpty List<@NotNull @Valid Item> items) {
+
+  @JsonAnySetter
+  public void rejectUnknown(String name, Object value) {
+    throw new IllegalArgumentException("Unknown field");
+  }
 
   public record Customer(
       @NotBlank @Size(max = 255) String fullName,
