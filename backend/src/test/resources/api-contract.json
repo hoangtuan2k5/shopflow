@@ -462,6 +462,34 @@
         }
       }
     },
+    "/auth/google/link" : {
+      "post" : {
+        "tags" : [ "Authentication" ],
+        "operationId" : "link",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GoogleLinkRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuthenticatedUser"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/returns/{returnId}" : {
       "patch" : {
         "tags" : [ "Returns" ],
@@ -1389,6 +1417,17 @@
           "enum" : [ "CUSTOMER", "WAREHOUSE", "SHOP_OWNER" ]
         }
       }
+    },
+    "GoogleLinkRequest" : {
+      "type" : "object",
+      "properties" : {
+        "password" : {
+          "type" : "string",
+          "maxLength" : 200,
+          "minLength" : 0
+        }
+      },
+      "required" : [ "password" ]
     },
     "UpdateReturnRequest" : {
       "type" : "object",

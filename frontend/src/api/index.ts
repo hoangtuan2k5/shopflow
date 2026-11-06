@@ -3,6 +3,7 @@ export type { ApiClientProblem } from './httpClient'
 export {
   getSession,
   login,
+  linkGoogleAccount,
   logout,
   registerAccount,
   verifyRegistration,

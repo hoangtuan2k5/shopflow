@@ -24,7 +24,9 @@ onUnauthorized(() => {
   if (!session.isAuthenticated) return
   session.forget()
   queryClient.clear()
-  void router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } })
+  if (router.currentRoute.value.name !== 'login') {
+    void router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } })
+  }
 })
 
 app.mount('#app')

@@ -68,14 +68,14 @@ lưu vào chính PostgreSQL đang có, không cần thêm hạ tầng.
 | Thuộc tính | Giá trị | Lý do |
 | --- | --- | --- |
 | `HttpOnly` | bật | JavaScript không đọc được, XSS không lấy được phiên |
-| `SameSite` | `Strict` | Cookie không đi kèm request từ site khác → chặn CSRF |
+| `SameSite` | `Lax` | Cho phép callback Google qua top-level GET; request ghi vẫn cần CSRF token (SF-146) |
 | `Secure` | bật ở production, tắt ở dev | Dev chạy HTTP trên localhost |
 | `Path` | `/` | |
 
 Phòng thủ CSRF gồm hai lớp:
 
-1. `SameSite=Strict` — trình duyệt không gửi cookie phiên trong request khởi
-   phát từ origin khác.
+1. `SameSite=Lax` — cho phép callback Google GET từ site khác; không dựa
+   riêng vào cookie policy để bảo vệ request ghi (SF-146).
 2. CSRF token của Spring Security cho các request thay đổi trạng thái, phát qua
    cookie `XSRF-TOKEN` và nhận lại ở header `X-XSRF-TOKEN`. Chi phí phía
    frontend gần bằng không vì axios đã hỗ trợ sẵn cặp tên này.

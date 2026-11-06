@@ -19,6 +19,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -71,8 +72,11 @@ public class SecurityConfig {
       HttpSecurity http,
       SecurityContextRepository securityContextRepository,
       AccountRepository accountRepository,
+      GoogleOAuthConfig google,
+      ClientRegistrationRepository clients,
       @Value("${shopflow.auth.allowed-origins}") Set<String> allowedOrigins)
       throws Exception {
+    google.configure(http, clients);
     return http.addFilterAfter(
             new AccountSessionValidationFilter(accountRepository),
             SecurityContextHolderFilter.class)
@@ -98,7 +102,10 @@ public class SecurityConfig {
                         "/auth/registrations/verify",
                         "/auth/otp/resend",
                         "/auth/password/forgot",
-                        "/auth/password/reset")
+                        "/auth/password/reset",
+                        "/auth/google/link",
+                        "/oauth2/authorization/google",
+                        "/login/oauth2/code/google")
                     .permitAll()
                     .requestMatchers("/actuator/health", "/actuator/health/*")
                     .permitAll()

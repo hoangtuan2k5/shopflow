@@ -128,6 +128,16 @@ export const vi: typeof en = {
     unavailable: 'Chưa thể xử lý yêu cầu. Vui lòng thử lại sau.',
     browse: 'Tiếp tục xem hàng',
   },
+  google: {
+    continue: 'Tiếp tục với Google',
+    linkTitle: 'Liên kết tài khoản Google',
+    linkHint:
+      'Email này đã có tài khoản ShopFlow. Nhập mật khẩu hiện tại để đồng ý liên kết Google và đăng nhập.',
+    linkSubmit: 'Liên kết Google và đăng nhập',
+    cancelLink: 'Dùng cách đăng nhập khác',
+    failed: 'Chưa thể đăng nhập Google. Anh/chị có thể thử lại hoặc đăng nhập bằng mật khẩu.',
+    expired: 'Yêu cầu liên kết đã hết hiệu lực. Vui lòng bắt đầu đăng nhập Google lại.',
+  },
   auth: {
     kicker: 'Đăng nhập',
     title: 'Chào mừng trở lại',

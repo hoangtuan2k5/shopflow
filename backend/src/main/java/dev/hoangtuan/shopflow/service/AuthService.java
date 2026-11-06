@@ -5,11 +5,13 @@ import dev.hoangtuan.shopflow.dto.access.LoginRequest;
 import dev.hoangtuan.shopflow.dto.access.SessionResponse;
 import dev.hoangtuan.shopflow.security.AccountPrincipal;
 import dev.hoangtuan.shopflow.security.CustomerCredentials;
+import dev.hoangtuan.shopflow.security.GoogleFlowSession;
 import dev.hoangtuan.shopflow.security.LoginRateLimiter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,14 +28,17 @@ public class AuthService {
   private final AuthenticationManager authenticationManager;
   private final SecurityContextRepository securityContextRepository;
   private final LoginRateLimiter loginRateLimiter;
+  private final Clock clock;
 
   public AuthService(
       AuthenticationManager authenticationManager,
       SecurityContextRepository securityContextRepository,
-      LoginRateLimiter loginRateLimiter) {
+      LoginRateLimiter loginRateLimiter,
+      Clock clock) {
     this.authenticationManager = authenticationManager;
     this.securityContextRepository = securityContextRepository;
     this.loginRateLimiter = loginRateLimiter;
+    this.clock = clock;
   }
 
   /**
@@ -61,6 +66,21 @@ public class AuthService {
                 CustomerCredentials.identifier(request.username()), request.password()));
     loginRateLimiter.clear(request.username());
 
+    String returnTo = GoogleFlowSession.returnTo(httpRequest, clock.instant());
+    AuthenticatedUser user =
+        establishSession(principalOf(authentication), httpRequest, httpResponse);
+    if (returnTo != null) httpResponse.setHeader("Location", returnTo);
+    return user;
+  }
+
+  public AuthenticatedUser establishSession(
+      AccountPrincipal principal,
+      HttpServletRequest httpRequest,
+      HttpServletResponse httpResponse) {
+    Authentication authentication =
+        UsernamePasswordAuthenticationToken.authenticated(
+            principal, null, principal.getAuthorities());
+
     // Đổi session id sau khi xác thực để chặn session fixation.
     HttpSession existingSession = httpRequest.getSession(false);
     if (existingSession != null) {
@@ -72,6 +92,8 @@ public class AuthService {
     context.setAuthentication(authentication);
     SecurityContextHolder.setContext(context);
     securityContextRepository.saveContext(context, httpRequest, httpResponse);
+    org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse()
+        .saveToken(null, httpRequest, httpResponse);
 
     return principalOf(authentication).toAuthenticatedUser();
   }

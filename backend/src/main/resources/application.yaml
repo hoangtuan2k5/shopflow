@@ -29,7 +29,7 @@ server:
       timeout: 8h
       cookie:
         http-only: true
-        same-site: strict
+        same-site: lax
 
 springdoc:
   api-docs:
@@ -41,6 +41,9 @@ springdoc:
 
 shopflow:
   auth:
+    google:
+      client-id: ${GOOGLE_CLIENT_ID:}
+      client-secret: ${GOOGLE_CLIENT_SECRET:}
     otp-hmac-secret: ${OTP_HMAC_SECRET:}
     allowed-origins: http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173
   mail:
