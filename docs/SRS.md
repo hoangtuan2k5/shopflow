@@ -1,16 +1,17 @@
 # ShopFlow Software Requirements Specification
 
-**Phiên bản:** 1.8
+**Phiên bản:** 1.9
 
-**Ngày cập nhật:** 04/11/2026
+**Ngày cập nhật:** 06/11/2026
 
-**Trạng thái:** Baseline MVP + yêu cầu đích SF-140 (chưa triển khai)
+**Trạng thái:** SF-142–SF-148 đã có trong source; live acceptance/rollout chưa hoàn tất
 
 **Phạm vi:** Epic [SF-1](https://tuanwork.atlassian.net/browse/SF-1)
 
 > Các phần baseline v0.12.1 và history được giữ để truy vết. Phần mở rộng
-> SF-140 ở cuối tài liệu ghi yêu cầu **đã chốt nhưng chưa triển khai**, thay
-> các giới hạn đăng ký/reset/OAuth và guest checkout cũ khi cutover. Contract
+> SF-140 ở cuối tài liệu ghi yêu cầu **đã chốt và đã triển khai trong source**, thay
+> các giới hạn đăng ký/reset/OAuth và guest checkout cũ khi cutover; không đồng
+> nghĩa production đã được cập nhật. Contract
 > kỹ thuật chuẩn là [Customer Identity](api-customer-identity-spec.md).
 
 **Tài liệu liên quan:**
@@ -730,8 +731,9 @@ and product details remain accessible. Conversation is temporary browser memory.
 
 ## Mở rộng SF-140 — tài khoản khách và authenticated checkout
 
-**Trạng thái:** hành vi sản phẩm đã được chủ repo chốt; API/schema mới là
-contract SF-141 chờ review/triển khai. Không dùng phần này như evidence rằng
+**Trạng thái:** contract SF-141 đã được thực hiện bởi SF-142–SF-148 trong source.
+SF-149 ghi [ma trận nghiệm thu](qa-customer-authentication.md); live Google/Inbox
+và rollout còn NOT RUN. Không dùng implementation/mock evidence để khẳng định
 production đã có đăng ký, OTP hoặc Google. Chi tiết tại
 [Customer Identity Contract](api-customer-identity-spec.md) và
 [schema đích](database-schema.md#15-thiết-kế-đích-customer-identity-sf-141).
@@ -825,14 +827,14 @@ trong task này. Dùng FR-12–FR-14 riêng để các tham chiếu mới không
 | Jira | Requirement đích | Deliverable |
 | --- | --- | --- |
 | SF-140, SF-141 | FR-12–FR-14, BR-19–BR-23, DR-08, AC-31–AC-38 | Contract này và API/schema liên kết; chưa phải runtime PASS |
-| SF-142 | FR-12.1/3/5/6, FR-13, BR-19–BR-23, DR-08 | Migration identity/OTP/quota/owner |
-| SF-143 | FR-12.3/8, AC-33 | Resend/env wiring và mail tests |
-| SF-144 | FR-12.1/2/4/8, AC-31/32 | Signup/verify/email-password + demo |
-| SF-145 | FR-12.2/3/5, AC-32–AC-34 | OTP reset và session revocation |
-| SF-146 | FR-12.6/7, BR-23, AC-35 | OIDC và link trên hai domain |
-| SF-147 | FR-14, AC-36 | Cart/redirect/storage |
-| SF-148 | FR-13, BR-22, AC-37 | Order/payment server ownership |
-| SF-149 | AC-31–AC-38, DR-08 | Evidence mới, rehearsal và checklist rollout |
+| SF-142 | FR-12.1/3/5/6, FR-13, BR-19–BR-23, DR-08 | [Migration QA](qa-customer-identity-schema.md), rehearsal/restore SF-149 |
+| SF-143 | FR-12.3/8, AC-33 | [Mail QA](qa-transactional-email.md); domain verified, Inbox NOT RUN |
+| SF-144 | FR-12.1/2/4/8, AC-31/32 | [Registration QA](qa-customer-registration.md), automated PASS |
+| SF-145 | FR-12.2/3/5, AC-32–AC-34 | [Recovery QA](qa-password-recovery.md), automated/local-cookie PASS |
+| SF-146 | FR-12.6/7, BR-23, AC-35 | [Google QA](qa-google-login.md): fake-provider PASS; public live NOT RUN |
+| SF-147 | FR-14, AC-36 | [Cart QA](qa-cart-persistence.md), browser PASS |
+| SF-148 | FR-13, BR-22, AC-37 | [Ownership QA](qa-checkout-ownership.md), DB/real-local-browser PASS |
+| SF-149 | AC-31–AC-38, DR-08 | [Integration matrix](qa-customer-authentication.md): backup/restore PASS; live/production gates NOT RUN |
 
 Chỉ các hành vi mới trên thay baseline sau triển khai. Các quyền chưa có API,
 session persistence SF-104, refactor/N+1 SF-130/SF-136/SF-139 và backup automation

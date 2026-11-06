@@ -1,14 +1,14 @@
 # ShopFlow — Authentication API Specification
 
-**Phiên bản:** 1.4 (baseline 1.3 + contract đích SF-141)
+**Phiên bản:** 1.5 (source implementation SF-142–SF-148)
 
-**Ngày cập nhật:** 04/11/2026
+**Ngày cập nhật:** 06/11/2026
 
-> **Phân biệt hiện tại và đích:** mục 1–10 dưới đây ghi lại baseline username
-> đã triển khai đến v0.12.1. [Customer Identity Contract](api-customer-identity-spec.md)
-> là contract đích SF-141 cho email, OTP xác minh/reset, Google, cookie Lax và
-> session revocation. Chỉ có hiệu lực sau triển khai SF-142–SF-149; task tài liệu
-> này không bật các API mới. Các giới hạn “ngoài MVP” cũ không cấm scope mới đó.
+> Mục 1–10 giữ baseline username v0.12.1 để truy vết. Email, OTP, Google,
+> cookie Lax và revocation đã có trong source SF-142–SF-148 theo
+> [Customer Identity Contract](api-customer-identity-spec.md). Không đồng nghĩa
+> production đã rollout; xem [ma trận SF-149](qa-customer-authentication.md).
+> Các giới hạn “ngoài MVP” cũ không cấm scope mới đã được chủ repo chốt.
 
 **Liên quan:**
 
