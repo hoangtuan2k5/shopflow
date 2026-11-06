@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0]
+
+### Added
+
+- **Authentication rollout evidence**: rehearse V6/V7 pg_dump/restore with preserved legacy/demo data, record provider/env readiness and keep live Google/Inbox and production approval gates explicit (SF-149).
+
+- **Persistent guest carts**: retain product IDs and quantities across login and OAuth navigation, reload current catalog data, handle unavailable storage/items and clear private checkout state on account changes (SF-147).
+
+- **Google sign-in**: add validated OIDC login and explicit password-confirmed linking for email collisions, with fixed callbacks on both storefront domains and bilingual UI (SF-146).
+
+- **Password recovery**: add session-bound email OTP reset with atomic password/version updates, invalidation of old sessions and a bilingual recovery screen; requesting a code leaves current sessions active (SF-145).
+- **Customer registration**: add email/password signup with session-bound verification codes, persistent OTP quotas, Resend delivery state and bilingual registration screens; create CUSTOMER accounts only after proof (SF-144).
+- **Transactional email foundation**: add a bounded Resend client, bilingual verification/recovery messages and password-change notices; wire sender/key into the production backend without requiring them for catalog or demo login (SF-143).
+- **Customer identity foundation**: add verified email/Google identity constraints, OTP challenge and quota tables, and nullable order account ownership while preserving legacy data and demo accounts (SF-142).
+
+### Changed
+- **Authenticated checkout**: require login to place orders, bind ownership from the server session and restrict simulated payments to that account; preserve legacy owner-null orders without releasing their stock (SF-148).
+- **Session cookies**: use SameSite=Lax for the Google GET callback while retaining Secure in production, HttpOnly and CSRF protection for writes (SF-146).
+- **Login**: accept verified customer email alongside legacy demo usernames, preserve session rotation, normalize attempt limits and validate internal return paths (SF-144).
+- **Session validation**: recheck account activity and credential version on authenticated requests so a later password reset can invalidate existing sessions (SF-142).
+
 ## [0.12.1] - 2026-10-19
 
 ### Changed

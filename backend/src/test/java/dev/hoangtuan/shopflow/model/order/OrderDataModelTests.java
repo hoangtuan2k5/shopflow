@@ -36,13 +36,15 @@ class OrderDataModelTests {
             new ShippingAddress(
                 "Nguyen Van A", "0900000000", "1 Main Street", "District 1", "HCMC"),
             PaymentMethod.CARD,
-            new BigDecimal("2190000"));
+            new BigDecimal("2190000"),
+            1L);
     OrderItem item = new OrderItem(productId, "Coffee", new BigDecimal("2190000"), 1);
     order.addItem(item);
 
     Order saved = orderRepository.saveAndFlush(order);
 
     assertThat(saved.getId()).isPositive();
+    assertThat(saved.getAccountUserId()).isEqualTo(1L);
     assertThat(saved.getStatus()).isEqualTo(OrderStatus.PENDING_PAYMENT);
     assertThat(saved.getDeliveryStatus()).isEqualTo(DeliveryStatus.NONE);
     assertThat(saved.getPaymentMethod()).isEqualTo(PaymentMethod.CARD);
@@ -68,11 +70,13 @@ class OrderDataModelTests {
             new CustomerSnapshot("Guest", null, null),
             new ShippingAddress("Guest", "0911111111", "2 Main Street", null, "Hanoi"),
             PaymentMethod.CARD,
-            new BigDecimal("0"));
+            new BigDecimal("0"),
+            null);
     order.addItem(new OrderItem(productId, "Free sample", BigDecimal.ZERO, 1));
 
     Order saved = orderRepository.saveAndFlush(order);
 
+    assertThat(saved.getAccountUserId()).isNull();
     assertThat(saved.getCustomer().getEmail()).isNull();
     assertThat(saved.getCustomer().getPhone()).isNull();
     assertThat(saved.getShippingAddress().getDistrict()).isNull();

@@ -97,7 +97,7 @@ class PaymentConcurrencyTests {
     return executor.submit(
         () -> {
           start.await(15, TimeUnit.SECONDS);
-          return paymentService.createPayment(orderRef, request);
+          return paymentService.createPayment(orderRef, request, 1L);
         });
   }
 
@@ -123,8 +123,8 @@ class PaymentConcurrencyTests {
         """
         INSERT INTO shopflow.orders (
           customer_name, receiver_name, receiver_phone, address_line, city,
-          status, payment_method, total_amount
-        ) VALUES (?, ?, ?, ?, ?, 'PENDING_PAYMENT', 'CARD', ?)
+          status, payment_method, total_amount, account_user_id
+        ) VALUES (?, ?, ?, ?, ?, 'PENDING_PAYMENT', 'CARD', ?, 1)
         """,
         "Guest",
         "Guest",

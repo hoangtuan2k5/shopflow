@@ -11,6 +11,7 @@ import dev.hoangtuan.shopflow.model.order.Order;
 import dev.hoangtuan.shopflow.model.order.OrderItem;
 import dev.hoangtuan.shopflow.model.order.PaymentMethod;
 import dev.hoangtuan.shopflow.model.order.ShippingAddress;
+import dev.hoangtuan.shopflow.repository.jdbc.AccountRepository;
 import dev.hoangtuan.shopflow.repository.jpa.OrderRepository;
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -26,15 +27,23 @@ public class OrderService {
 
   private final OrderRepository orderRepository;
   private final StockReservationService stockReservationService;
+  private final AccountRepository accounts;
 
   public OrderService(
-      OrderRepository orderRepository, StockReservationService stockReservationService) {
+      OrderRepository orderRepository,
+      StockReservationService stockReservationService,
+      AccountRepository accounts) {
     this.orderRepository = orderRepository;
     this.stockReservationService = stockReservationService;
+    this.accounts = accounts;
   }
 
   @Transactional
-  public OrderResponse createOrder(CreateOrderRequest request) {
+  public OrderResponse createOrder(CreateOrderRequest request, long userId) {
+    if (!accounts.lockActiveForCheckout(userId)) {
+      throw new org.springframework.security.authentication
+          .AuthenticationCredentialsNotFoundException("Sign in required");
+    }
     validateRequest(request);
 
     List<StockRequest> stockRequests =
@@ -70,7 +79,8 @@ public class OrderService {
                 request.shippingAddress().district(),
                 request.shippingAddress().city()),
             PaymentMethod.CARD,
-            BigDecimal.ZERO);
+            BigDecimal.ZERO,
+            userId);
 
     for (CreateOrderRequest.Item requestItem : request.items()) {
       ValidatedStockItem product = productsById.get(requestItem.productId());

@@ -31,6 +31,7 @@ public class AccountUserDetailsService implements UserDetailsService {
         account.username(),
         account.passwordHash(),
         account.displayName(),
-        account.role());
+        account.role(),
+        account.authVersion());
   }
 }

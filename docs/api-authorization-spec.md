@@ -1,8 +1,13 @@
 # ShopFlow — Authorization API Specification
 
-**Phiên bản:** 1.1
+**Phiên bản:** 1.3 (authenticated checkout SF-148)
 
-**Ngày cập nhật:** 16/10/2026
+**Ngày cập nhật:** 06/11/2026
+
+> SF-148 đã thực hiện login-required checkout/ownership trong source trên develop.
+> Production chỉ đổi sau release được chủ repo duyệt. Ma trận storefront ở mục 11
+> áp dụng cho code hiện tại; quyền vận hành không đổi. Xem
+> [Customer Identity Contract](api-customer-identity-spec.md).
 
 **Liên quan:**
 
@@ -35,23 +40,17 @@ Guest là người dùng hợp lệ, không phải người dùng hạng hai. Gu
 
 - xem danh sách và chi tiết sản phẩm;
 - thêm sản phẩm vào giỏ (giỏ nằm ở trình duyệt, không có API);
-- tạo đơn hàng;
-- thanh toán cho chính đơn vừa tạo, bằng `orderRef` nhận được (xem mục 5);
 - tra cứu đơn bằng mã đơn nếu hệ thống có hỗ trợ.
 
-Guest **không được**: xem lịch sử đơn hàng, quản lý tài khoản, lưu địa chỉ giao
-hàng, quản lý thông tin cá nhân.
+Guest **không được** tạo đơn hoặc thanh toán; cần đăng nhập ở checkout. Các
+API lịch sử đơn, quản lý tài khoản/địa chỉ vẫn ngoài phạm vi này.
 
 ### 2.2 Customer — khách đã đăng nhập
 
-Có toàn bộ quyền của Guest, cộng thêm: quản lý tài khoản, xem lịch sử đơn hàng,
-quản lý địa chỉ giao hàng, theo dõi toàn bộ đơn của mình.
-
-**Trạng thái hiện tại:** không endpoint nào trong số các quyền bổ sung này tồn
-tại. Đơn hàng hiện là guest order — bảng `orders` chỉ lưu snapshot tên, email,
-điện thoại và **không có khóa ngoại tới tài khoản**. Vì vậy vai trò `CUSTOMER`
-hôm nay chỉ là một danh tính đăng nhập được, chưa mở thêm khả năng nào. Nối đơn
-hàng với tài khoản là việc riêng, cần migration và thay đổi `OrderService`.
+Customer được xem/thêm giỏ, tạo đơn gắn tài khoản và thanh toán đơn của chính
+mình. `orders.account_user_id` tách khỏi customer snapshot/customer_id. Đơn cũ
+owner null giữ nguyên và không thanh toán qua storefront. API lịch sử đơn và
+quản lý địa chỉ/tài khoản chưa được bổ sung bởi SF-148.
 
 ### 2.3 Warehouse — nhân viên kho
 
@@ -81,8 +80,8 @@ tiền · dashboard · doanh thu và báo cáo · cấu hình cửa hàng.
 | `GET /products` | ✓ | ✓ | ✓ | ✓ |
 | `GET /products/{id}` | ✓ | ✓ | ✓ | ✓ |
 | `POST /products/{id}/image` | — | — | — | ✓ |
-| `POST /orders` | ✓ | ✓ | ✓ | ✓ |
-| `POST /orders/{orderRef}/payments` | ✓ | ✓ | ✓ | ✓ |
+| `POST /orders` | — | ✓ | ✓ | ✓ |
+| `POST /orders/{orderRef}/payments` | — | own | own | own |
 | `POST /auth/login` | ✓ | ✓ | ✓ | ✓ |
 | `POST /auth/logout` | ✓ | ✓ | ✓ | ✓ |
 | `GET /auth/session` | ✓ | ✓ | ✓ | ✓ |
@@ -127,23 +126,23 @@ cho nhân viên kho.
 Từ khi có endpoint yêu cầu phiên, CSRF được bật lại cho mọi request thay đổi
 trạng thái. Hai lớp:
 
-1. Cookie phiên đã đặt `SameSite=Strict` nên không đi kèm request từ origin khác.
+1. Cookie phiên dùng `SameSite=Lax` từ SF-146 để nhận callback Google GET.
+   Request ghi vẫn bắt buộc CSRF token; auth endpoints còn kiểm tra Origin.
 2. CSRF token của Spring Security, phát qua cookie `XSRF-TOKEN`, nhận lại ở
    header `X-XSRF-TOKEN`. Axios hỗ trợ sẵn cặp tên này nên chi phí frontend gần
    bằng không.
 
-Ba endpoint công khai không dùng phiên — `POST /orders` và
-`POST /orders/{orderRef}/payments` — vẫn cần token vì trình duyệt của guest cũng
-có cookie CSRF. `POST /auth/login` được miễn: người gọi chưa có phiên để bảo vệ.
+`POST /orders` và `POST /orders/{orderRef}/payments` cần phiên và cookie/header
+CSRF hợp lệ. Guest có CSRF đúng vẫn401. `POST /auth/login` giữ ngoại lệ CSRF
+hiện có; auth endpoints còn kiểm Origin.
 
-## 5. Vì sao thanh toán không nằm trong ma trận vai trò
+## 5. Thanh toán theo chủ đơn
 
-Guest phải thanh toán được, nên endpoint không thể yêu cầu vai trò. Việc kiểm
-soát nằm ở chỗ khác: đơn hàng được định danh bằng `orderRef` không đoán được
-thay vì id tuần tự (xem [SF-85](https://tuanwork.atlassian.net/browse/SF-85) và
-[`api-payment-simulation-spec.md`](./api-payment-simulation-spec.md)). Ai giữ
-tham chiếu thì trả được tiền cho đơn đó — đúng bằng khả năng mà người đặt đơn
-cần có.
+Mọi role hợp lệ đều được mua hàng, nhưng chỉ account tạo đơn được thanh toán.
+`orderRef` vẫn opaque, không thay authorization. Sau khóa order, service kiểm
+account_user_id trước status/duplicate và trước mọi write/release. Wrong-owner,
+reference sai/không tồn tại hoặc legacy owner null cùng404 `Order not found`;
+SHOP_OWNER không có ngoại lệ. Đúng owner nhưng đã resolve vẫn409.
 
 ## 6. Đường kỹ thuật không thuộc nghiệp vụ
 
@@ -194,7 +193,8 @@ không phải chặn cả endpoint. Chưa làm trong SF-73.
 2. Với mỗi endpoint không công khai: sai vai trò trả `403`.
 3. Với mỗi endpoint: đúng vai trò thành công.
 4. Sau một request bị chặn, dữ liệu liên quan không đổi.
-5. Guest xem catalog, tạo đơn và thanh toán bằng `orderRef` — cả ba thành công.
+5. Guest xem/thêm giỏ được; order/payment401. Ba role/demo chỉ thanh toán đơn
+   của chính mình; other-owner/legacy404 không thay reservation.
 6. WAREHOUSE chuyển return sang `RESTOCKED` thành công; sang `APPROVED` hoặc
    `REJECTED` trả `403` và trạng thái return không đổi.
 7. SHOP_OWNER thực hiện được cả ba chuyển trạng thái của return.
@@ -205,6 +205,7 @@ không phải chặn cả endpoint. Chưa làm trong SF-73.
 
 | Phiên bản | Ngày | Thay đổi |
 | --- | --- | --- |
+| 1.2 | 04/11/2026 | Thêm ma trận đích authenticated checkout/ownership và auth endpoints SF-141; chưa triển khai. |
 | 1.0 | 26/07/2026 | Ma trận quyền đầu tiên, ranh giới Guest/Customer/Warehouse/Shop Owner (SF-81). |
 
 ## Dashboard (SF-129)
@@ -233,3 +234,42 @@ CSRF remains required, including guests: absent/invalid token returns 403 before
 AI calls. Daily AI-attempt budget and bounded request data protect the public
 endpoint; see [contract](api-product-advisory-chat-spec.md). Catalog index/search
 remain owner-only. SF-101 already fixed SPA CSRF; chat does not reopen that bug.
+
+## 11. Ma trận đích SF-141 — chưa triển khai
+
+Tất cả ba role, gồm tài khoản demo, được mua hàng của chính mình. Quyền owner
+bao trùm kho trong nghiệp vụ vận hành **không** bypass ownership payment.
+
+| Endpoint backend | Guest | CUSTOMER | WAREHOUSE | SHOP_OWNER |
+| --- | :---: | :---: | :---: | :---: |
+| Catalog/detail và chat (quota/CSRF cũ) | ✓ | ✓ | ✓ | ✓ |
+| `POST /orders` | 401 | ✓ | ✓ | ✓ |
+| `POST /orders/{orderRef}/payments` | 401 | own | own | own |
+| `GET /auth/session`, `POST /auth/login`, `POST /auth/logout` | ✓ | ✓ | ✓ | ✓ |
+| `POST /auth/registrations`, `/auth/registrations/verify` | ✓ | ✓ | ✓ | ✓ |
+| `POST /auth/otp/resend`, `/auth/password/forgot`, `/auth/password/reset` | ✓ | ✓ | ✓ | ✓ |
+| `GET /oauth2/authorization/google`, `GET /login/oauth2/code/google` | protocol | protocol | protocol | protocol |
+| `POST /auth/google/link` | proof | proof | proof | proof |
+| Các endpoint vận hành | Giữ 401 | Giữ quyền cũ | Giữ quyền cũ | Giữ quyền cũ |
+
+`own`: order có account_user_id đúng principal.userId; wrong-owner, legacy
+owner null hoặc orderRef không tồn tại đều 404, kiểm trước status/conflict và
+trước write. Không có API claim legacy theo email. `proof`: pending Google
+proof trong đúng session + password đúng của target account + version còn
+hiệu lực; không phải chỉ cần có một session bất kỳ. `protocol`: state/nonce/
+PKCE/OIDC validation theo [contract](api-customer-identity-spec.md).
+
+“Public” chỉ miễn login, không miễn validation/quota/CSRF. Tất cả write mới và
+logout/order/payment phải có CSRF; duy nhất login giữ exemption hiện tại.
+GET session bootstrap XSRF; cookie Lax/Secure/HttpOnly cho Google GET callback.
+Ở contract đích, thiếu/sai CSRF hoặc Origin không hợp lệ trả 403 trước side
+effect; 401 là không có phiên cho endpoint protected (khi CSRF hợp lệ).
+Không nới ops role, không tự thêm quyền return/history/profile cho CUSTOMER.
+
+“Không thay đổi dữ liệu khi bị chặn” nghĩa là không đổi user credential, đơn,
+payment, reservation hoặc kho. Auth rate counter/failed_attempts vẫn phải tăng
+và commit khi mã/password sai theo contract; không rollback counter vì API lỗi.
+
+Kiểm thử đích phải có guest/other-user/own-user theo cả ba role, legacy order,
+counter và DB không đổi khi bị từ chối; cookie roundtrip thật, không chỉ mock
+`.with(csrf())`. Xem CI-08–CI-15 trong contract SF-141.

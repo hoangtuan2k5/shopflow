@@ -3,12 +3,14 @@ import { defineStore } from 'pinia'
 import {
   getSession,
   login as loginRequest,
+  linkGoogleAccount,
   logout as logoutRequest,
   type AuthenticatedUser,
   type LoginRequest,
   type UserRole,
 } from '@/api'
 import type { RoleKey } from './appShell'
+import { queryClient } from '@/plugins/query'
 
 const roleKeys: Record<UserRole, RoleKey> = {
   CUSTOMER: 'customer',
@@ -37,10 +39,20 @@ export const useSessionStore = defineStore('session', () => {
     }
   }
 
-  async function signIn(credentials: LoginRequest) {
-    user.value = await loginRequest(credentials)
+  async function acceptSignIn(result: Awaited<ReturnType<typeof loginRequest>>) {
+    queryClient.clear()
+    user.value = result.user
+    await getSession()
     resolved.value = true
-    return user.value
+    return result.returnTo
+  }
+
+  async function signIn(credentials: LoginRequest) {
+    return acceptSignIn(await loginRequest(credentials))
+  }
+
+  async function linkGoogle(password: string) {
+    return acceptSignIn(await linkGoogleAccount(password))
   }
 
   /** Xoá phiên phía client khi server đã coi nó không còn hợp lệ; không gọi lại API. */
@@ -52,11 +64,23 @@ export const useSessionStore = defineStore('session', () => {
   async function signOut() {
     try {
       await logoutRequest()
+      await getSession()
     } finally {
       user.value = null
       resolved.value = true
     }
   }
 
-  return { user, resolved, isAuthenticated, roleKey, homePath, restore, signIn, signOut, forget }
+  return {
+    user,
+    resolved,
+    isAuthenticated,
+    roleKey,
+    homePath,
+    restore,
+    signIn,
+    linkGoogle,
+    signOut,
+    forget,
+  }
 })

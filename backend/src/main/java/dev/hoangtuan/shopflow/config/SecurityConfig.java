@@ -1,7 +1,13 @@
 package dev.hoangtuan.shopflow.config;
 
 import dev.hoangtuan.shopflow.model.access.Role;
+import dev.hoangtuan.shopflow.repository.jdbc.AccountRepository;
+import dev.hoangtuan.shopflow.security.AccountSessionValidationFilter;
 import dev.hoangtuan.shopflow.security.AccountUserDetailsService;
+import dev.hoangtuan.shopflow.security.AuthRequestFilter;
+import java.time.Clock;
+import java.util.Set;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -13,10 +19,13 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 @Configuration
@@ -25,6 +34,11 @@ public class SecurityConfig {
 
   private static final String WAREHOUSE = Role.WAREHOUSE.name();
   private static final String SHOP_OWNER = Role.SHOP_OWNER.name();
+
+  @Bean
+  Clock authClock() {
+    return Clock.systemUTC();
+  }
 
   @Bean
   PasswordEncoder passwordEncoder() {
@@ -55,8 +69,19 @@ public class SecurityConfig {
    */
   @Bean
   SecurityFilterChain securityFilterChain(
-      HttpSecurity http, SecurityContextRepository securityContextRepository) throws Exception {
-    return http.authorizeHttpRequests(
+      HttpSecurity http,
+      SecurityContextRepository securityContextRepository,
+      AccountRepository accountRepository,
+      GoogleOAuthConfig google,
+      ClientRegistrationRepository clients,
+      @Value("${shopflow.auth.allowed-origins}") Set<String> allowedOrigins)
+      throws Exception {
+    google.configure(http, clients);
+    return http.addFilterAfter(
+            new AccountSessionValidationFilter(accountRepository),
+            SecurityContextHolderFilter.class)
+        .addFilterBefore(new AuthRequestFilter(allowedOrigins), CsrfFilter.class)
+        .authorizeHttpRequests(
             requests ->
                 requests
                     .requestMatchers(HttpMethod.GET, "/products", "/products/*")
@@ -66,10 +91,21 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, "/chat/messages")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/orders")
-                    .permitAll()
+                    .authenticated()
                     .requestMatchers(HttpMethod.POST, "/orders/*/payments")
-                    .permitAll()
-                    .requestMatchers("/auth/login", "/auth/logout", "/auth/session")
+                    .authenticated()
+                    .requestMatchers(
+                        "/auth/login",
+                        "/auth/logout",
+                        "/auth/session",
+                        "/auth/registrations",
+                        "/auth/registrations/verify",
+                        "/auth/otp/resend",
+                        "/auth/password/forgot",
+                        "/auth/password/reset",
+                        "/auth/google/link",
+                        "/oauth2/authorization/google",
+                        "/login/oauth2/code/google")
                     .permitAll()
                     .requestMatchers("/actuator/health", "/actuator/health/*")
                     .permitAll()
@@ -104,8 +140,16 @@ public class SecurityConfig {
         // chưa đăng nhập. Contract phân biệt: chưa đăng nhập là 401, sai vai trò mới là 403.
         .exceptionHandling(
             handling ->
-                handling.authenticationEntryPoint(
-                    new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                handling
+                    .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                    .accessDeniedHandler(
+                        (request, response, denied) -> {
+                          if (request
+                              .getRequestURI()
+                              .substring(request.getContextPath().length())
+                              .startsWith("/auth/")) AuthRequestFilter.forbidden(response);
+                          else response.sendError(403);
+                        }))
         // spa() thay cho việc chỉ đặt CookieCsrfTokenRepository: nó kèm luôn
         // SpaCsrfTokenRequestHandler. Handler mặc định là XorCsrfTokenRequestAttributeHandler, đọc
         // header bằng Base64.getUrlDecoder() rồi XOR, trong khi cookie chứa token thô — axios gửi

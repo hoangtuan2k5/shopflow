@@ -1,12 +1,15 @@
 package dev.hoangtuan.shopflow.controller;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import dev.hoangtuan.shopflow.model.access.Role;
+import dev.hoangtuan.shopflow.security.AccountPrincipal;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +38,13 @@ class OrderControllerTests {
     mockMvc =
         MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .apply(springSecurity())
-            .defaultRequest(get("/").with(csrf()))
+            .defaultRequest(
+                get("/")
+                    .with(
+                        user(
+                            new AccountPrincipal(
+                                1L, "customer", null, "Customer", Role.CUSTOMER, 0)))
+                    .with(csrf()))
             .build();
   }
 

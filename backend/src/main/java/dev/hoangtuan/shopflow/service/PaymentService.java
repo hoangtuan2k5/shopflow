@@ -8,6 +8,7 @@ import dev.hoangtuan.shopflow.exception.payment.PaymentValidationException;
 import dev.hoangtuan.shopflow.model.order.PaymentMethod;
 import dev.hoangtuan.shopflow.model.payment.Payment;
 import dev.hoangtuan.shopflow.model.payment.SimulatedPaymentResult;
+import dev.hoangtuan.shopflow.repository.jdbc.AccountRepository;
 import dev.hoangtuan.shopflow.repository.jdbc.PaymentOrderRepository;
 import dev.hoangtuan.shopflow.repository.jdbc.PaymentOrderRepository.OrderPaymentData;
 import dev.hoangtuan.shopflow.repository.jpa.PaymentRepository;
@@ -20,21 +21,28 @@ public class PaymentService {
   private final PaymentOrderRepository orders;
   private final PaymentRepository paymentRepository;
   private final StockReservationService stockReservationService;
+  private final AccountRepository accounts;
 
   public PaymentService(
       PaymentOrderRepository orders,
       PaymentRepository paymentRepository,
-      StockReservationService stockReservationService) {
+      StockReservationService stockReservationService,
+      AccountRepository accounts) {
     this.orders = orders;
     this.paymentRepository = paymentRepository;
     this.stockReservationService = stockReservationService;
+    this.accounts = accounts;
   }
 
   @Transactional
-  public PaymentResponse createPayment(String orderRef, CreatePaymentRequest request) {
+  public PaymentResponse createPayment(String orderRef, CreatePaymentRequest request, long userId) {
+    if (!accounts.lockActiveForCheckout(userId)) {
+      throw new org.springframework.security.authentication
+          .AuthenticationCredentialsNotFoundException("Sign in required");
+    }
     validateRequest(request);
     OrderPaymentData order = orders.findAndLockOrder(orderRef);
-    if (order == null) {
+    if (order == null || order.accountUserId() == null || order.accountUserId() != userId) {
       throw new PaymentNotFoundException("Order not found");
     }
     Long orderId = order.id();

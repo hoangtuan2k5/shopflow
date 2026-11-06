@@ -15,9 +15,11 @@ public class AccountRepository {
 
   private static final String SELECT_ACTIVE_BY_USERNAME =
       """
-      SELECT id, username, password_hash, display_name, role
+      SELECT id, username, password_hash, display_name, role, auth_version
       FROM shopflow.users
-      WHERE LOWER(username) = LOWER(?) AND active = TRUE
+      WHERE active = TRUE AND password_hash IS NOT NULL AND
+        ((email IS NOT NULL AND email_verified_at IS NOT NULL AND email = LOWER(TRIM(?)))
+         OR (email IS NULL AND ? NOT LIKE '%@%' AND LOWER(username) = LOWER(TRIM(?))))
       """;
 
   public AccountData findActiveByUsername(String username) {
@@ -30,11 +32,39 @@ public class AccountRepository {
                     rs.getString("username"),
                     rs.getString("password_hash"),
                     rs.getString("display_name"),
-                    Role.valueOf(rs.getString("role"))),
+                    Role.valueOf(rs.getString("role")),
+                    rs.getLong("auth_version")),
+            username,
+            username,
             username);
     return accounts.isEmpty() ? null : accounts.getFirst();
   }
 
+  public SessionState findSessionState(long userId) {
+    List<SessionState> states =
+        jdbcTemplate.query(
+            "SELECT active, auth_version FROM shopflow.users WHERE id = ?",
+            (rs, rowNum) -> new SessionState(rs.getBoolean("active"), rs.getLong("auth_version")),
+            userId);
+    return states.isEmpty() ? null : states.getFirst();
+  }
+
+  public boolean lockActiveForCheckout(long userId) {
+    return !jdbcTemplate
+        .query(
+            "SELECT id FROM shopflow.users WHERE id = ? AND active = TRUE FOR UPDATE",
+            (rs, n) -> rs.getLong("id"),
+            userId)
+        .isEmpty();
+  }
+
+  public record SessionState(boolean active, long authVersion) {}
+
   public record AccountData(
-      long id, String username, String passwordHash, String displayName, Role role) {}
+      long id,
+      String username,
+      String passwordHash,
+      String displayName,
+      Role role,
+      long authVersion) {}
 }

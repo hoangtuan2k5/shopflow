@@ -297,6 +297,132 @@
         }
       }
     },
+    "/auth/registrations" : {
+      "post" : {
+        "tags" : [ "Authentication" ],
+        "operationId" : "register",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegistrationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChallengeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/registrations/verify" : {
+      "post" : {
+        "tags" : [ "Authentication" ],
+        "operationId" : "verify",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/VerifyRegistrationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/auth/password/reset" : {
+      "post" : {
+        "tags" : [ "Authentication" ],
+        "operationId" : "reset",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/auth/password/forgot" : {
+      "post" : {
+        "tags" : [ "Authentication" ],
+        "operationId" : "forgot",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChallengeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/otp/resend" : {
+      "post" : {
+        "tags" : [ "Authentication" ],
+        "operationId" : "resend",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ResendOtpRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChallengeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/logout" : {
       "post" : {
         "tags" : [ "Authentication" ],
@@ -317,6 +443,34 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuthenticatedUser"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/google/link" : {
+      "post" : {
+        "tags" : [ "Authentication" ],
+        "operationId" : "link",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GoogleLinkRequest"
               }
             }
           },
@@ -1134,12 +1288,107 @@
         }
       }
     },
+    "RegistrationRequest" : {
+      "type" : "object",
+      "properties" : {
+        "email" : {
+          "type" : "string",
+          "maxLength" : 254
+        },
+        "password" : {
+          "type" : "string",
+          "description" : "At most 72 UTF-8 bytes; uppercase, lowercase, ASCII digit and punctuation/symbol required",
+          "minLength" : 8
+        },
+        "displayName" : {
+          "type" : "string",
+          "maxLength" : 255,
+          "minLength" : 1
+        }
+      },
+      "required" : [ "displayName", "email", "password" ]
+    },
+    "ChallengeResponse" : {
+      "type" : "object",
+      "properties" : {
+        "challengeId" : {
+          "type" : "string",
+          "format" : "uuid"
+        },
+        "message" : {
+          "type" : "string"
+        },
+        "expiresInSeconds" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "resendAfterSeconds" : {
+          "type" : "integer",
+          "format" : "int32"
+        }
+      }
+    },
+    "VerifyRegistrationRequest" : {
+      "type" : "object",
+      "properties" : {
+        "challengeId" : {
+          "type" : "string",
+          "format" : "uuid"
+        },
+        "otp" : {
+          "type" : "string",
+          "minLength" : 1,
+          "pattern" : "[0-9]{6}"
+        }
+      },
+      "required" : [ "challengeId", "otp" ]
+    },
+    "ResetPasswordRequest" : {
+      "type" : "object",
+      "properties" : {
+        "challengeId" : {
+          "type" : "string",
+          "format" : "uuid"
+        },
+        "otp" : {
+          "type" : "string",
+          "minLength" : 1,
+          "pattern" : "[0-9]{6}"
+        },
+        "newPassword" : {
+          "type" : "string",
+          "description" : "At most 72 UTF-8 bytes; registration password policy",
+          "minLength" : 8
+        }
+      },
+      "required" : [ "challengeId", "newPassword", "otp" ]
+    },
+    "ForgotPasswordRequest" : {
+      "type" : "object",
+      "properties" : {
+        "email" : {
+          "type" : "string",
+          "maxLength" : 254
+        }
+      },
+      "required" : [ "email" ]
+    },
+    "ResendOtpRequest" : {
+      "type" : "object",
+      "properties" : {
+        "challengeId" : {
+          "type" : "string",
+          "format" : "uuid"
+        }
+      },
+      "required" : [ "challengeId" ]
+    },
     "LoginRequest" : {
       "type" : "object",
       "properties" : {
         "username" : {
           "type" : "string",
-          "maxLength" : 100,
+          "maxLength" : 254,
           "minLength" : 0
         },
         "password" : {
@@ -1168,6 +1417,17 @@
           "enum" : [ "CUSTOMER", "WAREHOUSE", "SHOP_OWNER" ]
         }
       }
+    },
+    "GoogleLinkRequest" : {
+      "type" : "object",
+      "properties" : {
+        "password" : {
+          "type" : "string",
+          "maxLength" : 200,
+          "minLength" : 0
+        }
+      },
+      "required" : [ "password" ]
     },
     "UpdateReturnRequest" : {
       "type" : "object",

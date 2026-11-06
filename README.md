@@ -289,6 +289,9 @@ Mặc định FE chạy ở `http://localhost:5173` và gọi tới backend qua 
 | `DB_URL` | `jdbc:postgresql://localhost:5432/shopflow` | JDBC URL tới PostgreSQL. Dùng `jdbc:postgresql://localhost:5433/shopflow` nếu chạy PostgreSQL bằng `docker-compose.yml`. |
 | `DB_USERNAME` | `postgres` | Username kết nối database. |
 | `DB_PASSWORD` | `postgres` | Password kết nối database. |
+| `RESEND_API_KEY` | Rỗng | Key gửi thư Resend; thiếu thì phần gửi email không khả dụng, catalog/demo login vẫn hoạt động. |
+| `OTP_HMAC_SECRET` | Rỗng | Secret Base64 độc lập, ít nhất 32 byte ngẫu nhiên; thiếu thì phát hành/xác minh OTP trả 503. |
+| `MAIL_FROM` | Rỗng | Sender đã xác minh, ví dụ `ShopFlow <shopflow@hoangtuan.dev>`. |
 | `GEMINI_API_KEY` | Rỗng | Key AI Studio cho Gemini Embedding 2; thiếu key thì API index/search trả 503. |
 | `QDRANT_URL` | `http://localhost:6333` | Local backend trên host; production dùng `http://qdrant:6333` trong Docker. |
 | `QDRANT_API_KEY` | Rỗng | Local có thể bỏ trống; production bắt buộc có key riêng. |
@@ -373,3 +376,76 @@ Branch `main` và `develop` nên yêu cầu Pull Request và CI pass trước kh
 MIT License. Xem chi tiết tại [LICENSE](LICENSE).
 
 Copyright (c) 2026 ShopFlow Team.
+
+### Transactional email (SF-143)
+
+Backend dùng HTTPS Resend, không cần SMTP. Xem [cấu hình và kiểm thử](docs/deployment.md#transactional-email-sf-143).
+Phần client có email song ngữ Việt–Anh cho xác minh đăng ký, reset OTP và thông
+báo đổi mật khẩu; đăng ký/xác minh OTP đã được nối ở SF-144; reset mật khẩu được nối ở SF-145; Google được nối ở SF-146.
+Host Maven cần nạp env như hướng dẫn trên; backend không tự đọc `.env`.
+Không chép đè `.env` production bằng file workspace hoặc file example.
+
+### Đăng ký email (SF-144)
+
+Vào `/register`, nhập email/mật khẩu/tên hiển thị, rồi xác minh mã gửi qua email.
+User CUSTOMER chỉ được tạo sau OTP đúng; xác minh xong đăng nhập bằng email,
+không tự đăng nhập. Ba username demo vẫn giữ nguyên. UI có Việt/Anh và không
+lưu password, OTP hoặc challenge trong storage/URL.
+
+Cần thêm `OTP_HMAC_SECRET` vào env trước khi bật luồng. Thiếu secret hoặc mail
+config chỉ vô hiệu phần OTP, không chặn catalog/demo login. Xem [QA](docs/qa-customer-registration.md)
+và [deployment](docs/deployment.md#customer-registration-sf-144).
+
+### Quên mật khẩu (SF-145)
+
+Từ màn hình đăng nhập, chọn “Quên mật khẩu?” hoặc vào `/forgot-password`.
+Nhập email, sau đó nhập OTP và mật khẩu mới trong cùng form. Mã có hạn10 phút,
+chỉ dùng một lần và chịu giới hạn gửi/nhập sai. Response không cho biết email
+có tài khoản hay chỉ Google. Reset thành công yêu cầu đăng nhập lại và vô hiệu
+các phiên cũ; chỉ yêu cầu gửi OTP không làm mất phiên hiện có.
+
+Xem [bằng chứng QA](docs/qa-password-recovery.md). Phần này chưa được bật
+trên production.
+
+### Đăng nhập Google (SF-146)
+
+Nút “Tiếp tục với Google” dùng OIDC Authorization Code + PKCE. Email trùng
+tài khoản local cần nhập mật khẩu hiện tại và đồng ý liên kết; không tự gộp
+tài khoản. Tài khoản chỉ dùng Google không có mật khẩu local.
+
+Backend cần `GOOGLE_CLIENT_ID` và `GOOGLE_CLIENT_SECRET`; thiếu một trong hai
+thì chỉ luồng Google bị tắt, demo/password login vẫn dùng được. Xem
+[Google Console và callback](docs/deployment.md#google-sign-in-sf-146).
+Hai domain dùng chung account/database; cookie và giỏ riêng từng origin.
+
+### Giữ giỏ qua đăng nhập (SF-147)
+
+Giỏ dùng Pinia và `shopflow.cart.v1` trong localStorage của từng origin, chỉ lưu
+ID sản phẩm/số lượng. Khi quay lại catalog, lấy lại từng sản phẩm từ API để có
+giá/tình trạng hiện tại, kể cả item ngoài trang đầu. Item lỗi hoặc hết hàng
+phải được cập nhật/xóa trước checkout; server vẫn quyết định giá/tồn cuối cùng.
+
+JSON sai, ID/số lượng không hợp lệ, dữ liệu quá64 KiB hoặc storage bị chặn không
+làm crash. Giỏ RAM vẫn dùng được khi không lưu được, kèm cảnh báo có thể mất
+qua reload/Google. Logout/đổi tài khoản giữ giỏ, xóa PII và kết quả checkout;
+chỉ “Bắt đầu đơn mới” xóa giỏ theo luồng hiện có. Không lưu địa chỉ hoặc orderRef.
+Xem [kiểm chứng](docs/qa-cart-persistence.md). Login-required checkout được nối ở SF-148.
+
+### Checkout và chủ đơn (SF-148)
+
+Khách vẫn xem/thêm giỏ tự do; bấm checkout cần đăng nhập và quay lại form cùng
+giỏ, không tự gửi đơn. Mọi role/demo được mua hàng nhưng chỉ account tạo đơn
+được thanh toán. Backend tự gán owner, từ chối field cố gán account/role và
+không dùng customer email làm owner. Biết orderRef không đủ quyền thanh toán.
+
+Đơn cũ owner null được giữ nguyên và chặn payment qua storefront; không tự
+gán theo email, hủy hoặc giải phóng reservation. Payment vẫn mô phỏng CARD.
+Xem [kiểm chứng](docs/qa-checkout-ownership.md) và [contract](docs/api-customer-identity-spec.md).
+
+### Nghiệm thu và rollout tài khoản khách (SF-149)
+
+Implementation đã có trên develop; [ma trận tích hợp](docs/qa-customer-authentication.md)
+phân biệt test tự động, DB/backup-restore dùng một lần, probe provider và các
+mục live chưa chạy. `.env` đủ biến không tự cập nhật container đang chạy.
+Chưa tuyên bố release-ready khi chưa nghiệm thu Google hai domain/Inbox thật
+và được duyệt backup/rollout; không tự deploy hoặc xử lý legacy orders.

@@ -253,3 +253,261 @@ external test is available only against a disposable loopback backend:
 -Dtest=ChatExternalTests -Dgroups=external -DexcludedGroups=none test`.
 It records exploratory model responses and verifies returned cards against
 catalog API data; it does not certify language or compatibility accuracy.
+
+## Transactional email (SF-143)
+
+Add only these settings to each environment's existing private `.env`:
+
+```dotenv
+RESEND_API_KEY=replace-with-a-resend-sending-key
+MAIL_FROM='ShopFlow <shopflow@hoangtuan.dev>'
+```
+
+Keep `/opt/shopflow/.env` and local workspace `.env` separate, mode600, outside
+Git. Never overwrite existing DB/R2/Qdrant credentials. The root `.env.example`
+is a customer-auth example, not a replacement for a complete deployment file.
+Compose now explicitly forwards both variables to the backend; editing the env
+file alone does not change a running container. Container recreation occurs
+only in the approved deployment workflow. Never paste unredacted Compose
+configuration, environment output or provider responses into logs/Jira.
+
+The client uses POST `https://api.resend.com/emails`, text and HTML, with the
+challenge UUID as `Idempotency-Key`. Password-change notices use a separate
+`password-changed/<challenge UUID>` key. There are no automatic retries; an
+ambiguous timeout is a failed send for the auth caller. Missing key/sender
+throws a sanitized `EmailUnavailableException` only when mail is required;
+application startup, catalog and legacy demo login continue to work. The client
+returns the accepted provider ID, which does **not** prove delivery to Inbox.
+
+Registration/reset services must reserve quota and commit PENDING_SEND before
+calling this client outside DB transactions/locks, then update only the matching
+generation. They must return the contract's uniform202 on recipient-specific
+provider failures and must never mark a failed generation ISSUED. These services
+and their four-second response floor are subsequent tasks, not part of SF-143.
+
+Before enabling real mail, check in the Resend dashboard:
+
+1. `hoangtuan.dev` is verified and the sending key is scoped to the intended domain.
+2. Publish the exact Resend DKIM/SPF records in Cloudflare DNS and verify them;
+   preserve other mail providers' records and avoid multiple SPF records at the
+   same DNS name. Check DMARC policy/alignment and the configured sender.
+3. Cloudflare R2 is object storage; it does not configure outgoing email. Email
+   Routing is optional inbound forwarding and does not provide this sender API.
+4. Obtain owner approval for the exact test recipient before a real send. Record
+   UTC send time, redacted recipient, provider message ID/status and observed
+   Inbox/Spam result separately. Never record the OTP, key or full message body.
+
+No DNS changes, real mail, container recreation or production env edits are
+performed by this implementation task. CI uses only a loopback fake HTTP server
+and empty mail credentials in the test profile.
+
+API reference: [Resend send email](https://resend.com/docs/api-reference/emails/send-email).
+
+## Customer registration (SF-144)
+
+Add `OTP_HMAC_SECRET` to each environment's existing private env. It must decode
+from Base64 to at least32 random bytes, be independent of Resend/Google keys,
+and remain outside Git and the database. Generate a different secret per dev
+and production environment, for example locally with:
+
+```bash
+python3 -c 'import base64,secrets; print(base64.b64encode(secrets.token_bytes(32)).decode())'
+```
+
+Store the output privately; never paste it into chat/Jira/logs. Preserve all
+existing env settings. Compose explicitly forwards this variable to the backend;
+only an approved deployment recreates the container. A missing, invalid Base64
+or short key disables OTP operations with 503 without preventing application
+startup or demo password login. Rotation invalidates pending challenges only;
+keep the same production key across all backend instances serving both domains.
+
+Apply V7 after SF-142 review/merge, then configure Resend after SF-143 and run
+SF-144 together. The worktree currently contains uncommitted copies of these
+prerequisites for validation; it is not an independent rollout over old schema.
+Do not expose the temporary test mail server or its code-reading endpoint.
+
+New guest writes require CSRF. Bootstrap using GET `/auth/session`; send cookie
+`XSRF-TOKEN` in `X-XSRF-TOKEN`, retain the pre-auth session across issue/verify,
+and refresh CSRF after login/logout. Allowed Origin values are the two public
+HTTPS domains in staging and explicit local Vite origins for dev. No arbitrary
+credentialed CORS is enabled. IP quota currently uses the servlet peer address,
+ignoring raw X-Forwarded-For. Behind Caddy this may share a quota across clients
+until a trusted proxy chain is pinned; do not enable unrestricted forwarded
+header trust to bypass this limit.
+
+Registration reserves persistent quota before the provider call, commits a
+pending challenge, sends outside the transaction, then activates only the same
+generation. Synthetic and recipient-specific delivery failures retain the
+same202 body and four-second minimum response floor. Pending signup does not
+create a user. Verified signup creates CUSTOMER only, clears sensitive payload
+and does not log in automatically. Legacy demo login and sessions are retained.
+
+Password reset, Google login, guest checkout enforcement/cart preservation and
+real-provider acceptance remain separate tasks. Do not claim those are enabled
+by deploying this registration change.
+
+## Password recovery (SF-145)
+
+Use the same verified Resend sender and independent `OTP_HMAC_SECRET` already
+configured for registration. No additional secret, migration, SMTP dependency,
+queue or reset-token store is introduced. The shared OTP service/repository
+now support REGISTER and RESET_PASSWORD with separate email-purpose budgets,
+HMAC inputs and challenge slots; IP/daily budgets remain shared.
+
+Enable POST `/auth/password/forgot` and `/auth/password/reset` only with the
+reviewed prerequisites SF-142–144. Both require CSRF and allowed Origin checks.
+The existing `/auth/otp/resend` derives purpose from the bound challenge. There
+is no independent OTP-verify endpoint, passwordless login or reset capability
+token. Reset accepts only challengeId, OTP and newPassword; the target account
+is read from the database, not email/userId supplied by a client.
+
+Only an active verified account with a local hash receives reset mail. Unknown,
+inactive and Google-only accounts receive the same202 challenge response and
+response floor, without acquiring a local password. Successful proof updates
+the hash, increments auth_version and consumes/invalidates reset challenges
+in one transaction. Old sessions fail on their next request; requests already
+authorized before commit are not retroactively canceled. No auto-login occurs.
+
+The password-change notification is sent after commit and outside database
+locks. Notification failure does not undo the password change and is not
+retried automatically. Requesting a code never clears login failures or logs
+out users; only successful reset clears the canonical email's login limit.
+
+Real-mail/Inbox testing and production rollout still require separate approval.
+Preserve environment values, demo accounts and all order data. Deploy/reset
+verification must include two existing sessions, old-password rejection,
+new-password login and replay rejection.
+
+## Google sign-in (SF-146)
+
+Use a Google OAuth client of type **Web application**. Set only the backend
+environment variables `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`; production
+Compose forwards them explicitly. Keep workspace and production `.env` separate
+and mode 600. Never add these secrets to Vite variables, screenshots, PRs or logs.
+Missing either variable disables Google start/callback with 503 without blocking
+catalog or existing demo/password login. Startup does not fetch Google metadata.
+
+Google Console checklist for the owner (this change does not edit Console):
+
+1. Branding: app name ShopFlow; user support/contact
+   `hoangchieunguyentuan@gmail.com`. Verify ownership for `hoangtuan.dev` and
+   `phamthuy.dev`; use those root domains in Authorized domains when requested.
+2. Audience: keep Testing until the owner is ready to publish; add the Google
+   accounts used for acceptance as test users. Supply real homepage/privacy/terms
+   pages when required by Console; do not invent unavailable policy URLs.
+3. Data access: only `openid`, `email`, `profile`. No Gmail, Drive, offline
+   access or refresh-token persistence.
+4. Web client Authorized redirect URIs must match exactly:
+   - `https://shopflow.hoangtuan.dev/api/login/oauth2/code/google`
+   - `https://shopflow.phamthuy.dev/api/login/oauth2/code/google`
+5. For local development, register an explicit URI on a development client:
+   `http://localhost:5173/api/login/oauth2/code/google` or
+   `http://127.0.0.1:5173/api/login/oauth2/code/google`. Use the same hostname
+   throughout. These hosts are disabled under the production `staging` profile.
+   No Google JavaScript SDK is used; there is no frontend client secret.
+
+Public authorization start is `/api/oauth2/authorization/google`, with optional
+`returnTo=/customer` or `/customer?checkout=1`. Caddy strips `/api`; backend
+start/callback mappings omit it. Caddy pins Host/forwarded host/scheme and
+removes incoming Forwarded/prefix headers. The backend uses a fixed host→origin
+map, ignores arbitrary forwarded redirects and binds the callback to its start
+origin. Do not enable arbitrary framework forwarded-header inference.
+
+Session cookie is HttpOnly, Secure in production and SameSite=Lax for the
+cross-site GET callback. All business writes retain CSRF checks. After login
+or linking the session rotates; frontend GET `/auth/session` boots a fresh
+XSRF cookie before a write. Google tokens are validated by Spring Security,
+never persisted as authorized clients and never exposed to browser storage.
+State/nonce/PKCE are session-bound; the flow expires after 5 minutes.
+
+A new Google identity creates CUSTOMER without a password. A returning subject
+keeps its existing account/email/role even if Google reports a different email.
+A local email collision produces a five-minute pending proof in the server
+session, without logging in; POST `/auth/google/link` accepts only the existing
+password and requires CSRF. Successful password proof links atomically and
+rotates the session. Inactive users, a different Google subject, expired/replayed
+proof and a password reset since the callback cannot be linked.
+
+Before production acceptance, use each public domain separately: Google login
+→ internal `/auth/session` → first CSRF write → logout; also test cancellation,
+local collision/link and account switching. Verify Secure/HttpOnly/Lax and no
+redirect to HTTP/backend/unknown hosts. Google live consent and public-domain
+proxy/cookie acceptance require the owner's account and rollout approval; fake
+OIDC tests are not live Google evidence. Cart persistence is SF-147, and order
+ownership/checkout enforcement is SF-148; this change does not claim those done.
+
+References: [Spring OAuth2 Login](https://docs.spring.io/spring-security/reference/7.0/servlet/oauth2/login/core.html),
+[Google OIDC](https://developers.google.com/identity/openid-connect/openid-connect).
+
+## Browser cart persistence (SF-147)
+
+No new backend configuration, schema or service. Browser key `shopflow.cart.v1`
+stores version1 plus product ID/quantity pairs only, bounded to64 KiB. Each
+origin has its own cart. Product display is reloaded via `/products/{id}`, never
+from stored names/prices. Unknown/unavailable/out-of-stock items prevent checkout
+until removal or successful refresh. API checkout remains authoritative.
+
+Blocked/quota-limited storage falls back to RAM with a visible warning, including
+on the login page before Google navigation. An older snapshot is removed after
+a failed save so reload cannot silently restore different items. Do not promise
+reload/OAuth durability when the browser refuses storage. No shipping PII, user
+identity, credentials, proof or orderRef is persisted.
+
+Logout/account change clears checkout form/order/payment state while preserving
+the unplaced cart. Only the existing explicit start-over flow clears the cart;
+failed/pending order requests leave it intact. Return intent opens the restored
+form without posting an order. Login gating/owner enforcement comes in SF-148.
+
+## Authenticated checkout cutover (SF-148)
+
+Requires V7 and the reviewed SF-142–147 prerequisites. No new environment
+variable or migration. POST orders/payments now require a valid internal account
+and CSRF. All demo/staff/customer roles can buy; payment belongs exclusively to
+the creating account, with no shop-owner override. Owner comes from the session,
+not request fields or shipping email. API response shapes are retained.
+
+Account row locking prevents deactivation/deletion during the transaction;
+checkout/payment transactions for the same account serialize. Existing sorted
+stock locks and atomic reserve/release remain. No load benchmark was run.
+
+Before approving a release, inventory legacy PENDING_PAYMENT orders (owner null)
+and their reserved items. They remain unchanged but cannot pay through storefront.
+Do not claim by email, cancel, release stock or change migrations to make them
+pass. Prepare a restorable backup and any operational decision separately.
+
+Smoke after an approved rollout: guest browse/add works; guest order/payment401
+with CSRF; each role/demo can buy/pay its own order; another account and legacy
+order receive generic404 with no reserve/movement changes; first write after
+login has real cookie CSRF; 401 mid-checkout keeps cart/intent without auto-submit.
+Local/CI evidence is in `docs/qa-checkout-ownership.md`; public-provider/domain
+acceptance and final rollout readiness are SF-149.
+
+## Customer authentication release gates (SF-149)
+
+Use [the integration matrix and reviewed backup/rollback checklist](qa-customer-authentication.md)
+before a release. Source integration and disposable restore checks are complete;
+live Google/Inbox and production backup/approval remain separate gates. Do not
+interpret .env presence or a synthetic invalid-code response as live acceptance.
+
+At the 2026-11-06 read-only baseline, production was V6; the running backend
+lacked the five new auth/mail variables despite both env files being ready.
+The existing main workflow validates applied checksums with pending migrations
+allowed, then recreates Compose services; backend startup applies V7. A reviewed
+backup must precede that approved action. Do not manually migrate or restore
+production as part of a read-only readiness check.
+
+Existing legacy pending orders must retain null owners/reservations. An old app
+may still fit the additive schema but reopens guest payment; rollback requires
+an approved checkout maintenance block/forward-fix plan, not blind DB restore.
+No old unrelated Jira issue is completed by this auth rollout.
+
+### Transactional email appearance and language
+
+Registration, reset OTP and password-change emails use the existing ShopFlow PNG
+logo rendered into an opaque white PNG banner embedded as a CID attachment,
+with a text alternative when images are hidden. The banner needs no public image URL.
+The website sends its current `en` or `vi` selection in `Accept-Language` for each
+mail-producing request, including resends and reset confirmation. Spring's request
+locale selects a single language for subject, HTML and plain text; Vietnamese is
+used for `vi`, English for other locales. This does not change the sender avatar,
+OTP lifetime, proof binding or resend limits.
