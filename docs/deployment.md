@@ -317,7 +317,7 @@ python3 -c 'import base64,secrets; print(base64.b64encode(secrets.token_bytes(32
 Store the output privately; never paste it into chat/Jira/logs. Preserve all
 existing env settings. Compose explicitly forwards this variable to the backend;
 only an approved deployment recreates the container. A missing, invalid Base64
-or short key disables OTP operations with503 without preventing application
+or short key disables OTP operations with 503 without preventing application
 startup or demo password login. Rotation invalidates pending challenges only;
 keep the same production key across all backend instances serving both domains.
 
@@ -377,3 +377,64 @@ Real-mail/Inbox testing and production rollout still require separate approval.
 Preserve environment values, demo accounts and all order data. Deploy/reset
 verification must include two existing sessions, old-password rejection,
 new-password login and replay rejection.
+
+## Google sign-in (SF-146)
+
+Use a Google OAuth client of type **Web application**. Set only the backend
+environment variables `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`; production
+Compose forwards them explicitly. Keep workspace and production `.env` separate
+and mode 600. Never add these secrets to Vite variables, screenshots, PRs or logs.
+Missing either variable disables Google start/callback with 503 without blocking
+catalog or existing demo/password login. Startup does not fetch Google metadata.
+
+Google Console checklist for the owner (this change does not edit Console):
+
+1. Branding: app name ShopFlow; user support/contact
+   `hoangchieunguyentuan@gmail.com`. Verify ownership for `hoangtuan.dev` and
+   `phamthuy.dev`; use those root domains in Authorized domains when requested.
+2. Audience: keep Testing until the owner is ready to publish; add the Google
+   accounts used for acceptance as test users. Supply real homepage/privacy/terms
+   pages when required by Console; do not invent unavailable policy URLs.
+3. Data access: only `openid`, `email`, `profile`. No Gmail, Drive, offline
+   access or refresh-token persistence.
+4. Web client Authorized redirect URIs must match exactly:
+   - `https://shopflow.hoangtuan.dev/api/login/oauth2/code/google`
+   - `https://shopflow.phamthuy.dev/api/login/oauth2/code/google`
+5. For local development, register an explicit URI on a development client:
+   `http://localhost:5173/api/login/oauth2/code/google` or
+   `http://127.0.0.1:5173/api/login/oauth2/code/google`. Use the same hostname
+   throughout. These hosts are disabled under the production `staging` profile.
+   No Google JavaScript SDK is used; there is no frontend client secret.
+
+Public authorization start is `/api/oauth2/authorization/google`, with optional
+`returnTo=/customer` or `/customer?checkout=1`. Caddy strips `/api`; backend
+start/callback mappings omit it. Caddy pins Host/forwarded host/scheme and
+removes incoming Forwarded/prefix headers. The backend uses a fixed host→origin
+map, ignores arbitrary forwarded redirects and binds the callback to its start
+origin. Do not enable arbitrary framework forwarded-header inference.
+
+Session cookie is HttpOnly, Secure in production and SameSite=Lax for the
+cross-site GET callback. All business writes retain CSRF checks. After login
+or linking the session rotates; frontend GET `/auth/session` boots a fresh
+XSRF cookie before a write. Google tokens are validated by Spring Security,
+never persisted as authorized clients and never exposed to browser storage.
+State/nonce/PKCE are session-bound; the flow expires after 5 minutes.
+
+A new Google identity creates CUSTOMER without a password. A returning subject
+keeps its existing account/email/role even if Google reports a different email.
+A local email collision produces a five-minute pending proof in the server
+session, without logging in; POST `/auth/google/link` accepts only the existing
+password and requires CSRF. Successful password proof links atomically and
+rotates the session. Inactive users, a different Google subject, expired/replayed
+proof and a password reset since the callback cannot be linked.
+
+Before production acceptance, use each public domain separately: Google login
+→ internal `/auth/session` → first CSRF write → logout; also test cancellation,
+local collision/link and account switching. Verify Secure/HttpOnly/Lax and no
+redirect to HTTP/backend/unknown hosts. Google live consent and public-domain
+proxy/cookie acceptance require the owner's account and rollout approval; fake
+OIDC tests are not live Google evidence. Cart persistence is SF-147, and order
+ownership/checkout enforcement is SF-148; this change does not claim those done.
+
+References: [Spring OAuth2 Login](https://docs.spring.io/spring-security/reference/7.0/servlet/oauth2/login/core.html),
+[Google OIDC](https://developers.google.com/identity/openid-connect/openid-connect).

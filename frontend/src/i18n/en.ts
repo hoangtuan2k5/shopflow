@@ -128,6 +128,16 @@ export const en = {
     unavailable: 'We could not complete this request. Please try again later.',
     browse: 'Continue browsing',
   },
+  google: {
+    continue: 'Continue with Google',
+    linkTitle: 'Link your Google account',
+    linkHint:
+      'This email already has a ShopFlow account. Enter its current password to link Google and sign in.',
+    linkSubmit: 'Link Google and sign in',
+    cancelLink: 'Use another sign-in method',
+    failed: 'Google sign-in could not be completed. Try again or sign in with your password.',
+    expired: 'This link request is no longer valid. Start Google sign-in again.',
+  },
   auth: {
     kicker: 'Sign in',
     title: 'Welcome back',

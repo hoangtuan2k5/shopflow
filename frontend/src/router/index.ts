@@ -45,6 +45,8 @@ router.beforeEach(async (to) => {
   const session = useSessionStore()
   await session.restore()
 
+  if (to.name === 'login' && to.query.google === 'link_required') return true
+
   if (to.name === 'login' || to.name === 'register' || to.name === 'password-recovery') {
     return session.isAuthenticated ? session.homePath : true
   }

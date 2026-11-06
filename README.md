@@ -381,7 +381,7 @@ Copyright (c) 2026 ShopFlow Team.
 
 Backend dùng HTTPS Resend, không cần SMTP. Xem [cấu hình và kiểm thử](docs/deployment.md#transactional-email-sf-143).
 Phần client có email song ngữ Việt–Anh cho xác minh đăng ký, reset OTP và thông
-báo đổi mật khẩu; đăng ký/xác minh OTP đã được nối ở SF-144; reset mật khẩu được nối ở SF-145; Google thuộc task tiếp theo.
+báo đổi mật khẩu; đăng ký/xác minh OTP đã được nối ở SF-144; reset mật khẩu được nối ở SF-145; Google được nối ở SF-146.
 Host Maven cần nạp env như hướng dẫn trên; backend không tự đọc `.env`.
 Không chép đè `.env` production bằng file workspace hoặc file example.
 
@@ -406,3 +406,14 @@ các phiên cũ; chỉ yêu cầu gửi OTP không làm mất phiên hiện có.
 
 Xem [bằng chứng QA](docs/qa-password-recovery.md). Phần này chưa được bật
 trên production.
+
+### Đăng nhập Google (SF-146)
+
+Nút “Tiếp tục với Google” dùng OIDC Authorization Code + PKCE. Email trùng
+tài khoản local cần nhập mật khẩu hiện tại và đồng ý liên kết; không tự gộp
+tài khoản. Tài khoản chỉ dùng Google không có mật khẩu local.
+
+Backend cần `GOOGLE_CLIENT_ID` và `GOOGLE_CLIENT_SECRET`; thiếu một trong hai
+thì chỉ luồng Google bị tắt, demo/password login vẫn dùng được. Xem
+[Google Console và callback](docs/deployment.md#google-sign-in-sf-146).
+Hai domain dùng chung account/database; cookie và giỏ riêng từng origin.

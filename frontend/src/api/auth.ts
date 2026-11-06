@@ -1,4 +1,4 @@
-import { request } from './httpClient'
+import { httpClient, request } from './httpClient'
 
 export type UserRole = 'CUSTOMER' | 'WAREHOUSE' | 'SHOP_OWNER'
 
@@ -25,12 +25,18 @@ export interface AuthErrorDetails {
   fieldErrors: Record<string, string>
 }
 
+async function authenticate(url: string, data: LoginRequest | { password: string }) {
+  const response = await httpClient.post<AuthenticatedUser>(url, data)
+  return { user: response.data, returnTo: response.headers.location as string | undefined }
+}
+
 export function login(credentials: LoginRequest) {
-  return request<AuthenticatedUser>({
-    method: 'POST',
-    url: '/auth/login',
-    data: credentials,
-  })
+  return authenticate('/auth/login', credentials)
+}
+
+export async function linkGoogleAccount(password: string) {
+  await getSession()
+  return authenticate('/auth/google/link', { password })
 }
 
 export function logout() {

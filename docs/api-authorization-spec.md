@@ -132,7 +132,8 @@ cho nhân viên kho.
 Từ khi có endpoint yêu cầu phiên, CSRF được bật lại cho mọi request thay đổi
 trạng thái. Hai lớp:
 
-1. Cookie phiên đã đặt `SameSite=Strict` nên không đi kèm request từ origin khác.
+1. Cookie phiên dùng `SameSite=Lax` từ SF-146 để nhận callback Google GET.
+   Request ghi vẫn bắt buộc CSRF token; auth endpoints còn kiểm tra Origin.
 2. CSRF token của Spring Security, phát qua cookie `XSRF-TOKEN`, nhận lại ở
    header `X-XSRF-TOKEN`. Axios hỗ trợ sẵn cặp tên này nên chi phí frontend gần
    bằng không.

@@ -1,6 +1,7 @@
 package dev.hoangtuan.shopflow.exception.handler;
 
 import dev.hoangtuan.shopflow.controller.AuthController;
+import dev.hoangtuan.shopflow.controller.GoogleLinkController;
 import dev.hoangtuan.shopflow.controller.PasswordRecoveryController;
 import dev.hoangtuan.shopflow.controller.RegistrationController;
 import dev.hoangtuan.shopflow.exception.access.CredentialsValidationException;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice(
     assignableTypes = {
       AuthController.class,
+      GoogleLinkController.class,
       RegistrationController.class,
       PasswordRecoveryController.class
     })
