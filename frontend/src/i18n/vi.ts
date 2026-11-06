@@ -128,6 +128,16 @@ export const vi: typeof en = {
     unavailable: 'Chưa thể xử lý yêu cầu. Vui lòng thử lại sau.',
     browse: 'Tiếp tục xem hàng',
   },
+  cartPersistence: {
+    storageWarning:
+      'Chưa thể lưu giỏ trên trình duyệt này. Vui lòng giữ trang đang mở; tải lại hoặc chuyển sang Google có thể làm mất giỏ.',
+    quantityWarning: 'Số lượng phải là số nguyên dương không quá 2.147.483.647.',
+    refreshing: 'Đang cập nhật giá và tình trạng sản phẩm…',
+    unavailable:
+      'Một số sản phẩm không tải được hoặc đã hết hàng. Hãy xóa hoặc thử cập nhật lại trước khi đặt hàng.',
+    remove: 'Xóa',
+    retry: 'Cập nhật giỏ',
+  },
   google: {
     continue: 'Tiếp tục với Google',
     linkTitle: 'Liên kết tài khoản Google',

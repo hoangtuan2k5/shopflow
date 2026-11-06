@@ -417,3 +417,16 @@ Backend cần `GOOGLE_CLIENT_ID` và `GOOGLE_CLIENT_SECRET`; thiếu một trong
 thì chỉ luồng Google bị tắt, demo/password login vẫn dùng được. Xem
 [Google Console và callback](docs/deployment.md#google-sign-in-sf-146).
 Hai domain dùng chung account/database; cookie và giỏ riêng từng origin.
+
+### Giữ giỏ qua đăng nhập (SF-147)
+
+Giỏ dùng Pinia và `shopflow.cart.v1` trong localStorage của từng origin, chỉ lưu
+ID sản phẩm/số lượng. Khi quay lại catalog, lấy lại từng sản phẩm từ API để có
+giá/tình trạng hiện tại, kể cả item ngoài trang đầu. Item lỗi hoặc hết hàng
+phải được cập nhật/xóa trước checkout; server vẫn quyết định giá/tồn cuối cùng.
+
+JSON sai, ID/số lượng không hợp lệ, dữ liệu quá64 KiB hoặc storage bị chặn không
+làm crash. Giỏ RAM vẫn dùng được khi không lưu được, kèm cảnh báo có thể mất
+qua reload/Google. Logout/đổi tài khoản giữ giỏ, xóa PII và kết quả checkout;
+chỉ “Bắt đầu đơn mới” xóa giỏ theo luồng hiện có. Không lưu địa chỉ hoặc orderRef.
+Xem [kiểm chứng](docs/qa-cart-persistence.md). Login-required checkout thuộc SF-148.

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Persistent guest carts**: retain product IDs and quantities across login and OAuth navigation, reload current catalog data, handle unavailable storage/items and clear private checkout state on account changes (SF-147).
+
 - **Google sign-in**: add validated OIDC login and explicit password-confirmed linking for email collisions, with fixed callbacks on both storefront domains and bilingual UI (SF-146).
 
 - **Password recovery**: add session-bound email OTP reset with atomic password/version updates, invalidation of old sessions and a bilingual recovery screen; requesting a code leaves current sessions active (SF-145).

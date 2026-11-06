@@ -10,11 +10,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useSessionStore } from '@/stores/session'
 import { authRedirect } from '@/router/authRedirect'
+import { useCartStore } from '@/stores/cart'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const session = useSessionStore()
+const cart = useCartStore()
 
 const username = ref('')
 const password = ref('')
@@ -89,6 +91,13 @@ async function submit() {
         <LanguageSwitcher />
       </div>
 
+      <p
+        v-if="cart.storageWarning && cart.itemCount > 0"
+        class="mb-4 rounded-lg border border-border bg-card p-3 text-sm"
+        role="alert"
+      >
+        {{ t('cartPersistence.storageWarning') }}
+      </p>
       <section class="rounded-xl border border-border bg-card p-6 shadow-sm">
         <header class="mb-6 space-y-1.5">
           <p

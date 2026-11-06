@@ -128,6 +128,16 @@ export const en = {
     unavailable: 'We could not complete this request. Please try again later.',
     browse: 'Continue browsing',
   },
+  cartPersistence: {
+    storageWarning:
+      'This cart cannot be saved on this browser. Keep this page open; reloading or continuing to Google may lose it.',
+    quantityWarning: 'Enter a positive whole quantity up to 2,147,483,647.',
+    refreshing: 'Refreshing cart prices and availability…',
+    unavailable:
+      'Some items could not be loaded or are out of stock. Remove them or try again before checkout.',
+    remove: 'Remove',
+    retry: 'Refresh cart',
+  },
   google: {
     continue: 'Continue with Google',
     linkTitle: 'Link your Google account',
