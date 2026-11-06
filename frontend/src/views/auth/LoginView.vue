@@ -176,8 +176,23 @@ async function submit() {
             }}
           </Button>
         </form>
-        <Button v-if="!linking" as-child variant="outline" class="mt-4 w-full">
-          <a :href="googleUrl">{{ t('google.continue') }}</a>
+        <Button
+          v-if="!linking"
+          as-child
+          variant="outline"
+          class="mt-4 h-11 w-full gap-2.5 border-[#747775] bg-white text-[#1f1f1f] hover:bg-[#f2f2f2] hover:text-[#1f1f1f]"
+        >
+          <a :href="googleUrl">
+            <img
+              src="/brand/google-g.png"
+              alt=""
+              aria-hidden="true"
+              width="20"
+              height="20"
+              class="size-5 shrink-0 object-contain"
+            />
+            {{ t('google.continue') }}
+          </a>
         </Button>
         <p v-else class="mt-4 text-center text-sm">
           <RouterLink to="/login" class="text-primary underline underline-offset-4">

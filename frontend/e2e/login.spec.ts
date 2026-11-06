@@ -208,7 +208,7 @@ test('The storefront offers a way in for staff and a way back for signed-in user
   await page.route('**/api/deliveries', (route) => fulfillJson(route, []))
   await page.goto('/customer')
 
-  await page.getByRole('link', { name: 'Workspace' }).click()
+  await page.getByRole('link', { name: 'Chủ shop demo' }).click()
   await expect(page).toHaveURL(/\/shop-owner$/)
 })
 

@@ -335,42 +335,57 @@ function closeProduct() {
   <div class="min-h-screen bg-[#f5f6f8] text-foreground">
     <header class="sticky top-0 z-30 border-b border-primary/10 bg-card/95 backdrop-blur-xl">
       <div
-        class="mx-auto grid max-w-7xl grid-cols-[1fr_auto] items-center gap-3 px-3 py-3 sm:px-6 md:grid-cols-[10rem_minmax(16rem,1fr)_auto] md:gap-7"
+        class="mx-auto grid max-w-7xl grid-cols-[minmax(5rem,1fr)_5.25rem_auto] items-center gap-3 px-3 py-3 sm:px-6 lg:grid-cols-[10rem_minmax(16rem,1fr)_auto] lg:gap-7"
       >
         <img
-          class="h-8 w-auto md:col-start-1 md:row-start-1 md:h-9"
+          class="h-8 w-auto object-contain object-left lg:col-start-1 lg:row-start-1 lg:h-9"
           src="/brand/shopflow-wordmark.png"
           alt="ShopFlow"
         />
-        <label class="relative col-span-2 row-start-2 md:col-span-1 md:col-start-2 md:row-start-1">
+        <label class="relative col-span-2 row-start-2 lg:col-span-1 lg:col-start-2 lg:row-start-1">
           <span class="sr-only">{{ t('catalog.searchLabel') }}</span>
           <input
             v-model="searchQuery"
             type="search"
             maxlength="255"
             autocomplete="off"
-            class="h-11 w-full rounded-lg border-2 border-primary bg-card px-4 pr-12 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 md:h-12"
+            class="h-11 w-full rounded-lg border-2 border-primary bg-card px-4 pr-12 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 lg:h-12"
             :placeholder="t('catalog.searchPlaceholder')"
           />
           <span
-            class="pointer-events-none absolute right-1 top-1 grid size-9 place-items-center rounded-md bg-primary text-white md:size-10"
+            class="pointer-events-none absolute right-1 top-1 grid size-9 place-items-center rounded-md bg-primary text-white lg:size-10"
           >
             <IconSearch :size="19" :stroke-width="1.9" aria-hidden="true" />
           </span>
         </label>
-        <div class="flex items-center gap-2 md:col-start-3 md:row-start-1">
-          <LanguageSwitcher />
+        <div class="contents lg:col-start-3 lg:row-start-1 lg:flex lg:items-center lg:gap-2">
+          <LanguageSwitcher
+            class="col-start-2 row-start-1 w-[5.25rem] justify-self-end lg:w-auto"
+          />
           <RouterLink
             :to="session.isAuthenticated ? session.homePath : '/login'"
-            :class="buttonVariants({ variant: 'outline', class: 'h-11 px-3 md:h-12' })"
+            :title="session.user?.displayName ?? t('auth.signIn')"
+            :aria-label="session.user?.displayName ?? t('auth.signIn')"
+            :class="
+              buttonVariants({
+                variant: 'outline',
+                class: 'col-start-3 row-start-2 h-11 px-3 lg:h-12',
+              })
+            "
           >
             <IconUserCircle :size="20" :stroke-width="1.8" aria-hidden="true" />
-            <span class="hidden sm:inline">
-              {{ session.isAuthenticated ? t('auth.workspace') : t('auth.signIn') }}
+            <span
+              :class="
+                session.isAuthenticated
+                  ? 'max-w-[3rem] truncate min-[375px]:max-w-[4.5rem] sm:max-w-[12rem]'
+                  : 'hidden sm:inline'
+              "
+            >
+              {{ session.isAuthenticated ? session.accountLabel : t('auth.signIn') }}
             </span>
           </RouterLink>
           <Button
-            class="h-11 gap-2 border-border px-3 font-bold text-primary md:h-12"
+            class="col-start-3 row-start-1 h-11 justify-self-end gap-2 border-border px-3 font-bold text-primary lg:h-12"
             variant="outline"
             type="button"
             :aria-label="t('catalog.openCart')"
