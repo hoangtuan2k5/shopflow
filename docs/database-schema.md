@@ -1220,3 +1220,7 @@ giữ nguyên. Không hard-delete user đã được đơn tham chiếu; vô hi�
 | Datetime | `_at` suffix, `TIMESTAMPTZ` | `created_at`, `paid_at` |
 | Boolean | adj không tiền tố `is_` | `active`, `restockable` |
 | Enum (chuỗi) | `UPPER_SNAKE_CASE` | `PENDING_PAYMENT`, `ORDER_RESERVED` |
+
+## Account self-service target (SF-150)
+
+Xem [contract được owner duyệt](api-account-self-service-spec.md) cho API/capability, một địa chỉ mặc định và SET_PASSWORD. Chỉ thêm migration sau V7; chưa phải bằng chứng implementation hoặc production.

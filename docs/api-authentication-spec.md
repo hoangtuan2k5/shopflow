@@ -304,3 +304,7 @@ chủ đích so với baseline:
   vô hiệu tất cả phiên cũ. Session vẫn mất khi restart, SF-104 là task riêng.
 - Bộ kiểm thử CI-01–CI-15 trong contract là kế hoạch nghiệm thu tương lai,
   không thay bằng chứng PASS của login legacy hoặc thử credential sơ bộ.
+
+## Account self-service target (SF-150)
+
+Xem [contract được owner duyệt](api-account-self-service-spec.md) cho API/capability, một địa chỉ mặc định và SET_PASSWORD. Chỉ thêm migration sau V7; chưa phải bằng chứng implementation hoặc production.
