@@ -1,4 +1,16 @@
 export const en = {
+  account: {
+    title: 'Account settings',
+    delivery: 'Delivery information',
+    changePassword: 'Change password',
+    setupPassword: 'Set up password',
+    loading: 'Loading…',
+    loadError: 'Could not load your account.',
+    retry: 'Try again',
+    demoHint: 'Shared demo accounts do not save personal delivery details or change passwords.',
+    logoutError: 'Sign-out could not be confirmed. Please try again.',
+    back: 'Back to shop',
+  },
   chat: {
     open: 'Product advice',
     kicker: 'SHOPFLOW / PRODUCT ADVISOR',

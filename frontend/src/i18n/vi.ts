@@ -1,6 +1,18 @@
 import type { en } from './en'
 
 export const vi: typeof en = {
+  account: {
+    title: 'Quản lý tài khoản',
+    delivery: 'Thông tin giao hàng',
+    changePassword: 'Đổi mật khẩu',
+    setupPassword: 'Thiết lập mật khẩu',
+    loading: 'Đang xử lý…',
+    loadError: 'Chưa tải được thông tin tài khoản.',
+    retry: 'Thử lại',
+    demoHint: 'Tài khoản demo dùng chung không lưu địa chỉ cá nhân hoặc đổi mật khẩu.',
+    logoutError: 'Chưa xác nhận được đăng xuất. Vui lòng thử lại.',
+    back: 'Về cửa hàng',
+  },
   chat: {
     open: 'Tư vấn sản phẩm',
     kicker: 'SHOPFLOW / TƯ VẤN SẢN PHẨM',

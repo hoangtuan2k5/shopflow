@@ -123,6 +123,10 @@ public class AuthService {
     return principal;
   }
 
+  public AccountPrincipal currentPrincipal() {
+    return principalOf(SecurityContextHolder.getContext().getAuthentication());
+  }
+
   public long currentUserId() {
     return principalOf(SecurityContextHolder.getContext().getAuthentication()).getUserId();
   }

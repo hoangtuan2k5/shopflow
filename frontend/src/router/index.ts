@@ -27,6 +27,18 @@ const router = createRouter({
       component: () => import('@/views/auth/RecoveryView.vue'),
     },
     {
+      path: '/account/delivery',
+      name: 'account-delivery',
+      component: () => import('@/views/account/AccountSettingsView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/account/password',
+      name: 'account-password',
+      component: () => import('@/views/account/AccountSettingsView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/',
       component: AppLayout,
       children: roleRoutes,
@@ -50,6 +62,9 @@ router.beforeEach(async (to) => {
   if (to.name === 'login' || to.name === 'register' || to.name === 'password-recovery') {
     return session.isAuthenticated ? session.homePath : true
   }
+
+  if (to.meta.requiresAuth && !session.isAuthenticated)
+    return { name: 'login', query: { redirect: to.fullPath } }
 
   const routeRole = to.meta.role as RoleKey | undefined
   if (!routeRole || routeRole === 'customer') return true

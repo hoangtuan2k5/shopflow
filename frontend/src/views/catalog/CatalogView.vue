@@ -42,6 +42,7 @@ import ProductImage from '@/components/catalog/ProductImage.vue'
 import ProductAdvisoryChat from '@/components/catalog/ProductAdvisoryChat.vue'
 import CheckoutForm from '@/components/forms/CheckoutForm.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import AccountMenu from '@/components/account/AccountMenu.vue'
 import { useSessionStore } from '@/stores/session'
 import {
   Dialog,
@@ -362,10 +363,11 @@ function closeProduct() {
           <LanguageSwitcher
             class="col-start-2 row-start-1 w-[5.25rem] justify-self-end lg:w-auto"
           />
+          <AccountMenu v-if="session.isAuthenticated" class="col-start-3 row-start-2" />
           <RouterLink
-            :to="session.isAuthenticated ? session.homePath : '/login'"
-            :title="session.user?.displayName ?? t('auth.signIn')"
-            :aria-label="session.user?.displayName ?? t('auth.signIn')"
+            v-else
+            to="/login"
+            :aria-label="t('auth.signIn')"
             :class="
               buttonVariants({
                 variant: 'outline',
@@ -374,15 +376,7 @@ function closeProduct() {
             "
           >
             <IconUserCircle :size="20" :stroke-width="1.8" aria-hidden="true" />
-            <span
-              :class="
-                session.isAuthenticated
-                  ? 'max-w-[3rem] truncate min-[375px]:max-w-[4.5rem] sm:max-w-[12rem]'
-                  : 'hidden sm:inline'
-              "
-            >
-              {{ session.isAuthenticated ? session.accountLabel : t('auth.signIn') }}
-            </span>
+            <span class="hidden sm:inline">{{ t('auth.signIn') }}</span>
           </RouterLink>
           <Button
             class="col-start-3 row-start-1 h-11 justify-self-end gap-2 border-border px-3 font-bold text-primary lg:h-12"
