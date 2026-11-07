@@ -3,6 +3,8 @@ package dev.hoangtuan.shopflow.controller;
 import dev.hoangtuan.shopflow.dto.access.AccountProfile;
 import dev.hoangtuan.shopflow.dto.access.ChallengeResponse;
 import dev.hoangtuan.shopflow.dto.access.ChangePasswordRequest;
+import dev.hoangtuan.shopflow.dto.access.DeliveryDetails;
+import dev.hoangtuan.shopflow.dto.access.DeliveryProfile;
 import dev.hoangtuan.shopflow.dto.access.ResendOtpRequest;
 import dev.hoangtuan.shopflow.dto.access.ResetPasswordRequest;
 import dev.hoangtuan.shopflow.exception.access.CredentialsValidationException;
@@ -14,8 +16,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -80,6 +84,25 @@ public class AccountController {
     accounts.changePassword(
         p.getUserId(), p.getAuthVersion(), request.currentPassword(), request.newPassword());
     auth.logout(http);
+  }
+
+  @GetMapping("/delivery")
+  DeliveryProfile delivery() {
+    var p = auth.currentPrincipal();
+    return accounts.delivery(p.getUserId(), p.getAuthVersion());
+  }
+
+  @PutMapping("/delivery")
+  DeliveryProfile saveDelivery(@Valid @RequestBody DeliveryDetails request) {
+    var p = auth.currentPrincipal();
+    return accounts.saveDelivery(p.getUserId(), p.getAuthVersion(), request);
+  }
+
+  @DeleteMapping("/delivery")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  void deleteDelivery() {
+    var p = auth.currentPrincipal();
+    accounts.deleteDelivery(p.getUserId(), p.getAuthVersion());
   }
 
   @GetMapping

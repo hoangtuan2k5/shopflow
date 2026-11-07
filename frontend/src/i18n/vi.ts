@@ -2,6 +2,13 @@ import type { en } from './en'
 
 export const vi: typeof en = {
   account: {
+    deliveryHint:
+      'Lưu một địa chỉ giao hàng mặc định. Thay đổi tại đây không ảnh hưởng đơn đã đặt.',
+    saveDelivery: 'Lưu thông tin giao hàng',
+    deleteDelivery: 'Xóa địa chỉ đã lưu',
+    deliverySaved: 'Đã cập nhật thông tin giao hàng.',
+    deliveryError: 'Chưa lưu được thông tin giao hàng. Vui lòng kiểm tra và thử lại.',
+
     currentPassword: 'Mật khẩu hiện tại',
     changeHint:
       'Nhập mật khẩu hiện tại để chọn mật khẩu mới. Tất cả phiên đăng nhập sẽ được đăng xuất.',

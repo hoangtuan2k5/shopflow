@@ -5,6 +5,7 @@ import { getAccountProfile } from '@/api/account'
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import DeliverySettings from '@/components/account/DeliverySettings.vue'
 import PasswordSettings from '@/components/account/PasswordSettings.vue'
 const route = useRoute()
 import AccountMenu from '@/components/account/AccountMenu.vue'
@@ -43,6 +44,10 @@ const account = useQuery({
         <p v-if="!account.data.value.capabilities.manageDelivery" class="mt-4 text-sm">
           {{ t('account.demoHint') }}
         </p>
+        <DeliverySettings
+          v-if="route.name === 'account-delivery' && account.data.value.capabilities.manageDelivery"
+          :key="session.user?.userId"
+        />
         <PasswordSettings
           v-if="
             route.name === 'account-password' &&

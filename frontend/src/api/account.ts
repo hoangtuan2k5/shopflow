@@ -35,3 +35,23 @@ export function changePassword(currentPassword: string, newPassword: string) {
     headers: { 'Accept-Language': i18n.global.locale.value },
   })
 }
+
+export interface DeliveryDetails {
+  receiverName: string
+  phone: string
+  addressLine: string
+  district: string | null
+  city: string
+}
+export interface DeliveryProfile {
+  delivery: DeliveryDetails | null
+}
+export function getDeliveryProfile() {
+  return request<DeliveryProfile>({ method: 'GET', url: '/auth/account/delivery' })
+}
+export function saveDeliveryProfile(data: DeliveryDetails) {
+  return request<DeliveryProfile>({ method: 'PUT', url: '/auth/account/delivery', data })
+}
+export function deleteDeliveryProfile() {
+  return request<void>({ method: 'DELETE', url: '/auth/account/delivery' })
+}

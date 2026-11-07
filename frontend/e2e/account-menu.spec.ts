@@ -132,3 +132,34 @@ test('local password change checks confirmation and requires the current passwor
   await page.getByRole('button', { name: 'Save password and sign out' }).click()
   await expect(page).toHaveURL(/\/login$/)
 })
+
+test('delivery settings save and delete one private address without browser persistence', async ({
+  page,
+}) => {
+  await fixture(page)
+  let delivery: unknown = null
+  await page.route('**/api/auth/account/delivery', (route) => {
+    const method = route.request().method()
+    if (method === 'PUT') delivery = route.request().postDataJSON()
+    if (method === 'DELETE') {
+      delivery = null
+      return route.fulfill({ status: 204 })
+    }
+    return route.fulfill({ json: { delivery } })
+  })
+  await page.goto('/account/delivery')
+  await page.getByLabel('Receiver name').fill('Private Receiver')
+  await page.getByLabel('Receiver phone').fill('0123456789')
+  await page.getByLabel('Address', { exact: true }).fill('Private street 45')
+  await page.getByLabel('Province/City').fill('Hanoi')
+  await page.getByRole('button', { name: 'Save delivery information' }).click()
+  await expect(page.getByRole('status')).toHaveText('Delivery information updated.')
+  await page.reload()
+  await expect(page.getByLabel('Receiver name')).toHaveValue('Private Receiver')
+  expect(
+    await page.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage })),
+  ).not.toContain('Private')
+  await page.getByRole('button', { name: 'Delete saved address' }).click()
+  await expect(page.getByLabel('Receiver name')).toHaveValue('')
+  expect(delivery).toBeNull()
+})

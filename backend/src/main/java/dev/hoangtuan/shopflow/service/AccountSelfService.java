@@ -1,6 +1,8 @@
 package dev.hoangtuan.shopflow.service;
 
 import dev.hoangtuan.shopflow.dto.access.AccountProfile;
+import dev.hoangtuan.shopflow.dto.access.DeliveryDetails;
+import dev.hoangtuan.shopflow.dto.access.DeliveryProfile;
 import dev.hoangtuan.shopflow.exception.access.AccountActionException;
 import dev.hoangtuan.shopflow.exception.access.CredentialsValidationException;
 import dev.hoangtuan.shopflow.repository.jdbc.AccountSelfServiceRepository;
@@ -50,6 +52,37 @@ public class AccountSelfService {
             eligible,
             eligible && account.passwordHash() != null,
             eligible && account.google() && account.passwordHash() == null));
+  }
+
+  public DeliveryProfile delivery(long id, long version) {
+    return transactions.execute(
+        tx -> {
+          requireDelivery(id, version);
+          return new DeliveryProfile(repository.delivery(id));
+        });
+  }
+
+  public DeliveryProfile saveDelivery(long id, long version, DeliveryDetails details) {
+    return transactions.execute(
+        tx -> {
+          requireDelivery(id, version);
+          repository.saveDelivery(id, details, clock.instant());
+          return new DeliveryProfile(repository.delivery(id));
+        });
+  }
+
+  public void deleteDelivery(long id, long version) {
+    transactions.executeWithoutResult(
+        tx -> {
+          requireDelivery(id, version);
+          repository.deleteDelivery(id);
+        });
+  }
+
+  private void requireDelivery(long id, long version) {
+    Account account = requireCurrent(repository.find(id, true), version);
+    if (!account.eligible())
+      throw new AccountActionException(HttpStatus.FORBIDDEN, "Delivery settings are not available");
   }
 
   public void changePassword(long id, long version, String currentPassword, String newPassword) {

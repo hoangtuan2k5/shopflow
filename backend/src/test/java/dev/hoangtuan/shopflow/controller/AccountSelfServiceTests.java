@@ -60,6 +60,7 @@ class AccountSelfServiceTests {
     org.mockito.Mockito.when(clock.instant()).thenAnswer(inv -> now.get());
     jdbc.update("DELETE FROM shopflow.auth_email_challenges");
     jdbc.update("DELETE FROM shopflow.auth_rate_buckets");
+    jdbc.update("DELETE FROM shopflow.account_delivery_details");
     jdbc.update("DELETE FROM shopflow.users WHERE email IS NOT NULL");
   }
 
@@ -270,6 +271,69 @@ class AccountSelfServiceTests {
     call(own, HttpMethod.POST, "/auth/account/password/change", body)
         .andExpect(status().isTooManyRequests())
         .andExpect(header().exists("Retry-After"));
+  }
+
+  @Test
+  void deliveryIsOwnedValidatedAndOneProfilePerAccount() throws Exception {
+    long a = account("deliverya@example.com", true, false);
+    Client owner = client(a);
+    Client other = client(account("deliveryb@example.com", false, true));
+    var details =
+        Map.of(
+            "receiverName",
+            " Receiver ",
+            "phone",
+            "0123456789",
+            "addressLine",
+            "1 Main street",
+            "district",
+            "",
+            "city",
+            "Hanoi");
+    call(owner, HttpMethod.GET, "/auth/account/delivery", null)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.delivery").isEmpty());
+    call(owner, HttpMethod.PUT, "/auth/account/delivery", details)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.delivery.receiverName").value("Receiver"));
+    call(owner, HttpMethod.PUT, "/auth/account/delivery", details).andExpect(status().isOk());
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM shopflow.account_delivery_details WHERE user_id=?",
+                Integer.class,
+                a))
+        .isEqualTo(1);
+    call(other, HttpMethod.GET, "/auth/account/delivery?userId=" + a, null)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.delivery").isEmpty());
+    call(other, HttpMethod.DELETE, "/auth/account/delivery?userId=" + a, null)
+        .andExpect(status().isNoContent());
+    call(owner, HttpMethod.GET, "/auth/account/delivery", null)
+        .andExpect(jsonPath("$.delivery.city").value("Hanoi"));
+    var forged = new java.util.HashMap<String, Object>(details);
+    forged.put("userId", a);
+    call(other, HttpMethod.PUT, "/auth/account/delivery", forged)
+        .andExpect(status().isBadRequest());
+    call(
+            owner,
+            HttpMethod.PUT,
+            "/auth/account/delivery",
+            Map.of("receiverName", " ", "phone", "1", "addressLine", "x", "city", "x"))
+        .andExpect(status().isBadRequest());
+    call(
+            owner,
+            HttpMethod.PUT,
+            "/auth/account/delivery",
+            Map.of("receiverName", "x", "phone", "1", "addressLine", "x".repeat(501), "city", "x"))
+        .andExpect(status().isBadRequest());
+    call(owner, HttpMethod.DELETE, "/auth/account/delivery", null)
+        .andExpect(status().isNoContent());
+    call(owner, HttpMethod.GET, "/auth/account/delivery", null)
+        .andExpect(jsonPath("$.delivery").isEmpty());
+    call(client(1), HttpMethod.PUT, "/auth/account/delivery", details)
+        .andExpect(status().isForbidden());
+    call(client(1), HttpMethod.GET, "/auth/account/delivery", null)
+        .andExpect(status().isForbidden());
   }
 
   long account(String email, boolean local, boolean google) {

@@ -1,5 +1,6 @@
 package dev.hoangtuan.shopflow.repository.jdbc;
 
+import dev.hoangtuan.shopflow.dto.access.DeliveryDetails;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -34,6 +35,43 @@ public class AccountSelfServiceRepository {
                     rs.getLong("auth_version")),
             id);
     return rows.isEmpty() ? null : rows.getFirst();
+  }
+
+  public DeliveryDetails delivery(long id) {
+    var rows =
+        jdbc.query(
+            "SELECT receiver_name, phone, address_line, district, city FROM shopflow.account_delivery_details WHERE user_id=?",
+            (rs, n) ->
+                new DeliveryDetails(
+                    rs.getString("receiver_name"),
+                    rs.getString("phone"),
+                    rs.getString("address_line"),
+                    rs.getString("district"),
+                    rs.getString("city")),
+            id);
+    return rows.isEmpty() ? null : rows.getFirst();
+  }
+
+  public void saveDelivery(long id, DeliveryDetails value, java.time.Instant now) {
+    jdbc.update(
+        """
+        INSERT INTO shopflow.account_delivery_details (user_id,receiver_name,phone,address_line,district,city,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?) ON CONFLICT (user_id) DO UPDATE SET
+        receiver_name=EXCLUDED.receiver_name,phone=EXCLUDED.phone,address_line=EXCLUDED.address_line,
+        district=EXCLUDED.district,city=EXCLUDED.city,updated_at=EXCLUDED.updated_at
+        """,
+        id,
+        value.receiverName(),
+        value.phone(),
+        value.addressLine(),
+        value.district(),
+        value.city(),
+        java.sql.Timestamp.from(now),
+        java.sql.Timestamp.from(now));
+  }
+
+  public void deleteDelivery(long id) {
+    jdbc.update("DELETE FROM shopflow.account_delivery_details WHERE user_id=?", id);
   }
 
   public void changePassword(long id, String hash, java.time.Instant now) {

@@ -1,5 +1,12 @@
 export const en = {
   account: {
+    deliveryHint:
+      'Save one default delivery address. Changes here do not alter orders already placed.',
+    saveDelivery: 'Save delivery information',
+    deleteDelivery: 'Delete saved address',
+    deliverySaved: 'Delivery information updated.',
+    deliveryError: 'Delivery information could not be saved. Check the fields and try again.',
+
     currentPassword: 'Current password',
     changeHint: 'Enter your current password to choose a new one. All sessions will be signed out.',
 
