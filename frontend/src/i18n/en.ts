@@ -1,5 +1,9 @@
 export const en = {
   account: {
+    prefillHint: 'Your saved address is filled in. Changes below apply only to this order.',
+    prefillError:
+      'Your saved address could not be loaded. You can enter delivery information manually.',
+
     deliveryHint:
       'Save one default delivery address. Changes here do not alter orders already placed.',
     saveDelivery: 'Save delivery information',

@@ -40,6 +40,7 @@ import { useProductPages } from '@/composables/useProductPages'
 import { Button, buttonVariants } from '@/components/ui/button'
 import ProductImage from '@/components/catalog/ProductImage.vue'
 import ProductAdvisoryChat from '@/components/catalog/ProductAdvisoryChat.vue'
+import { getAccountProfile, getDeliveryProfile } from '@/api/account'
 import CheckoutForm from '@/components/forms/CheckoutForm.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import AccountMenu from '@/components/account/AccountMenu.vue'
@@ -78,6 +79,23 @@ watch(searchQuery, (query) => {
 })
 const cartOpen = ref(false)
 const checkoutOpen = ref(false)
+const accountProfile = useQuery({
+  queryKey: computed(() => ['account', session.user?.userId]),
+  queryFn: getAccountProfile,
+  enabled: computed(() => checkoutOpen.value && session.isAuthenticated),
+  retry: false,
+})
+const deliveryProfile = useQuery({
+  queryKey: computed(() => ['account-delivery', session.user?.userId]),
+  queryFn: getDeliveryProfile,
+  enabled: computed(
+    () =>
+      checkoutOpen.value &&
+      session.isAuthenticated &&
+      !!accountProfile.data.value?.capabilities.manageDelivery,
+  ),
+  retry: false,
+})
 
 const productsQuery = useProductPages(normalizedSearch)
 const loadMoreAnchor = ref<HTMLElement | null>(null)
@@ -946,6 +964,12 @@ function closeProduct() {
         <CheckoutForm
           :key="checkoutIdentity"
           :lines="checkoutLines"
+          :prefill="
+            accountProfile.data.value?.capabilities.manageDelivery
+              ? deliveryProfile.data.value?.delivery
+              : null
+          "
+          :prefill-error="accountProfile.isError.value || deliveryProfile.isError.value"
           :submitting="orderMutation.isPending.value"
           :error="orderError"
           :success-order="createdOrder"

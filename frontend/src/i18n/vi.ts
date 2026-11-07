@@ -2,6 +2,10 @@ import type { en } from './en'
 
 export const vi: typeof en = {
   account: {
+    prefillHint: 'Đã điền địa chỉ đã lưu. Chỉnh sửa bên dưới chỉ áp dụng cho đơn này.',
+    prefillError:
+      'Chưa tải được địa chỉ đã lưu. Anh/chị vẫn có thể nhập thông tin giao hàng thủ công.',
+
     deliveryHint:
       'Lưu một địa chỉ giao hàng mặc định. Thay đổi tại đây không ảnh hưởng đơn đã đặt.',
     saveDelivery: 'Lưu thông tin giao hàng',
