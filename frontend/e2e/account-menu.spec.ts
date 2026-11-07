@@ -98,3 +98,37 @@ test('google-only password setup uses private endpoints and signs out after conf
   expect(storage).not.toContain('Newpass1!')
   expect(storage).not.toContain('123456')
 })
+
+test('local password change checks confirmation and requires the current password', async ({
+  page,
+}) => {
+  await fixture(page)
+  await page.route('**/api/auth/account', (route) =>
+    route.fulfill({
+      json: {
+        displayName: 'Google Buyer',
+        email: 'buyer@example.com',
+        capabilities: { manageDelivery: true, changePassword: true, setPassword: false },
+      },
+    }),
+  )
+  let calls = 0
+  await page.route('**/api/auth/account/password/change', (route) => {
+    calls++
+    expect(route.request().postDataJSON()).toEqual({
+      currentPassword: 'Oldpass1!',
+      newPassword: 'Newpass1!',
+    })
+    return route.fulfill({ status: 204 })
+  })
+  await page.goto('/account/password')
+  await page.getByLabel('Current password', { exact: true }).fill('Oldpass1!')
+  await page.getByLabel('New password', { exact: true }).fill('Newpass1!')
+  await page.getByLabel('Confirm new password').fill('Otherpass1!')
+  await page.getByRole('button', { name: 'Save password and sign out' }).click()
+  await expect(page.getByRole('alert')).toHaveText('Passwords do not match.')
+  expect(calls).toBe(0)
+  await page.getByLabel('Confirm new password').fill('Newpass1!')
+  await page.getByRole('button', { name: 'Save password and sign out' }).click()
+  await expect(page).toHaveURL(/\/login$/)
+})

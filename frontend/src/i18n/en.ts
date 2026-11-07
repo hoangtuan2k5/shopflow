@@ -1,5 +1,8 @@
 export const en = {
   account: {
+    currentPassword: 'Current password',
+    changeHint: 'Enter your current password to choose a new one. All sessions will be signed out.',
+
     setupHint:
       'Verify the code sent to your account email to add a password. You will need to sign in again.',
     sendCode: 'Send verification code',

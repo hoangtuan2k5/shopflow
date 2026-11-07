@@ -191,6 +191,87 @@ class AccountSelfServiceTests {
         .andExpect(status().isTooManyRequests());
   }
 
+  @Test
+  void passwordChangeRequiresCurrentProofAndRevokesOtherSessions() throws Exception {
+    long id = account("change@example.com", true, true);
+    Client first = client(id);
+    Client second = client(id);
+    call(
+            first,
+            HttpMethod.POST,
+            "/auth/account/password/change",
+            Map.of("currentPassword", "wrong", "newPassword", "Newpass1!"))
+        .andExpect(status().isBadRequest());
+    call(
+            first,
+            HttpMethod.POST,
+            "/auth/account/password/change",
+            Map.of("currentPassword", "Oldpass1!", "newPassword", "weak"))
+        .andExpect(status().isBadRequest());
+    call(
+            first,
+            HttpMethod.POST,
+            "/auth/account/password/change",
+            Map.of("currentPassword", "Oldpass1!", "newPassword", "Newpass1!", "userId", 1))
+        .andExpect(status().isBadRequest());
+    call(
+            first,
+            HttpMethod.POST,
+            "/auth/account/password/change",
+            Map.of("currentPassword", "Oldpass1!", "newPassword", "Newpass1!"))
+        .andExpect(status().isNoContent());
+    assertThat(first.session().isInvalid()).isTrue();
+    mvc.perform(get("/auth/account").session(second.session()))
+        .andExpect(status().isUnauthorized());
+    assertThat(
+            encoder.matches(
+                "Newpass1!",
+                jdbc.queryForObject(
+                    "SELECT password_hash FROM shopflow.users WHERE id=?", String.class, id)))
+        .isTrue();
+    verify(mail).sendPasswordChanged(eq("change@example.com"), any());
+  }
+
+  @Test
+  void passwordChangeRejectsDemoAndGoogleOnlyAndHonorsCsrfOriginAndAttemptLimits()
+      throws Exception {
+    var body = Map.of("currentPassword", "Oldpass1!", "newPassword", "Newpass1!");
+    call(client(1), HttpMethod.POST, "/auth/account/password/change", body)
+        .andExpect(status().isForbidden());
+    call(
+            client(account("nohash@example.com", false, true)),
+            HttpMethod.POST,
+            "/auth/account/password/change",
+            body)
+        .andExpect(status().isForbidden());
+    Client own = client(account("limits@example.com", true, false));
+    mvc.perform(
+            post("/auth/account/password/change")
+                .session(own.session())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(body)))
+        .andExpect(status().isForbidden());
+    mvc.perform(
+            post("/auth/account/password/change")
+                .session(own.session())
+                .cookie(own.csrf())
+                .header("X-XSRF-TOKEN", own.csrf().getValue())
+                .header("Origin", "https://evil.example")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(body)))
+        .andExpect(status().isForbidden());
+    for (int i = 0; i < 5; i++)
+      call(
+              own,
+              HttpMethod.POST,
+              "/auth/account/password/change",
+              Map.of("currentPassword", "wrong", "newPassword", "Newpass1!"))
+          .andExpect(status().isBadRequest());
+    call(own, HttpMethod.POST, "/auth/account/password/change", body)
+        .andExpect(status().isTooManyRequests())
+        .andExpect(header().exists("Retry-After"));
+  }
+
   long account(String email, boolean local, boolean google) {
     return jdbc.queryForObject(
         """

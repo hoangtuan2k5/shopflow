@@ -26,3 +26,12 @@ export function confirmPasswordSetup(challengeId: string, otp: string, newPasswo
     headers: { 'Accept-Language': i18n.global.locale.value },
   })
 }
+
+export function changePassword(currentPassword: string, newPassword: string) {
+  return request<void>({
+    method: 'POST',
+    url: '/auth/account/password/change',
+    data: { currentPassword, newPassword },
+    headers: { 'Accept-Language': i18n.global.locale.value },
+  })
+}

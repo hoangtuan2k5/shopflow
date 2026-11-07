@@ -36,6 +36,21 @@ public class AccountSelfServiceRepository {
     return rows.isEmpty() ? null : rows.getFirst();
   }
 
+  public void changePassword(long id, String hash, java.time.Instant now) {
+    jdbc.update(
+        "UPDATE shopflow.users SET password_hash=?, auth_version=auth_version+1, updated_at=? WHERE id=?",
+        hash,
+        java.sql.Timestamp.from(now),
+        id);
+    jdbc.update(
+        """
+        UPDATE shopflow.auth_email_challenges SET status='EXPIRED', otp_verifier=NULL,
+          pending_password_hash=NULL, pending_display_name=NULL
+        WHERE user_id=? AND purpose IN ('RESET_PASSWORD', 'SET_PASSWORD') AND status NOT IN ('CONSUMED', 'EXPIRED')
+        """,
+        id);
+  }
+
   public record Account(
       long id,
       String username,

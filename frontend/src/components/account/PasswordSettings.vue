@@ -4,8 +4,10 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { setupPassword, confirmPasswordSetup } from '@/api/account'
+import { setupPassword, confirmPasswordSetup, changePassword } from '@/api/account'
 import { useSessionStore } from '@/stores/session'
+const props = defineProps<{ setup: boolean }>()
+const currentPassword = ref('')
 const { t } = useI18n()
 const session = useSessionStore()
 const router = useRouter()
@@ -22,7 +24,7 @@ const timer = window.setInterval(() => {
 }, 1000)
 onUnmounted(() => window.clearInterval(timer))
 function failure(e: unknown) {
-  const status = (e as { response?: { status?: number } }).response?.status
+  const status = (e as { status?: number }).status
   error.value = t(
     status === 429
       ? 'account.rateLimited'
@@ -54,7 +56,9 @@ async function submit() {
   }
   busy.value = true
   try {
-    await confirmPasswordSetup(challenge.value, otp.value, password.value)
+    if (props.setup) await confirmPasswordSetup(challenge.value, otp.value, password.value)
+    else await changePassword(currentPassword.value, password.value)
+    currentPassword.value = ''
     password.value = ''
     confirmation.value = ''
     otp.value = ''
@@ -69,10 +73,15 @@ async function submit() {
 </script>
 <template>
   <section class="mt-6 border-t pt-6">
-    <h2 class="text-xl font-semibold">{{ t('account.setupPassword') }}</h2>
-    <p class="mt-2 text-sm text-muted-foreground">{{ t('account.setupHint') }}</p>
+    <h2 class="text-xl font-semibold">
+      {{ t(setup ? 'account.setupPassword' : 'account.changePassword') }}
+    </h2>
+    <p class="mt-2 text-sm text-muted-foreground">
+      {{ t(setup ? 'account.setupHint' : 'account.changeHint') }}
+    </p>
     <p v-if="error" role="alert" class="mt-4 text-sm text-destructive">{{ error }}</p>
     <Button
+      v-if="setup"
       class="mt-4"
       type="button"
       variant="outline"
@@ -82,8 +91,21 @@ async function submit() {
       {{ t(challenge ? 'account.resendCode' : 'account.sendCode')
       }}<span v-if="seconds"> ({{ seconds }}s)</span>
     </Button>
-    <form v-if="challenge" class="mt-5 space-y-4" @submit.prevent="submit">
-      <div>
+    <form v-if="!setup || challenge" class="mt-5 space-y-4" @submit.prevent="submit">
+      <div v-if="!setup">
+        <label for="current-password" class="text-sm font-medium">{{
+          t('account.currentPassword')
+        }}</label>
+        <Input
+          id="current-password"
+          v-model="currentPassword"
+          class="mt-1"
+          type="password"
+          autocomplete="current-password"
+          required
+        />
+      </div>
+      <div v-if="setup">
         <label for="setup-otp" class="text-sm font-medium">{{ t('account.otp') }}</label>
         <Input
           id="setup-otp"

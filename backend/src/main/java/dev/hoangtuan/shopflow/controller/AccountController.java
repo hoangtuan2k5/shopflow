@@ -2,6 +2,7 @@ package dev.hoangtuan.shopflow.controller;
 
 import dev.hoangtuan.shopflow.dto.access.AccountProfile;
 import dev.hoangtuan.shopflow.dto.access.ChallengeResponse;
+import dev.hoangtuan.shopflow.dto.access.ChangePasswordRequest;
 import dev.hoangtuan.shopflow.dto.access.ResendOtpRequest;
 import dev.hoangtuan.shopflow.dto.access.ResetPasswordRequest;
 import dev.hoangtuan.shopflow.exception.access.CredentialsValidationException;
@@ -69,6 +70,15 @@ public class AccountController {
         request.newPassword(),
         http.getSession().getId(),
         http.getRemoteAddr());
+    auth.logout(http);
+  }
+
+  @PostMapping("/password/change")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  void changePassword(@Valid @RequestBody ChangePasswordRequest request, HttpServletRequest http) {
+    var p = auth.currentPrincipal();
+    accounts.changePassword(
+        p.getUserId(), p.getAuthVersion(), request.currentPassword(), request.newPassword());
     auth.logout(http);
   }
 

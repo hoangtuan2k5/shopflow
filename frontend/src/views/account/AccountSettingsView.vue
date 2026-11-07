@@ -44,8 +44,13 @@ const account = useQuery({
           {{ t('account.demoHint') }}
         </p>
         <PasswordSettings
-          v-if="route.name === 'account-password' && account.data.value.capabilities.setPassword"
+          v-if="
+            route.name === 'account-password' &&
+            (account.data.value.capabilities.setPassword ||
+              account.data.value.capabilities.changePassword)
+          "
           :key="session.user?.userId"
+          :setup="account.data.value.capabilities.setPassword"
         />
       </div>
     </main>

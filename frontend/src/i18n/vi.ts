@@ -2,6 +2,10 @@ import type { en } from './en'
 
 export const vi: typeof en = {
   account: {
+    currentPassword: 'Mật khẩu hiện tại',
+    changeHint:
+      'Nhập mật khẩu hiện tại để chọn mật khẩu mới. Tất cả phiên đăng nhập sẽ được đăng xuất.',
+
     setupHint:
       'Xác minh mã gửi đến email tài khoản để thêm mật khẩu. Anh/chị cần đăng nhập lại sau khi lưu.',
     sendCode: 'Gửi mã xác minh',

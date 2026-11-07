@@ -139,10 +139,28 @@ public class CustomerOtpService {
           Map.of("newPassword", "Password does not meet the password policy"));
     String email = verifyProof(id, otp, sessionId, ip, SET, password, userId, version);
     loginLimits.clear(email);
+    notifyPasswordChanged(email, id);
+  }
+
+  public void notifyPasswordChanged(String email, UUID id) {
     try {
-      mail.sendPasswordChanged(email, id);
-    } catch (EmailUnavailableException ignored) {
-      // A notification failure must not undo the credential change.
+      boolean reserved =
+          Boolean.TRUE.equals(
+              transactions.execute(
+                  tx -> {
+                    Instant now = clock.instant();
+                    String day = now.atOffset(ZoneOffset.UTC).toLocalDate().toString();
+                    Bucket bucket =
+                        repository
+                            .lockRates(List.of(rate("MAIL_DAILY", day, 90, now)), now)
+                            .get("MAIL_DAILY");
+                    if (bucket.count() >= bucket.limit()) return false;
+                    repository.increment(bucket);
+                    return true;
+                  }));
+      if (reserved) mail.sendPasswordChanged(email, id);
+    } catch (EmailUnavailableException | org.springframework.dao.DataAccessException ignored) {
+      // Notification failure must not undo an already committed password change.
     }
   }
 
@@ -272,11 +290,7 @@ public class CustomerOtpService {
               "Use at least 8 characters with uppercase, lowercase, a number and a symbol; maximum 72 UTF-8 bytes"));
     String email = verifyProof(id, otp, sessionId, ip, RESET, newPassword);
     loginLimits.clear(email);
-    try {
-      mail.sendPasswordChanged(email, id);
-    } catch (EmailUnavailableException ignored) {
-      // Notification failure must not undo the committed credential change.
-    }
+    notifyPasswordChanged(email, id);
   }
 
   private String verifyProof(
