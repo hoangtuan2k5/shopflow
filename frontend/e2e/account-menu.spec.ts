@@ -1,3 +1,4 @@
+import { mockSession } from './session'
 import { expect, test } from '@playwright/test'
 
 async function fixture(page: import('@playwright/test').Page, fails = false) {
@@ -162,4 +163,98 @@ test('delivery settings save and delete one private address without browser pers
   await page.getByRole('button', { name: 'Delete saved address' }).click()
   await expect(page.getByLabel('Receiver name')).toHaveValue('')
   expect(delivery).toBeNull()
+})
+
+for (const width of [320, 1280]) {
+  test(`account settings remain readable and bilingual at ${width}px`, async ({ page }) => {
+    await fixture(page)
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/account/password')
+    await expect(page.getByRole('heading', { name: 'Set up password' })).toBeVisible()
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true)
+    await page.screenshot({
+      path: `/tmp/shopflow-account-password-en-${width}.png`,
+      fullPage: true,
+    })
+    await page.getByRole('combobox').selectOption('vi')
+    await expect(page.getByRole('heading', { name: 'Thiết lập mật khẩu' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Gửi mã xác minh' })).toBeVisible()
+    await page.screenshot({
+      path: `/tmp/shopflow-account-password-vi-${width}.png`,
+      fullPage: true,
+    })
+  })
+}
+
+test('staff header fits a narrow viewport and retains its workspace menu', async ({ page }) => {
+  await mockSession(page, 'WAREHOUSE')
+  await page.route('**/api/inventory', (route) => route.fulfill({ json: [] }))
+  await page.setViewportSize({ width: 320, height: 900 })
+  await page.goto('/warehouse')
+  const trigger = page.getByRole('button', { name: 'Nhân viên kho demo', exact: true })
+  await expect(trigger).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  )
+  await trigger.click()
+  await expect(page.getByRole('menuitem', { name: 'Workspace' })).toBeVisible()
+  await page.screenshot({ path: '/tmp/shopflow-staff-account-menu-320.png', fullPage: true })
+})
+
+for (const status of [429, 503]) {
+  test(`password setup handles ${status} without claiming a code was sent`, async ({ page }) => {
+    await fixture(page)
+    await page.route('**/api/auth/account/password/setup', (route) =>
+      route.fulfill({
+        status,
+        headers: status === 429 ? { 'Retry-After': '60' } : {},
+        json: { message: 'Unavailable', status },
+      }),
+    )
+    await page.goto('/account/password')
+    await page.getByRole('button', { name: 'Send verification code' }).click()
+    await expect(page.getByRole('alert')).toHaveText(
+      status === 429
+        ? 'Too many attempts. Please wait before trying again.'
+        : 'Email could not be sent. Please try again later.',
+    )
+    await expect(page.getByLabel('Verification code', { exact: true })).toHaveCount(0)
+    if (status === 429)
+      await expect(page.getByRole('button', { name: /Send verification code/ })).toBeDisabled()
+  })
+}
+
+test('failed setup resend discards the replaced proof and allows a fresh request', async ({
+  page,
+}) => {
+  await fixture(page)
+  await page.clock.install()
+  let initial = 0
+  await page.route('**/api/auth/account/password/setup', (route) => {
+    initial++
+    return route.fulfill({
+      status: 202,
+      json: {
+        challengeId: 'd3fdcaca-2441-4fe2-b8ac-1e52af999c10',
+        message: 'Issued',
+        expiresInSeconds: 600,
+        resendAfterSeconds: 1,
+      },
+    })
+  })
+  await page.route('**/api/auth/account/password/setup/resend', (route) =>
+    route.fulfill({ status: 503, json: { status: 503 } }),
+  )
+  await page.goto('/account/password')
+  await page.getByRole('button', { name: 'Send verification code' }).click()
+  await page.clock.fastForward(1100)
+  await page.getByRole('button', { name: 'Resend code' }).click()
+  await expect(page.getByRole('alert')).toHaveText(
+    'Email could not be sent. Please try again later.',
+  )
+  await expect(page.getByLabel('Verification code', { exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Send verification code' }).click()
+  expect(initial).toBe(2)
 })

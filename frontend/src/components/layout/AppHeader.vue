@@ -14,7 +14,9 @@ const session = useSessionStore()
 
 <template>
   <header class="border-b border-border bg-card">
-    <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-6">
+    <div
+      class="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6"
+    >
       <div class="flex min-w-0 items-center gap-4">
         <img class="h-8 w-auto" src="/brand/shopflow-wordmark.png" alt="ShopFlow" />
         <p class="hidden border-l border-border pl-4 text-sm text-muted-foreground sm:block">

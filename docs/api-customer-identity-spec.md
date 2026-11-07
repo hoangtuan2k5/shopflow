@@ -422,4 +422,6 @@ provider/cookie integration. Ghi lần chạy mới, flaky/skipped và môi trư
 
 ## Account self-service extension (SF-150)
 
-Owner đã duyệt [contract self-service](api-account-self-service-spec.md) sau v0.13.0: menu/logout, một địa chỉ mặc định, đổi local password và thiết lập password Google-only qua authenticated SET_PASSWORD. Các giới hạn ngoài phạm vi ở mục1 là lịch sử của đợt trước; public forgot/reset và ownership cũ không thay đổi. Đây là target cho SF-151–SF-156, không phải bằng chứng đã deploy.
+Owner đã duyệt [contract self-service](api-account-self-service-spec.md) sau v0.13.0: menu/logout, một địa chỉ mặc định, đổi local password và thiết lập password Google-only qua authenticated SET_PASSWORD. Các giới hạn ngoài phạm vi ở mục1 là lịch sử của đợt trước; public forgot/reset và ownership cũ không thay đổi. SF-151–SF-156 đã được triển khai trên nhánh tính năng; chưa deploy production.
+
+Bằng chứng account self-service: [QA SF-156](qa-account-self-service.md). V8 bổ sung SET_PASSWORD + issued_auth_version; V9 lưu một địa chỉ riêng theo user_id, không backfill đơn cũ.

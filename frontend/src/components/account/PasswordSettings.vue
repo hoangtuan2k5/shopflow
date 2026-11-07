@@ -19,12 +19,20 @@ const busy = ref(false)
 const error = ref('')
 const retryAt = ref(0)
 const seconds = ref(0)
+const rateLimited = ref(false)
 const timer = window.setInterval(() => {
   seconds.value = Math.max(0, Math.ceil((retryAt.value - Date.now()) / 1000))
+  if (!seconds.value) rateLimited.value = false
 }, 1000)
 onUnmounted(() => window.clearInterval(timer))
 function failure(e: unknown) {
-  const status = (e as { status?: number }).status
+  const problem = e as { status?: number; retryAfter?: number }
+  const status = problem.status
+  if (status === 429 && problem.retryAfter) {
+    rateLimited.value = true
+    seconds.value = problem.retryAfter
+    retryAt.value = Date.now() + problem.retryAfter * 1000
+  }
   error.value = t(
     status === 429
       ? 'account.rateLimited'
@@ -43,6 +51,11 @@ async function send() {
     seconds.value = result.resendAfterSeconds
     otp.value = ''
   } catch (e) {
+    const status = (e as { status?: number }).status
+    if (status === 400 || status === 503) {
+      challenge.value = ''
+      otp.value = ''
+    }
     failure(e)
   } finally {
     busy.value = false
@@ -143,7 +156,7 @@ async function submit() {
           required
         />
       </div>
-      <Button type="submit" :disabled="busy">{{
+      <Button type="submit" :disabled="busy || rateLimited">{{
         t(busy ? 'account.loading' : 'account.savePassword')
       }}</Button>
     </form>

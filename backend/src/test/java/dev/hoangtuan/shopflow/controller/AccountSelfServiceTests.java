@@ -49,6 +49,7 @@ class AccountSelfServiceTests {
   @Autowired MockMvc mvc;
   @Autowired JdbcTemplate jdbc;
   @Autowired PasswordEncoder encoder;
+  @Autowired dev.hoangtuan.shopflow.service.CustomerOtpService otpService;
   @MockitoBean Clock clock;
   @MockitoBean ResendEmailClient mail;
   final AtomicReference<Instant> now = new AtomicReference<>();
@@ -151,6 +152,15 @@ class AccountSelfServiceTests {
     mvc.perform(get("/auth/account").session(otherSession.session()))
         .andExpect(status().isUnauthorized());
     assertThat(first.session().isInvalid()).isTrue();
+    mvc.perform(
+            post("/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    json.writeValueAsString(
+                        Map.of("username", "setup@example.com", "password", "Newpass1!"))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.userId").value(id))
+        .andExpect(jsonPath("$.role").value("CUSTOMER"));
   }
 
   @Test
@@ -334,6 +344,154 @@ class AccountSelfServiceTests {
         .andExpect(status().isForbidden());
     call(client(1), HttpMethod.GET, "/auth/account/delivery", null)
         .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void setupCodesExpireAfterTenMinutesAndFiveWrongGuessesAreLimited() throws Exception {
+    long id = account("expiry@example.com", false, true);
+    Client client = client(id);
+    AtomicReference<String> code = new AtomicReference<>();
+    doAnswer(
+            inv -> {
+              code.set(inv.getArgument(1));
+              return UUID.randomUUID().toString();
+            })
+        .when(mail)
+        .sendSetupCode(anyString(), anyString(), any());
+    var challenge = otpService.setup(id, 0, null, client.session().getId(), "expiry-ip");
+    String wrong = code.get().equals("000000") ? "111111" : "000000";
+    for (int i = 0; i < 4; i++)
+      call(
+              client,
+              HttpMethod.POST,
+              "/auth/account/password/setup/confirm",
+              Map.of(
+                  "challengeId", challenge.challengeId(), "otp", wrong, "newPassword", "Newpass1!"))
+          .andExpect(status().isBadRequest());
+    call(
+            client,
+            HttpMethod.POST,
+            "/auth/account/password/setup/confirm",
+            Map.of(
+                "challengeId", challenge.challengeId(), "otp", wrong, "newPassword", "Newpass1!"))
+        .andExpect(status().isTooManyRequests());
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT failed_attempts FROM shopflow.auth_email_challenges WHERE challenge_id=?",
+                Integer.class,
+                challenge.challengeId()))
+        .isEqualTo(5);
+    now.set(now.get().plusSeconds(901));
+    var fresh = otpService.setup(id, 0, null, client.session().getId(), "expiry-ip");
+    now.set(now.get().plusSeconds(600));
+    call(
+            client,
+            HttpMethod.POST,
+            "/auth/account/password/setup/confirm",
+            Map.of(
+                "challengeId", fresh.challengeId(), "otp", code.get(), "newPassword", "Newpass1!"))
+        .andExpect(status().isBadRequest());
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT password_hash FROM shopflow.users WHERE id=?", String.class, id))
+        .isNull();
+  }
+
+  @Test
+  void twoConcurrentSetupConfirmationsConsumeProofOnlyOnce() throws Exception {
+    long id = account("race@example.com", false, true);
+    Client client = client(id);
+    AtomicReference<String> code = new AtomicReference<>();
+    doAnswer(
+            inv -> {
+              code.set(inv.getArgument(1));
+              return UUID.randomUUID().toString();
+            })
+        .when(mail)
+        .sendSetupCode(anyString(), anyString(), any());
+    var challenge = otpService.setup(id, 0, null, client.session().getId(), "race-ip");
+    try (var workers = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+      var start = new java.util.concurrent.CountDownLatch(1);
+      java.util.concurrent.Callable<Boolean> attempt =
+          () -> {
+            start.await();
+            try {
+              otpService.confirmSetup(
+                  id,
+                  0,
+                  challenge.challengeId(),
+                  code.get(),
+                  "Newpass1!",
+                  client.session().getId(),
+                  "race-ip");
+              return true;
+            } catch (org.springframework.security.core.AuthenticationException
+                | dev.hoangtuan.shopflow.exception.access.AccountActionException
+                | dev.hoangtuan.shopflow.exception.access.InvalidCodeException e) {
+              return false;
+            }
+          };
+      var first = workers.submit(attempt);
+      var second = workers.submit(attempt);
+      start.countDown();
+      assertThat(
+              java.util.List.of(
+                  first.get(10, java.util.concurrent.TimeUnit.SECONDS),
+                  second.get(10, java.util.concurrent.TimeUnit.SECONDS)))
+          .containsExactlyInAnyOrder(true, false);
+    }
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT auth_version FROM shopflow.users WHERE id=?", Long.class, id))
+        .isEqualTo(1);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT status FROM shopflow.auth_email_challenges WHERE challenge_id=?",
+                String.class,
+                challenge.challengeId()))
+        .isEqualTo("CONSUMED");
+  }
+
+  @Test
+  void delayedDeliveryResponseCannotResurrectAnOldGeneration() throws Exception {
+    long id = account("late@example.com", false, true);
+    Client client = client(id);
+    var sending = new java.util.concurrent.CountDownLatch(1);
+    var release = new java.util.concurrent.CountDownLatch(1);
+    var calls = new java.util.concurrent.atomic.AtomicInteger();
+    doAnswer(
+            inv -> {
+              if (calls.incrementAndGet() == 1) {
+                sending.countDown();
+                if (!release.await(10, java.util.concurrent.TimeUnit.SECONDS))
+                  throw new AssertionError("Mail callback timeout");
+              }
+              return UUID.randomUUID().toString();
+            })
+        .when(mail)
+        .sendSetupCode(anyString(), anyString(), any());
+    try (var workers = java.util.concurrent.Executors.newSingleThreadExecutor()) {
+      var old =
+          workers.submit(() -> otpService.setup(id, 0, null, client.session().getId(), "late-ip"));
+      assertThat(sending.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+      now.set(now.get().plusSeconds(61));
+      var fresh = otpService.setup(id, 0, null, client.session().getId(), "late-ip");
+      release.countDown();
+      assertThat(old.get(10, java.util.concurrent.TimeUnit.SECONDS).challengeId())
+          .isNotEqualTo(fresh.challengeId());
+      assertThat(
+              jdbc.queryForObject(
+                  "SELECT challenge_id FROM shopflow.auth_email_challenges WHERE email='late@example.com'",
+                  UUID.class))
+          .isEqualTo(fresh.challengeId());
+      assertThat(
+              jdbc.queryForObject(
+                  "SELECT status FROM shopflow.auth_email_challenges WHERE email='late@example.com'",
+                  String.class))
+          .isEqualTo("ISSUED");
+    } finally {
+      release.countDown();
+    }
   }
 
   long account(String email, boolean local, boolean google) {

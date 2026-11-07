@@ -854,4 +854,6 @@ Contract target được owner duyệt: [account self-service](api-account-self-
 | SF-153 | Prefill checkout, giữ nguyên snapshots và tách PII giữa account |
 | SF-156 | Kiểm thử/migration/rollout evidence mới |
 
-Chưa coi các dòng này là implementation PASS; tài khoản demo dùng chung giữ credential, không lưu profile giao hàng cá nhân.
+Tài khoản demo dùng chung giữ credential, không lưu profile giao hàng cá nhân. Kết quả và giới hạn kiểm chứng của bản triển khai ở QA SF-156 bên dưới.
+
+Bằng chứng account self-service: [QA SF-156](qa-account-self-service.md). V8 bổ sung SET_PASSWORD + issued_auth_version; V9 lưu một địa chỉ riêng theo user_id, không backfill đơn cũ.

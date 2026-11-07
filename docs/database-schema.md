@@ -1221,6 +1221,6 @@ giữ nguyên. Không hard-delete user đã được đơn tham chiếu; vô hi�
 | Boolean | adj không tiền tố `is_` | `active`, `restockable` |
 | Enum (chuỗi) | `UPPER_SNAKE_CASE` | `PENDING_PAYMENT`, `ORDER_RESERVED` |
 
-## Account self-service target (SF-150)
+## Account self-service (SF-150–SF-156)
 
-Xem [contract được owner duyệt](api-account-self-service-spec.md) cho API/capability, một địa chỉ mặc định và SET_PASSWORD. Chỉ thêm migration sau V7; chưa phải bằng chứng implementation hoặc production.
+Xem [contract được owner duyệt](api-account-self-service-spec.md) cho API/capability, một địa chỉ mặc định và SET_PASSWORD. V8 bổ sung SET_PASSWORD + issued_auth_version; V9 lưu một địa chỉ riêng theo user_id, không backfill đơn cũ. Bằng chứng triển khai/migration tại [QA SF-156](qa-account-self-service.md); chưa triển khai production.

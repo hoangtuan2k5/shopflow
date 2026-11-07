@@ -1,6 +1,6 @@
 # ShopFlow — Account Self-Service Contract (SF-150)
 
-**Trạng thái:** owner đã duyệt contract ngày07/11/2026; target cho SF-151–SF-156, chưa phải bằng chứng implementation hoặc production.
+**Trạng thái:** đã triển khai SF-151–SF-155 trên nhánh tính năng; kiểm chứng và giới hạn rollout trong [QA SF-156](qa-account-self-service.md). Chưa triển khai production.
 
 **Baseline:** v0.13.0, main `ebb5a0d`. Mở rộng có chủ đích giới hạn profile/Google-only password trong [contract cũ](api-customer-identity-spec.md); không thay public forgot-password hay sửa đơn cũ.
 

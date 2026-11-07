@@ -82,6 +82,26 @@ class ResendEmailClientTests {
   }
 
   @Test
+  void passwordSetupUsesTheSelectedLanguageAndExistingBanner() {
+    var client = client("fake-resend-key", "ShopFlow <shopflow@hoangtuan.dev>");
+    for (var locale : List.of(Locale.ENGLISH, Locale.forLanguageTag("vi"))) {
+      LocaleContextHolder.setLocale(locale);
+      client.sendSetupCode("buyer@example.com", "012345", UUID.randomUUID());
+      Request sent = requests.remove();
+      assertThat(sent.body().get("subject").asText())
+          .isEqualTo(
+              "ShopFlow — "
+                  + (locale.getLanguage().equals("vi") ? "Thiết lập mật khẩu" : "Set up password"));
+      assertThat(sent.body().get("html").asText()).contains("cid:shopflow-banner");
+      assertThat(sent.body().get("text").asText()).contains("012345");
+      if (locale.getLanguage().equals("vi"))
+        assertThat(sent.body().get("text").asText())
+            .doesNotContain("Verification code", "This code expires");
+      else assertThat(sent.body().get("text").asText()).doesNotContain("Mã xác minh", "Mã có hạn");
+    }
+  }
+
+  @Test
   void sendsBothCodePurposesWithEscapedHtmlAndStableIdempotency() {
     var client = client("fake-resend-key", "ShopFlow <shopflow@hoangtuan.dev>");
     UUID registration = UUID.randomUUID();
