@@ -2,6 +2,21 @@ import type { en } from './en'
 
 export const vi: typeof en = {
   account: {
+    setupHint:
+      'Xác minh mã gửi đến email tài khoản để thêm mật khẩu. Anh/chị cần đăng nhập lại sau khi lưu.',
+    sendCode: 'Gửi mã xác minh',
+    resendCode: 'Gửi lại mã',
+    otp: 'Mã xác minh',
+    newPassword: 'Mật khẩu mới',
+    confirmPassword: 'Nhập lại mật khẩu mới',
+    savePassword: 'Lưu mật khẩu và đăng xuất',
+    passwordPolicy:
+      'Tối thiểu 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt. Tối đa 72 byte UTF-8.',
+    passwordMismatch: 'Mật khẩu nhập lại không khớp.',
+    passwordError: 'Không thể hoàn tất. Kiểm tra mã và mật khẩu hoặc yêu cầu mã mới.',
+    rateLimited: 'Quá nhiều lần thử. Vui lòng chờ trước khi thử lại.',
+    mailUnavailable: 'Chưa gửi được email. Vui lòng thử lại sau.',
+
     title: 'Quản lý tài khoản',
     delivery: 'Thông tin giao hàng',
     changePassword: 'Đổi mật khẩu',

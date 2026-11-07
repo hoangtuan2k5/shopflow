@@ -61,3 +61,40 @@ test('logout failure stays signed in and does not claim success', async ({ page 
   await expect(page.getByRole('button', { name: 'Google Buyer', exact: true })).toBeVisible()
   await expect(page).toHaveURL(/\/customer$/)
 })
+
+test('google-only password setup uses private endpoints and signs out after confirmation', async ({
+  page,
+}) => {
+  await fixture(page)
+  await page.route('**/api/auth/account/password/setup', (route) =>
+    route.fulfill({
+      status: 202,
+      json: {
+        challengeId: 'd3fdcaca-2441-4fe2-b8ac-1e52af999c10',
+        message: 'Issued',
+        expiresInSeconds: 600,
+        resendAfterSeconds: 60,
+      },
+    }),
+  )
+  let requestBody: unknown
+  await page.route('**/api/auth/account/password/setup/confirm', (route) => {
+    requestBody = route.request().postDataJSON()
+    return route.fulfill({ status: 204 })
+  })
+  await page.goto('/account/password')
+  await page.getByRole('button', { name: 'Send verification code' }).click()
+  await page.getByLabel('Verification code', { exact: true }).fill('123456')
+  await page.getByLabel('New password', { exact: true }).fill('Newpass1!')
+  await page.getByLabel('Confirm new password').fill('Newpass1!')
+  await page.getByRole('button', { name: 'Save password and sign out' }).click()
+  await expect(page).toHaveURL(/\/login$/)
+  expect(requestBody).toEqual({
+    challengeId: 'd3fdcaca-2441-4fe2-b8ac-1e52af999c10',
+    otp: '123456',
+    newPassword: 'Newpass1!',
+  })
+  const storage = await page.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage }))
+  expect(storage).not.toContain('Newpass1!')
+  expect(storage).not.toContain('123456')
+})

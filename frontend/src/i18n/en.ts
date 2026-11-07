@@ -1,5 +1,21 @@
 export const en = {
   account: {
+    setupHint:
+      'Verify the code sent to your account email to add a password. You will need to sign in again.',
+    sendCode: 'Send verification code',
+    resendCode: 'Resend code',
+    otp: 'Verification code',
+    newPassword: 'New password',
+    confirmPassword: 'Confirm new password',
+    savePassword: 'Save password and sign out',
+    passwordPolicy:
+      'At least 8 characters, including uppercase, lowercase, a number and a symbol. Maximum 72 UTF-8 bytes.',
+    passwordMismatch: 'Passwords do not match.',
+    passwordError:
+      'The request could not be completed. Check your code and password, or request a new code.',
+    rateLimited: 'Too many attempts. Please wait before trying again.',
+    mailUnavailable: 'Email could not be sent. Please try again later.',
+
     title: 'Account settings',
     delivery: 'Delivery information',
     changePassword: 'Change password',

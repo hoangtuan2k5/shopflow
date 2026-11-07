@@ -4,6 +4,9 @@ import { useSessionStore } from '@/stores/session'
 import { getAccountProfile } from '@/api/account'
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import PasswordSettings from '@/components/account/PasswordSettings.vue'
+const route = useRoute()
 import AccountMenu from '@/components/account/AccountMenu.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 const { t } = useI18n()
@@ -40,6 +43,10 @@ const account = useQuery({
         <p v-if="!account.data.value.capabilities.manageDelivery" class="mt-4 text-sm">
           {{ t('account.demoHint') }}
         </p>
+        <PasswordSettings
+          v-if="route.name === 'account-password' && account.data.value.capabilities.setPassword"
+          :key="session.user?.userId"
+        />
       </div>
     </main>
   </div>

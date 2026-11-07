@@ -135,19 +135,21 @@ public class EmailChallengeRepository {
       boolean synthetic,
       String passwordHash,
       String name,
-      Instant now) {
+      Instant now,
+      Long issuedAuthVersion) {
     jdbc.update(
         """
         INSERT INTO shopflow.auth_email_challenges (email, purpose, challenge_id, user_id,
           session_binding, otp_verifier, synthetic, status, issued_at, expires_at, resend_at,
-          failed_attempts, pending_password_hash, pending_display_name, consumed_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, NULL)
+          failed_attempts, pending_password_hash, pending_display_name, consumed_at, issued_auth_version)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, NULL, ?)
         ON CONFLICT (email, purpose) DO UPDATE SET challenge_id = EXCLUDED.challenge_id,
           user_id = EXCLUDED.user_id, session_binding = EXCLUDED.session_binding, otp_verifier = EXCLUDED.otp_verifier,
           synthetic = EXCLUDED.synthetic, status = EXCLUDED.status, issued_at = EXCLUDED.issued_at,
           expires_at = EXCLUDED.expires_at, resend_at = EXCLUDED.resend_at, failed_attempts = 0,
           pending_password_hash = EXCLUDED.pending_password_hash,
-          pending_display_name = EXCLUDED.pending_display_name, consumed_at = NULL
+          pending_display_name = EXCLUDED.pending_display_name, consumed_at = NULL,
+          issued_auth_version = EXCLUDED.issued_auth_version
         """,
         email,
         purpose,
@@ -161,7 +163,8 @@ public class EmailChallengeRepository {
         Timestamp.from(now.plusSeconds(600)),
         Timestamp.from(now.plusSeconds(60)),
         synthetic ? null : passwordHash,
-        synthetic ? null : name);
+        synthetic ? null : name,
+        issuedAuthVersion);
   }
 
   public void delivery(UUID generation, boolean success) {
@@ -220,7 +223,7 @@ public class EmailChallengeRepository {
         """
         UPDATE shopflow.auth_email_challenges SET status = 'EXPIRED', otp_verifier = NULL,
           pending_password_hash = NULL, pending_display_name = NULL
-        WHERE purpose = 'RESET_PASSWORD' AND user_id = ? AND challenge_id <> ?
+        WHERE purpose IN ('RESET_PASSWORD', 'SET_PASSWORD') AND user_id = ? AND challenge_id <> ?
           AND status NOT IN ('CONSUMED', 'EXPIRED')
         """,
         challenge.userId(),
@@ -271,7 +274,8 @@ public class EmailChallengeRepository {
         rs.getTimestamp("resend_at").toInstant(),
         rs.getInt("failed_attempts"),
         rs.getString("pending_password_hash"),
-        rs.getString("pending_display_name"));
+        rs.getString("pending_display_name"),
+        rs.getObject("issued_auth_version", Long.class));
   }
 
   private byte[] digest(String value) {
@@ -306,5 +310,6 @@ public class EmailChallengeRepository {
       Instant resendAt,
       int failedAttempts,
       String passwordHash,
-      String displayName) {}
+      String displayName,
+      Long issuedAuthVersion) {}
 }

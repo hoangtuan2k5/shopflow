@@ -46,11 +46,15 @@ public class ResendEmailClient {
 
   public String sendRegistrationCode(
       String recipient, String displayName, String otp, UUID challengeId) {
-    return sendCode(recipient, displayName, otp, challengeId, true);
+    return sendCode(recipient, displayName, otp, challengeId, "REGISTER");
   }
 
   public String sendResetCode(String recipient, String otp, UUID challengeId) {
-    return sendCode(recipient, "", otp, challengeId, false);
+    return sendCode(recipient, "", otp, challengeId, "RESET");
+  }
+
+  public String sendSetupCode(String recipient, String otp, UUID challengeId) {
+    return sendCode(recipient, "", otp, challengeId, "SET");
   }
 
   public String sendPasswordChanged(String recipient, UUID challengeId) {
@@ -64,15 +68,17 @@ public class ResendEmailClient {
   }
 
   private String sendCode(
-      String recipient, String displayName, String otp, UUID challengeId, boolean registration) {
+      String recipient, String displayName, String otp, UUID challengeId, String kind) {
     if (otp == null || !otp.matches("[0-9]{6}") || challengeId == null) {
       throw new IllegalArgumentException("A six-digit code and challenge ID are required");
     }
     boolean vi = LocaleContextHolder.getLocale().getLanguage().equals("vi");
     String purpose =
-        registration
+        kind.equals("REGISTER")
             ? (vi ? "Xác minh email" : "Verify email")
-            : (vi ? "Đặt lại mật khẩu" : "Reset password");
+            : kind.equals("SET")
+                ? (vi ? "Thiết lập mật khẩu" : "Set up password")
+                : (vi ? "Đặt lại mật khẩu" : "Reset password");
     String text =
         (vi
                 ? """

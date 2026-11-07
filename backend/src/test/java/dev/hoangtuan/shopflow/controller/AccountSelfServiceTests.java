@@ -1,6 +1,8 @@
 package dev.hoangtuan.shopflow.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -11,6 +13,8 @@ import dev.hoangtuan.shopflow.security.AccountPrincipal;
 import jakarta.servlet.http.Cookie;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -97,6 +101,94 @@ class AccountSelfServiceTests {
     jdbc.update("UPDATE shopflow.users SET auth_version=auth_version+1 WHERE id=?", id);
     mvc.perform(get("/auth/account").session(client.session()))
         .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void setupProofIsPrivatePurposeBoundAndRevokesEverySession() throws Exception {
+    long id = account("setup@example.com", false, true);
+    Client first = client(id);
+    Client otherSession = client(id);
+    AtomicReference<String> code = new AtomicReference<>();
+    doAnswer(
+            inv -> {
+              code.set(inv.getArgument(1));
+              return UUID.randomUUID().toString();
+            })
+        .when(mail)
+        .sendSetupCode(anyString(), anyString(), any());
+    String body =
+        call(first, HttpMethod.POST, "/auth/account/password/setup", Map.of())
+            .andExpect(status().isAccepted())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String generation = json.readTree(body).get("challengeId").asText();
+    assertThat(code.get()).matches("[0-9]{6}");
+    call(first, HttpMethod.POST, "/auth/otp/resend", Map.of("challengeId", generation))
+        .andExpect(status().isBadRequest());
+    Map<String, String> proof =
+        Map.of("challengeId", generation, "otp", code.get(), "newPassword", "Newpass1!");
+    call(otherSession, HttpMethod.POST, "/auth/account/password/setup/confirm", proof)
+        .andExpect(status().isBadRequest());
+    call(first, HttpMethod.POST, "/auth/password/reset", proof).andExpect(status().isBadRequest());
+    call(first, HttpMethod.POST, "/auth/account/password/setup/confirm", proof)
+        .andExpect(status().isNoContent());
+    assertThat(
+            encoder.matches(
+                "Newpass1!",
+                jdbc.queryForObject(
+                    "SELECT password_hash FROM shopflow.users WHERE id=?", String.class, id)))
+        .isTrue();
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT auth_version FROM shopflow.users WHERE id=?", Long.class, id))
+        .isEqualTo(1);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT google_sub FROM shopflow.users WHERE id=?", String.class, id))
+        .isEqualTo("sub-setup@example.com");
+    mvc.perform(get("/auth/account").session(otherSession.session()))
+        .andExpect(status().isUnauthorized());
+    assertThat(first.session().isInvalid()).isTrue();
+  }
+
+  @Test
+  void setupRejectsDemoLocalAccountsAndForgedOwnerFields() throws Exception {
+    call(client(1), HttpMethod.POST, "/auth/account/password/setup", Map.of())
+        .andExpect(status().isForbidden());
+    call(
+            client(account("local@example.com", true, true)),
+            HttpMethod.POST,
+            "/auth/account/password/setup",
+            Map.of())
+        .andExpect(status().isConflict());
+    call(
+            client(account("owner@example.com", false, true)),
+            HttpMethod.POST,
+            "/auth/account/password/setup",
+            Map.of("email", "other@example.com"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void failedMailCannotBeConfirmedAndResendKeepsTheCooldown() throws Exception {
+    Client client = client(account("failed@example.com", false, true));
+    doThrow(new dev.hoangtuan.shopflow.exception.access.EmailUnavailableException())
+        .when(mail)
+        .sendSetupCode(anyString(), anyString(), any());
+    call(client, HttpMethod.POST, "/auth/account/password/setup", Map.of())
+        .andExpect(status().isServiceUnavailable());
+    var row =
+        jdbc.queryForMap(
+            "SELECT challenge_id, status, otp_verifier FROM shopflow.auth_email_challenges WHERE email='failed@example.com'");
+    assertThat(row.get("status")).isEqualTo("FAILED");
+    assertThat(row.get("otp_verifier")).isNull();
+    call(
+            client,
+            HttpMethod.POST,
+            "/auth/account/password/setup/resend",
+            Map.of("challengeId", row.get("challenge_id")))
+        .andExpect(status().isTooManyRequests());
   }
 
   long account(String email, boolean local, boolean google) {
