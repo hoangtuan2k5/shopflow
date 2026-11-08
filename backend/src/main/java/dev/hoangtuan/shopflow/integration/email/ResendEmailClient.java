@@ -49,21 +49,22 @@ public class ResendEmailClient {
     return sendCode(recipient, displayName, otp, challengeId, "REGISTER");
   }
 
-  public String sendResetCode(String recipient, String otp, UUID challengeId) {
-    return sendCode(recipient, "", otp, challengeId, "RESET");
+  public String sendResetCode(String recipient, String displayName, String otp, UUID challengeId) {
+    return sendCode(recipient, displayName, otp, challengeId, "RESET");
   }
 
-  public String sendSetupCode(String recipient, String otp, UUID challengeId) {
-    return sendCode(recipient, "", otp, challengeId, "SET");
+  public String sendSetupCode(String recipient, String displayName, String otp, UUID challengeId) {
+    return sendCode(recipient, displayName, otp, challengeId, "SET");
   }
 
-  public String sendPasswordChanged(String recipient, UUID challengeId) {
+  public String sendPasswordChanged(String recipient, String displayName, UUID challengeId) {
     boolean vi = LocaleContextHolder.getLocale().getLanguage().equals("vi");
     String subject = "ShopFlow — " + (vi ? "Mật khẩu đã thay đổi" : "Password changed");
     String text =
         vi
             ? "Mật khẩu tài khoản của bạn đã được thay đổi. Nếu bạn không yêu cầu, hãy liên hệ hỗ trợ ShopFlow ngay."
             : "Your account password has been changed. If you did not request this, contact ShopFlow support immediately.";
+    text = greeting(displayName, vi) + "\n\n" + text;
     return send(recipient, "password-changed/" + challengeId, subject, text, brandedHtml(text));
   }
 
@@ -79,38 +80,94 @@ public class ResendEmailClient {
             : kind.equals("SET")
                 ? (vi ? "Thiết lập mật khẩu" : "Set up password")
                 : (vi ? "Đặt lại mật khẩu" : "Reset password");
+    String greeting = greeting(displayName, vi);
+    String instruction =
+        kind.equals("REGISTER")
+            ? (vi
+                ? "Dùng mã dưới đây để xác minh email của bạn."
+                : "Use this code to verify your email.")
+            : kind.equals("SET")
+                ? (vi
+                    ? "Dùng mã dưới đây để thiết lập mật khẩu."
+                    : "Use this code to set up your password.")
+                : (vi
+                    ? "Dùng mã dưới đây để đặt lại mật khẩu."
+                    : "Use this code to reset your password.");
+    String validity =
+        vi
+            ? "Mã có hiệu lực trong 10 phút và chỉ dùng một lần."
+            : "This code expires in 10 minutes and can be used once.";
+    String safety =
+        vi ? "Không chia sẻ mã này với người khác." : "Do not share this code with anyone.";
+    String ignore =
+        vi
+            ? "Nếu bạn không yêu cầu, hãy bỏ qua email này."
+            : "If you did not request this, ignore this email.";
     String text =
-        (vi
-                ? """
-          Xin chào %s,
+        greeting
+            + "\n\n"
+            + instruction
+            + "\n\n"
+            + (vi ? "Mã xác minh: " : "Verification code: ")
+            + otp
+            + "\n\n"
+            + validity
+            + "\n"
+            + safety
+            + "\n\n"
+            + ignore;
+    String content =
+        """
+        <p style="margin:0 0 12px">%s</p>
+        <p style="margin:0 0 24px">%s</p>
+        <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="border-collapse:separate;margin:0 0 24px">
+        <tr><td align="center" style="padding:24px 12px;background-color:#f3f6fa;border:1px solid #dfe6ef;border-radius:12px;text-align:center">
+        <strong style="display:block;font-family:'Be Vietnam Pro',Arial,sans-serif;font-size:40px;line-height:56px;font-weight:700;letter-spacing:6px;color:#172b4d;white-space:nowrap">%s</strong>
+        </td></tr></table>
+        <p style="margin:0 0 8px">%s</p>
+        <p style="margin:0 0 24px">%s</p>
+        <p style="margin:0;padding-top:20px;border-top:1px solid #e5eaf0;color:#64748b;font-size:13px;line-height:21px">%s</p>
+        """
+            .formatted(
+                HtmlUtils.htmlEscape(greeting),
+                HtmlUtils.htmlEscape(instruction),
+                otp,
+                HtmlUtils.htmlEscape(validity),
+                HtmlUtils.htmlEscape(safety),
+                HtmlUtils.htmlEscape(ignore));
+    return send(
+        recipient,
+        challengeId.toString(),
+        "ShopFlow — " + purpose,
+        text,
+        emailHtml(purpose, content));
+  }
 
-          Mã xác minh: %s
-          Mã có hạn 10 phút, chỉ dùng một lần. Có thể yêu cầu gửi lại sau 60 giây,
-          trong hạn mức cho phép. Không chia sẻ mã với người khác.
-
-          Nếu bạn không yêu cầu, hãy bỏ qua thư này.
-          """
-                : """
-          Hello %s,
-
-          Verification code: %s
-          This code expires in 10 minutes and can be used once. You may request
-          another code after 60 seconds, subject to limits. Do not share this code.
-
-          If you did not request this, ignore this email.
-          """)
-            .formatted(displayName, otp);
-    String html = brandedHtml(text);
-    return send(recipient, challengeId.toString(), "ShopFlow — " + purpose, text, html);
+  private static String greeting(String name, boolean vi) {
+    return (vi ? "Xin chào" : "Hello") + (name == null || name.isBlank() ? "" : " " + name) + ",";
   }
 
   private static String brandedHtml(String text) {
+    return emailHtml(
+        "ShopFlow",
+        "<p style=\"margin:0\">" + HtmlUtils.htmlEscape(text).replace("\n", "<br>") + "</p>");
+  }
+
+  private static String emailHtml(String title, String content) {
     return """
-        <div style="font-family:Arial,sans-serif;color:#172033;line-height:1.6;max-width:600px;margin:auto;padding:24px;background-color:#ffffff">
-        <img src="cid:shopflow-banner" alt="ShopFlow" width="600" height="140" style="display:block;width:100%%;max-width:600px;height:auto;margin-bottom:24px">
-        <h1 style="font-size:24px">ShopFlow</h1><p>%s</p></div>
+        <!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+        <style>@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;700&display=swap');</style>
+        <!--[if mso]><style>body,table,td,p,h1,strong{font-family:Arial,sans-serif!important}</style><![endif]-->
+        </head><body style="margin:0;padding:0;background-color:#f3f6fa">
+        <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background-color:#f3f6fa"><tr><td align="center" style="padding:24px 12px">
+        <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="max-width:600px;table-layout:fixed;background-color:#ffffff;border:1px solid #e5eaf0;border-radius:16px;font-family:'Be Vietnam Pro',Arial,sans-serif;color:#172033;font-size:15px;line-height:25px">
+        <tr><td style="background-color:#ffffff;border-radius:16px 16px 0 0">
+        <img src="cid:shopflow-banner" alt="ShopFlow" width="600" height="140" style="display:block;width:100%%;max-width:600px;height:auto;border:0">
+        </td></tr><tr><td style="padding:12px 24px 28px;word-break:break-word">
+        <h1 style="margin:0 0 24px;font-size:24px;line-height:34px;font-weight:700;color:#172b4d">%s</h1>%s
+        </td></tr></table></td></tr></table></body></html>
         """
-        .formatted(HtmlUtils.htmlEscape(text).replace("\n", "<br>"));
+        .formatted(HtmlUtils.htmlEscape(title), content);
   }
 
   private String send(

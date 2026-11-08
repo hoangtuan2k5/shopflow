@@ -158,7 +158,7 @@ public class CustomerOtpService {
                     repository.increment(bucket);
                     return true;
                   }));
-      if (reserved) mail.sendPasswordChanged(email, id);
+      if (reserved) mail.sendPasswordChanged(email, repository.displayName(email), id);
     } catch (EmailUnavailableException | org.springframework.dao.DataAccessException ignored) {
       // Notification failure must not undo an already committed password change.
     }
@@ -253,7 +253,13 @@ public class CustomerOtpService {
         name,
         now,
         version);
-    return new Issue(id, email, purpose, synthetic ? null : name, synthetic ? null : otp, null);
+    return new Issue(
+        id,
+        email,
+        purpose,
+        synthetic ? null : REGISTER.equals(purpose) ? name : account.displayName(),
+        synthetic ? null : otp,
+        null);
   }
 
   private ChallengeResponse deliver(Issue issue) {
@@ -264,8 +270,8 @@ public class CustomerOtpService {
         if (REGISTER.equals(issue.purpose()))
           mail.sendRegistrationCode(issue.email(), issue.name(), issue.otp(), issue.id());
         else if (SET.equals(issue.purpose()))
-          mail.sendSetupCode(issue.email(), issue.otp(), issue.id());
-        else mail.sendResetCode(issue.email(), issue.otp(), issue.id());
+          mail.sendSetupCode(issue.email(), issue.name(), issue.otp(), issue.id());
+        else mail.sendResetCode(issue.email(), issue.name(), issue.otp(), issue.id());
         accepted = true;
       } catch (EmailUnavailableException ignored) {
         // Delivery failure and synthetic challenges share the public response.
