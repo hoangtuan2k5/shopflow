@@ -110,12 +110,22 @@ The PostgreSQL healthcheck authenticates with those credentials through the
 Docker service network, so a credential drift makes the database unhealthy
 instead of allowing a backend startup that cannot acquire a connection.
 
-Before rebuilding an existing stack, the deploy job runs `flyway validate`
+Before rebuilding an existing stack, the deploy job builds the `migration-validator`
+Docker target and runs `flyway validate`
 against the current database with the application credentials. It aborts the
 deploy if the credentials or migration history do not match. Once a migration
 has been deployed, do not edit, rename, or delete it; create a new versioned
 migration instead. Use `flyway repair` only as an incident-recovery action
 after a backup and review.
+
+The validator packages `target/classes/db/migration` into a migration JAR and
+uses `classpath:db/migration`, so it resolves both SQL migrations and V8's Java
+migration. A SQL-only mount cannot resolve applied Java migrations and blocks
+future deploys after V8. The validation image is built before the preflight;
+missing migrations and checksum mismatches remain errors. Do not ignore missing
+migrations or repair the database to work around packaging errors.
+Run `python3 scripts/test-deploy-java-migrations.py` after backend Maven verify
+to exercise the production locations on a disposable PostgreSQL17 database.
 
 ### SSH script stdin (SF-128)
 

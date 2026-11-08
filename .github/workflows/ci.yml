@@ -46,6 +46,10 @@ jobs:
       - name: Build and test
         run: bash ./mvnw -B clean verify
 
+      - name: Verify SQL and Java migration preflight
+        working-directory: .
+        run: python3 scripts/test-deploy-java-migrations.py
+
   frontend:
     name: Frontend lint and build
     runs-on: ubuntu-latest
@@ -116,6 +120,7 @@ jobs:
           git reset --hard origin/main
           test -f .env
           if docker compose --env-file .env -f docker-compose.prod.yml ps --status running -q postgres | grep -q .; then
+            docker compose --env-file .env -f docker-compose.prod.yml --profile validation build flyway </dev/null
             docker compose --env-file .env -f docker-compose.prod.yml --profile validation run --rm --no-deps flyway validate -ignoreMigrationPatterns='*:pending' </dev/null
           fi
           docker compose --env-file .env -f docker-compose.prod.yml up -d --build --remove-orphans --wait
