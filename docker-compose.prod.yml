@@ -27,7 +27,10 @@ services:
       start_period: 10s
 
   flyway:
-    image: flyway/flyway:11.14.1
+    image: shopflow-migration-validator
+    build:
+      context: ./backend
+      target: migration-validator
     profiles:
       - validation
     environment:
@@ -36,8 +39,7 @@ services:
       FLYWAY_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       FLYWAY_SCHEMAS: shopflow
       FLYWAY_DEFAULT_SCHEMA: shopflow
-    volumes:
-      - ./backend/src/main/resources/db/migration:/flyway/sql:ro
+      FLYWAY_LOCATIONS: classpath:db/migration
 
   backend:
     build:

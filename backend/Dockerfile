@@ -7,7 +7,11 @@ COPY mvnw .
 RUN chmod +x mvnw && ./mvnw -B dependency:go-offline
 
 COPY src src
-RUN ./mvnw -B clean package -DskipTests
+RUN ./mvnw -B clean package -DskipTests \
+    && jar --create --file /workspace/shopflow-migrations.jar -C target/classes db/migration
+
+FROM flyway/flyway:11.14.1 AS migration-validator
+COPY --from=build /workspace/shopflow-migrations.jar /flyway/jars/shopflow-migrations.jar
 
 FROM eclipse-temurin:21-jre-jammy
 

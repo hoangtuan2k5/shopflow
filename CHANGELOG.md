@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Credential changes**: atomically increment the account credential version, consume/invalidate credential challenges and require all existing sessions to sign in again; preserve cart product IDs and quantities while clearing private client state (SF-154, SF-155).
 
+### Fixed
+
+- **Deployment validation**: bundle SQL and Java migrations in the preflight image so applied V8 remains resolvable on subsequent deploys; retain missing-migration and checksum validation (SF-156).
 
 ## [0.13.0]
 
