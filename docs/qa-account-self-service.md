@@ -47,3 +47,12 @@ Screenshots generated locally in `/tmp/shopflow-account-password-{en,vi}-{320,12
 6. The previous application can coexist with the additive schema, but do not drop columns/tables or downgrade Flyway. Pause account writes before rollback and assess newly changed credentials/profile data. Never restore a stale database over new orders/payments; preserve current data and reservations. Reverting application code does not undo password changes.
 
 Not run here: real Google redirect/Inbox acceptance on both public domains, production backup, migration, deployment, tag/signature or release publication. SF-146/SF-149 keep their existing manual-acceptance status.
+
+## Post-release preflight correction (SF-156)
+
+Release PR160 deployed main d6f06dc and V9 successfully; both-domain HTTP/demo/menu/logout/cart smoke checks passed and legacy application-table digests matched the fresh V7 backup.
+A post-deploy repeat of the original SQL-only Flyway CLI validation failed because applied Java migration V8 was absent from its classpath. The running application was healthy; a later deploy would be blocked. v0.14.0 signing/publication is held pending the correction.
+The correction builds a dedicated validator image with a JAR containing SQL and Java migrations, selects classpath:db/migration and builds that image before validation. No applied migration or database history is changed, and no missing-migration ignore/repair is used.
+The new disposable PostgreSQL17 regression reproduces the old missing-V8 failure, validates the complete bundle and proves that a changed V7 SQL checksum remains rejected.
+
+Correction verification: `docker build --target migration-validator` passed; the PostgreSQL17 SQL/Java preflight regression passed; deployment TLS and stdin helpers passed4 cases each. Read-only production validation using the actual built validator image and the candidate Compose definition passed all10 history entries (schema plus V1–V9). The temporary override/JAR were removed; production configuration was not patched. Commit/push/PR and deployment of the correction still require owner approval.
