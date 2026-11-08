@@ -16,6 +16,15 @@ const displayNames: Record<MockRole, string> = {
  * ghi đè mặc định của beforeEach.
  */
 export async function mockSession(page: Page, role: MockRole | null) {
+  await page.route('**/api/auth/account', (route) =>
+    route.fulfill({
+      json: {
+        displayName: role ? displayNames[role] : '',
+        email: null,
+        capabilities: { manageDelivery: false, changePassword: false, setPassword: false },
+      },
+    }),
+  )
   await page.route('**/api/auth/session', (route) =>
     route.fulfill({
       status: 200,

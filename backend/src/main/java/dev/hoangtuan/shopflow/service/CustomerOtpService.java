@@ -2,11 +2,13 @@ package dev.hoangtuan.shopflow.service;
 
 import dev.hoangtuan.shopflow.dto.access.ChallengeResponse;
 import dev.hoangtuan.shopflow.dto.access.RegistrationRequest;
+import dev.hoangtuan.shopflow.exception.access.AccountActionException;
 import dev.hoangtuan.shopflow.exception.access.CredentialsValidationException;
 import dev.hoangtuan.shopflow.exception.access.EmailUnavailableException;
 import dev.hoangtuan.shopflow.exception.access.InvalidCodeException;
 import dev.hoangtuan.shopflow.exception.access.OtpRateLimitException;
 import dev.hoangtuan.shopflow.integration.email.ResendEmailClient;
+import dev.hoangtuan.shopflow.repository.jdbc.AccountSelfServiceRepository;
 import dev.hoangtuan.shopflow.repository.jdbc.EmailChallengeRepository;
 import dev.hoangtuan.shopflow.repository.jdbc.EmailChallengeRepository.Account;
 import dev.hoangtuan.shopflow.repository.jdbc.EmailChallengeRepository.Bucket;
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -30,6 +33,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class CustomerOtpService {
   private static final String REGISTER = "REGISTER";
   private static final String RESET = "RESET_PASSWORD";
+  private static final String SET = "SET_PASSWORD";
+  private final AccountSelfServiceRepository accounts;
   private final EmailChallengeRepository repository;
   private final TransactionTemplate transactions;
   private final PasswordEncoder encoder;
@@ -45,7 +50,9 @@ public class CustomerOtpService {
       OtpVerifier verifier,
       ResendEmailClient mail,
       Clock clock,
-      LoginRateLimiter loginLimits) {
+      LoginRateLimiter loginLimits,
+      AccountSelfServiceRepository accounts) {
+    this.accounts = accounts;
     this.repository = repository;
     this.transactions = transactions;
     this.encoder = encoder;
@@ -84,7 +91,7 @@ public class CustomerOtpService {
   public ChallengeResponse resend(UUID id, String sessionId, String ip) {
     requireConfigured();
     Challenge previous = repository.find(id);
-    if (previous == null) {
+    if (previous == null || SET.equals(previous.purpose())) {
       countInvalidRequest(ip, "IP_SEND", 10);
       throw new InvalidCodeException();
     }
@@ -98,6 +105,74 @@ public class CustomerOtpService {
     }
   }
 
+  public ChallengeResponse setup(
+      long userId, long version, UUID previousId, String sessionId, String ip) {
+    requireConfigured();
+    var account = requireSetup(userId, version, false);
+    if (previousId != null) {
+      var previous = repository.find(previousId);
+      if (previous == null
+          || !SET.equals(previous.purpose())
+          || !java.util.Objects.equals(previous.userId(), userId)) {
+        countInvalidRequest(ip, "IP_SEND", 10);
+        throw new InvalidCodeException();
+      }
+    }
+    return deliver(
+        transactions.execute(
+            tx ->
+                prepare(
+                    account.email(), SET, null, null, previousId, sessionId, ip, userId, version)));
+  }
+
+  public void confirmSetup(
+      long userId,
+      long version,
+      UUID id,
+      String otp,
+      String password,
+      String sessionId,
+      String ip) {
+    requireSetup(userId, version, false);
+    if (!CustomerCredentials.validNewPassword(password))
+      throw new CredentialsValidationException(
+          Map.of("newPassword", "Password does not meet the password policy"));
+    String email = verifyProof(id, otp, sessionId, ip, SET, password, userId, version);
+    loginLimits.clear(email);
+    notifyPasswordChanged(email, id);
+  }
+
+  public void notifyPasswordChanged(String email, UUID id) {
+    try {
+      boolean reserved =
+          Boolean.TRUE.equals(
+              transactions.execute(
+                  tx -> {
+                    Instant now = clock.instant();
+                    String day = now.atOffset(ZoneOffset.UTC).toLocalDate().toString();
+                    Bucket bucket =
+                        repository
+                            .lockRates(List.of(rate("MAIL_DAILY", day, 90, now)), now)
+                            .get("MAIL_DAILY");
+                    if (bucket.count() >= bucket.limit()) return false;
+                    repository.increment(bucket);
+                    return true;
+                  }));
+      if (reserved) mail.sendPasswordChanged(email, id);
+    } catch (EmailUnavailableException | org.springframework.dao.DataAccessException ignored) {
+      // Notification failure must not undo an already committed password change.
+    }
+  }
+
+  private AccountSelfServiceRepository.Account requireSetup(long id, long version, boolean lock) {
+    var account = AccountSelfService.requireCurrent(accounts.find(id, lock), version);
+    if (!account.eligible() || !account.google())
+      throw new AccountActionException(HttpStatus.FORBIDDEN, "Password setup is not available");
+    if (account.passwordHash() != null)
+      throw new AccountActionException(HttpStatus.CONFLICT, "A password is already configured");
+    return account;
+  }
+
   private Issue prepare(
       String email,
       String purpose,
@@ -106,6 +181,19 @@ public class CustomerOtpService {
       UUID previousId,
       String sessionId,
       String ip) {
+    return prepare(email, purpose, name, hash, previousId, sessionId, ip, null, null);
+  }
+
+  private Issue prepare(
+      String email,
+      String purpose,
+      String name,
+      String hash,
+      UUID previousId,
+      String sessionId,
+      String ip,
+      Long userId,
+      Long version) {
     Instant now = clock.instant();
     var buckets =
         repository.lockRates(
@@ -117,6 +205,7 @@ public class CustomerOtpService {
     check(buckets.get("IP_SEND"), now);
     repository.lockEmail(email);
     Account account = repository.lockAccount(email);
+    if (SET.equals(purpose)) requireSetup(userId, version, true);
     Challenge old = repository.lockChallenge(email, purpose);
     if (previousId != null
         && (!bound(old, previousId, sessionId)
@@ -143,7 +232,9 @@ public class CustomerOtpService {
       hash = old.passwordHash();
     }
     boolean synthetic =
-        REGISTER.equals(purpose) ? account != null : account == null || !account.recoverable();
+        REGISTER.equals(purpose)
+            ? account != null
+            : !SET.equals(purpose) && (account == null || !account.recoverable());
     if (previousId != null)
       synthetic |=
           old.synthetic()
@@ -160,7 +251,8 @@ public class CustomerOtpService {
         synthetic,
         hash,
         name,
-        now);
+        now,
+        version);
     return new Issue(id, email, purpose, synthetic ? null : name, synthetic ? null : otp, null);
   }
 
@@ -171,6 +263,8 @@ public class CustomerOtpService {
       try {
         if (REGISTER.equals(issue.purpose()))
           mail.sendRegistrationCode(issue.email(), issue.name(), issue.otp(), issue.id());
+        else if (SET.equals(issue.purpose()))
+          mail.sendSetupCode(issue.email(), issue.otp(), issue.id());
         else mail.sendResetCode(issue.email(), issue.otp(), issue.id());
         accepted = true;
       } catch (EmailUnavailableException ignored) {
@@ -178,6 +272,7 @@ public class CustomerOtpService {
       }
       boolean success = accepted;
       transactions.executeWithoutResult(tx -> repository.delivery(issue.id(), success));
+      if (SET.equals(issue.purpose()) && !accepted) throw new EmailUnavailableException();
     }
     transactions.executeWithoutResult(tx -> repository.cleanup(clock.instant()));
     return ChallengeResponse.issued(issue.id());
@@ -195,17 +290,32 @@ public class CustomerOtpService {
               "Use at least 8 characters with uppercase, lowercase, a number and a symbol; maximum 72 UTF-8 bytes"));
     String email = verifyProof(id, otp, sessionId, ip, RESET, newPassword);
     loginLimits.clear(email);
-    try {
-      mail.sendPasswordChanged(email, id);
-    } catch (EmailUnavailableException ignored) {
-      // Notification failure must not undo the committed credential change.
-    }
+    notifyPasswordChanged(email, id);
   }
 
   private String verifyProof(
       UUID id, String otp, String sessionId, String ip, String purpose, String newPassword) {
+    return verifyProof(id, otp, sessionId, ip, purpose, newPassword, null, null);
+  }
+
+  private String verifyProof(
+      UUID id,
+      String otp,
+      String sessionId,
+      String ip,
+      String purpose,
+      String newPassword,
+      Long userId,
+      Long version) {
     verifier.requireConfigured();
     Challenge lookup = repository.find(id);
+    if (SET.equals(purpose)
+        && (lookup == null
+            || !SET.equals(lookup.purpose())
+            || !java.util.Objects.equals(lookup.userId(), userId))) {
+      countInvalidRequest(ip, "IP_VERIFY", 30);
+      throw new InvalidCodeException();
+    }
     VerifyResult result;
     try {
       result =
@@ -224,6 +334,13 @@ public class CustomerOtpService {
                 repository.lockEmail(lookup.email());
                 Account account = repository.lockAccount(lookup.email());
                 Challenge current = repository.lockChallenge(lookup.email(), purpose);
+                if (SET.equals(purpose)) {
+                  requireSetup(userId, version, true);
+                  if (current == null
+                      || !java.util.Objects.equals(current.userId(), userId)
+                      || !java.util.Objects.equals(current.issuedAuthVersion(), version))
+                    return new VerifyResult(false, null);
+                }
                 if (!bound(current, id, sessionId)) return new VerifyResult(false, null);
                 if (!current.expiresAt().isAfter(now)) {
                   repository.expire(id);
@@ -257,7 +374,7 @@ public class CustomerOtpService {
                   repository.activate(current, now);
                 } else {
                   if (account == null
-                      || !account.recoverable()
+                      || (!SET.equals(purpose) && !account.recoverable())
                       || !java.util.Objects.equals(current.userId(), account.id())) {
                     repository.expire(id);
                     return new VerifyResult(false, null);

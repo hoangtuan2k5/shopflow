@@ -96,7 +96,8 @@ test('An existing session survives a reload and ends on sign out', async ({ page
   await expect(page.getByText('Nhân viên kho demo')).toBeVisible()
 
   await mockSession(page, null)
-  await page.getByRole('button', { name: 'Sign out' }).click()
+  await page.getByRole('button', { name: 'Nhân viên kho demo', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Sign out' }).click()
 
   await expect(page).toHaveURL(/\/login$/)
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible()
@@ -208,7 +209,8 @@ test('The storefront offers a way in for staff and a way back for signed-in user
   await page.route('**/api/deliveries', (route) => fulfillJson(route, []))
   await page.goto('/customer')
 
-  await page.getByRole('link', { name: 'Chủ shop demo' }).click()
+  await page.getByRole('button', { name: 'Chủ shop demo', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Workspace' }).click()
   await expect(page).toHaveURL(/\/shop-owner$/)
 })
 

@@ -1,4 +1,46 @@
 export const en = {
+  account: {
+    prefillHint: 'Your saved address is filled in. Changes below apply only to this order.',
+    prefillError:
+      'Your saved address could not be loaded. You can enter delivery information manually.',
+
+    deliveryHint:
+      'Save one default delivery address. Changes here do not alter orders already placed.',
+    saveDelivery: 'Save delivery information',
+    deleteDelivery: 'Delete saved address',
+    deliverySaved: 'Delivery information updated.',
+    deliveryError: 'Delivery information could not be saved. Check the fields and try again.',
+
+    currentPassword: 'Current password',
+    changeHint: 'Enter your current password to choose a new one. All sessions will be signed out.',
+
+    setupHint:
+      'Verify the code sent to your account email to add a password. You will need to sign in again.',
+    sendCode: 'Send verification code',
+    resendCode: 'Resend code',
+    otp: 'Verification code',
+    newPassword: 'New password',
+    confirmPassword: 'Confirm new password',
+    savePassword: 'Save password and sign out',
+    passwordPolicy:
+      'At least 8 characters, including uppercase, lowercase, a number and a symbol. Maximum 72 UTF-8 bytes.',
+    passwordMismatch: 'Passwords do not match.',
+    passwordError:
+      'The request could not be completed. Check your code and password, or request a new code.',
+    rateLimited: 'Too many attempts. Please wait before trying again.',
+    mailUnavailable: 'Email could not be sent. Please try again later.',
+
+    title: 'Account settings',
+    delivery: 'Delivery information',
+    changePassword: 'Change password',
+    setupPassword: 'Set up password',
+    loading: 'Loading…',
+    loadError: 'Could not load your account.',
+    retry: 'Try again',
+    demoHint: 'Shared demo accounts do not save personal delivery details or change passwords.',
+    logoutError: 'Sign-out could not be confirmed. Please try again.',
+    back: 'Back to shop',
+  },
   chat: {
     open: 'Product advice',
     kicker: 'SHOPFLOW / PRODUCT ADVISOR',

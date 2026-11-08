@@ -16,9 +16,9 @@ for (const width of [1280, 1024, 768, 390, 320]) {
       route.fulfill({ json: { items: [], nextCursor: null } }),
     )
     await page.goto('/customer')
-    const account = page.getByRole('link', { name: fullName, exact: true })
+    const account = page.getByRole('button', { name: fullName, exact: true })
     await expect(account).toHaveAttribute('title', fullName)
-    await expect(account).toHaveAttribute('href', '/customer')
+    await expect(account).toHaveAttribute('aria-haspopup', 'menu')
     const label = account.locator('span')
     await expect(label).toBeVisible()
     const value = await label.innerText()

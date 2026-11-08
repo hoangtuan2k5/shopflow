@@ -156,3 +156,81 @@ test('A generic payment 404 stays on the current order without creating another 
   await expect(page.getByText('Order not found', { exact: true })).toBeVisible()
   expect(orders).toBe(1)
 })
+
+const savedDelivery = {
+  receiverName: 'Saved receiver',
+  phone: '0123456789',
+  addressLine: 'Saved street',
+  district: 'Saved district',
+  city: 'Saved city',
+}
+async function eligible(page: Page) {
+  await setup(page, true)
+  await page.route('**/api/auth/account', (route) =>
+    route.fulfill({
+      json: {
+        displayName: 'Buyer',
+        email: 'buyer@example.com',
+        capabilities: { manageDelivery: true, changePassword: true, setPassword: false },
+      },
+    }),
+  )
+}
+
+test('checkout prefills a saved address and keeps order edits separate', async ({ page }) => {
+  await eligible(page)
+  let writes = 0
+  await page.route('**/api/auth/account/delivery', (route) => {
+    if (route.request().method() !== 'GET') writes++
+    return route.fulfill({ json: { delivery: savedDelivery } })
+  })
+  await page.route('**/api/orders', (route) => {
+    const body = route.request().postDataJSON()
+    expect(body.shippingAddress.addressLine).toBe('Only this order')
+    return route.fulfill({ status: 201, json: created(body) })
+  })
+  await checkout(page)
+  await expect(page.getByLabel('Receiver name')).toHaveValue('Saved receiver')
+  await page.getByLabel('Customer name').fill('Buyer')
+  await page.getByLabel('Address').fill('Only this order')
+  await page.getByRole('button', { name: 'Place order', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Pay successfully' })).toBeVisible()
+  expect(writes).toBe(0)
+  expect(
+    await page.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage })),
+  ).not.toContain('Saved street')
+})
+
+test('a late saved address cannot overwrite checkout edits', async ({ page }) => {
+  await eligible(page)
+  let release!: () => void
+  const pending = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.route('**/api/auth/account/delivery', async (route) => {
+    await pending
+    await route.fulfill({ json: { delivery: savedDelivery } })
+  })
+  await checkout(page)
+  await page.getByLabel('Address').fill('Already typed')
+  const loaded = page.waitForResponse('**/api/auth/account/delivery')
+  release()
+  await loaded
+  await expect(page.getByLabel('Address')).toHaveValue('Already typed')
+  await expect(page.getByLabel('Receiver name')).toHaveValue('')
+})
+
+test('delivery load failure permits manual checkout', async ({ page }) => {
+  await eligible(page)
+  await page.route('**/api/auth/account/delivery', (route) =>
+    route.fulfill({ status: 503, json: { message: 'Unavailable' } }),
+  )
+  await checkout(page)
+  await expect(
+    page.getByText(
+      'Your saved address could not be loaded. You can enter delivery information manually.',
+    ),
+  ).toBeVisible()
+  await fill(page)
+  await expect(page.getByLabel('Address')).toHaveValue('1 Test Street')
+})
