@@ -113,11 +113,11 @@ class AccountSelfServiceTests {
     AtomicReference<String> code = new AtomicReference<>();
     doAnswer(
             inv -> {
-              code.set(inv.getArgument(1));
+              code.set(inv.getArgument(2));
               return UUID.randomUUID().toString();
             })
         .when(mail)
-        .sendSetupCode(anyString(), anyString(), any());
+        .sendSetupCode(anyString(), anyString(), anyString(), any());
     String body =
         call(first, HttpMethod.POST, "/auth/account/password/setup", Map.of())
             .andExpect(status().isAccepted())
@@ -126,6 +126,9 @@ class AccountSelfServiceTests {
             .getContentAsString();
     String generation = json.readTree(body).get("challengeId").asText();
     assertThat(code.get()).matches("[0-9]{6}");
+    verify(mail)
+        .sendSetupCode(
+            eq("setup@example.com"), eq("Buyer"), anyString(), eq(UUID.fromString(generation)));
     call(first, HttpMethod.POST, "/auth/otp/resend", Map.of("challengeId", generation))
         .andExpect(status().isBadRequest());
     Map<String, String> proof =
@@ -186,7 +189,7 @@ class AccountSelfServiceTests {
     Client client = client(account("failed@example.com", false, true));
     doThrow(new dev.hoangtuan.shopflow.exception.access.EmailUnavailableException())
         .when(mail)
-        .sendSetupCode(anyString(), anyString(), any());
+        .sendSetupCode(anyString(), anyString(), anyString(), any());
     call(client, HttpMethod.POST, "/auth/account/password/setup", Map.of())
         .andExpect(status().isServiceUnavailable());
     var row =
@@ -240,7 +243,7 @@ class AccountSelfServiceTests {
                 jdbc.queryForObject(
                     "SELECT password_hash FROM shopflow.users WHERE id=?", String.class, id)))
         .isTrue();
-    verify(mail).sendPasswordChanged(eq("change@example.com"), any());
+    verify(mail).sendPasswordChanged(eq("change@example.com"), eq("Buyer"), any());
   }
 
   @Test
@@ -353,11 +356,11 @@ class AccountSelfServiceTests {
     AtomicReference<String> code = new AtomicReference<>();
     doAnswer(
             inv -> {
-              code.set(inv.getArgument(1));
+              code.set(inv.getArgument(2));
               return UUID.randomUUID().toString();
             })
         .when(mail)
-        .sendSetupCode(anyString(), anyString(), any());
+        .sendSetupCode(anyString(), anyString(), anyString(), any());
     var challenge = otpService.setup(id, 0, null, client.session().getId(), "expiry-ip");
     String wrong = code.get().equals("000000") ? "111111" : "000000";
     for (int i = 0; i < 4; i++)
@@ -404,11 +407,11 @@ class AccountSelfServiceTests {
     AtomicReference<String> code = new AtomicReference<>();
     doAnswer(
             inv -> {
-              code.set(inv.getArgument(1));
+              code.set(inv.getArgument(2));
               return UUID.randomUUID().toString();
             })
         .when(mail)
-        .sendSetupCode(anyString(), anyString(), any());
+        .sendSetupCode(anyString(), anyString(), anyString(), any());
     var challenge = otpService.setup(id, 0, null, client.session().getId(), "race-ip");
     try (var workers = java.util.concurrent.Executors.newFixedThreadPool(2)) {
       var start = new java.util.concurrent.CountDownLatch(1);
@@ -469,7 +472,7 @@ class AccountSelfServiceTests {
               return UUID.randomUUID().toString();
             })
         .when(mail)
-        .sendSetupCode(anyString(), anyString(), any());
+        .sendSetupCode(anyString(), anyString(), anyString(), any());
     try (var workers = java.util.concurrent.Executors.newSingleThreadExecutor()) {
       var old =
           workers.submit(() -> otpService.setup(id, 0, null, client.session().getId(), "late-ip"));
@@ -492,6 +495,34 @@ class AccountSelfServiceTests {
     } finally {
       release.countDown();
     }
+  }
+
+  @Test
+  void setupAndResendUseTheAccountsChosenDisplayName() throws Exception {
+    long id = account("named@example.com", false, true);
+    jdbc.update("UPDATE shopflow.users SET display_name='hoangtuan2k5' WHERE id=?", id);
+    Client current = client(id);
+    String response =
+        call(current, HttpMethod.POST, "/auth/account/password/setup", Map.of())
+            .andExpect(status().isAccepted())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    var generation = UUID.fromString(json.readTree(response).get("challengeId").asText());
+    now.set(now.get().plusSeconds(61));
+    call(
+            current,
+            HttpMethod.POST,
+            "/auth/account/password/setup/resend",
+            Map.of("challengeId", generation))
+        .andExpect(status().isAccepted());
+    verify(mail, times(2))
+        .sendSetupCode(eq("named@example.com"), eq("hoangtuan2k5"), anyString(), any(UUID.class));
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT pending_display_name FROM shopflow.auth_email_challenges WHERE email='named@example.com'",
+                String.class))
+        .isNull();
   }
 
   long account(String email, boolean local, boolean google) {

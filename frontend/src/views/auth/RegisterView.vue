@@ -14,7 +14,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { authRedirect } from '@/router/authRedirect'
-import { validNewPassword } from '@/lib/passwordPolicy'
+import { passwordTooLong, validNewPassword } from '@/lib/passwordPolicy'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -73,7 +73,8 @@ async function register() {
   if (![...displayName.value.trim()].length || [...displayName.value.trim()].length > 255)
     errors.value.displayName = 'invalidName'
   const value = password.value
-  if (!validNewPassword(value)) errors.value.password = 'invalidPassword'
+  if (!validNewPassword(value))
+    errors.value.password = passwordTooLong(value) ? 'passwordTooLong' : 'invalidPassword'
   if (value !== confirmPassword.value) errors.value.confirm = 'mismatch'
   if (Object.keys(errors.value).length) {
     await nextTick()

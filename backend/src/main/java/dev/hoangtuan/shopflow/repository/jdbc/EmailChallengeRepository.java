@@ -92,7 +92,7 @@ public class EmailChallengeRepository {
     var accounts =
         jdbc.query(
             """
-        SELECT id, active, password_hash IS NOT NULL AS local_credential,
+        SELECT id, display_name, active, password_hash IS NOT NULL AS local_credential,
           email_verified_at IS NOT NULL AS verified
         FROM shopflow.users WHERE email = ? FOR UPDATE
         """,
@@ -101,9 +101,17 @@ public class EmailChallengeRepository {
                     rs.getLong("id"),
                     rs.getBoolean("active"),
                     rs.getBoolean("local_credential"),
-                    rs.getBoolean("verified")),
+                    rs.getBoolean("verified"),
+                    rs.getString("display_name")),
             email);
     return accounts.isEmpty() ? null : accounts.getFirst();
+  }
+
+  public String displayName(String email) {
+    var names =
+        jdbc.queryForList(
+            "SELECT display_name FROM shopflow.users WHERE email = ?", String.class, email);
+    return names.isEmpty() ? null : names.getFirst();
   }
 
   public Challenge find(UUID generation) {
@@ -286,7 +294,8 @@ public class EmailChallengeRepository {
     }
   }
 
-  public record Account(long id, boolean active, boolean localCredential, boolean verified) {
+  public record Account(
+      long id, boolean active, boolean localCredential, boolean verified, String displayName) {
     public boolean recoverable() {
       return active && localCredential && verified;
     }

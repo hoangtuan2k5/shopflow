@@ -82,11 +82,65 @@ class ResendEmailClientTests {
   }
 
   @Test
+  void allOtpPurposesShowLargeCenteredCodesWithoutQuotaJargon() throws java.io.IOException {
+    var client = client("fake-key", "ShopFlow <shopflow@hoangtuan.dev>");
+    for (var locale : List.of(Locale.ENGLISH, Locale.forLanguageTag("vi"))) {
+      LocaleContextHolder.setLocale(locale);
+      client.sendRegistrationCode("buyer@example.com", "Buyer", "012345", UUID.randomUUID());
+      client.sendResetCode("buyer@example.com", "Buyer", "012345", UUID.randomUUID());
+      client.sendSetupCode("buyer@example.com", "Buyer", "012345", UUID.randomUUID());
+      for (int i = 0; i < 3; i++) {
+        var body = requests.remove().body();
+        String html = body.get("html").asText();
+        assertThat(html)
+            .contains(
+                "align=\"center\"",
+                "font-size:40px",
+                "font-weight:700",
+                "letter-spacing:6px",
+                ">012345</strong>",
+                "Be Vietnam Pro",
+                "Arial,sans-serif",
+                "cid:shopflow-banner");
+        assertThat(body.get("text").asText())
+            .doesNotContain("trong hạn mức", "subject to limits", "60 seconds", "60 giây");
+        assertThat(html).doesNotContain("trong hạn mức", "subject to limits");
+        var preview =
+            java.nio.file.Path.of(
+                "target/email-previews",
+                locale.getLanguage()
+                    + "-"
+                    + List.of("register", "reset", "setup").get(i)
+                    + ".html");
+        java.nio.file.Files.createDirectories(preview.getParent());
+        java.nio.file.Files.writeString(
+            preview,
+            html.replace(
+                "cid:shopflow-banner",
+                "data:image/png;base64," + body.get("attachments").get(0).get("content").asText()));
+        String visible = org.springframework.web.util.HtmlUtils.htmlUnescape(html);
+        assertThat(body.get("text").asText())
+            .contains(locale.getLanguage().equals("vi") ? "Xin chào Buyer," : "Hello Buyer,");
+        assertThat(visible)
+            .contains(locale.getLanguage().equals("vi") ? "Xin chào Buyer," : "Hello Buyer,");
+        if (locale.getLanguage().equals("vi"))
+          assertThat(visible)
+              .contains("10 phút", "Không chia sẻ")
+              .doesNotContain("Use this code", "This code expires");
+        else
+          assertThat(visible)
+              .contains("10 minutes", "Do not share")
+              .doesNotContain("Dùng mã", "Không chia sẻ");
+      }
+    }
+  }
+
+  @Test
   void passwordSetupUsesTheSelectedLanguageAndExistingBanner() {
     var client = client("fake-resend-key", "ShopFlow <shopflow@hoangtuan.dev>");
     for (var locale : List.of(Locale.ENGLISH, Locale.forLanguageTag("vi"))) {
       LocaleContextHolder.setLocale(locale);
-      client.sendSetupCode("buyer@example.com", "012345", UUID.randomUUID());
+      client.sendSetupCode("buyer@example.com", "Buyer", "012345", UUID.randomUUID());
       Request sent = requests.remove();
       assertThat(sent.body().get("subject").asText())
           .isEqualTo(
@@ -118,14 +172,14 @@ class ResendEmailClientTests {
     assertThat(request.body().get("to").get(0).asText()).isEqualTo("buyer@example.com");
     assertThat(request.body().get("subject").asText()).contains("Verify email");
     assertThat(request.body().get("text").asText())
-        .contains("012345", "60 seconds", "10 minutes", "once")
+        .contains("012345", "10 minutes", "once")
         .doesNotContain("Mã xác minh", "Xin chào");
     assertThat(request.body().get("html").asText())
         .contains("&lt;img", "&gt;&amp;", "012345")
         .doesNotContain("<img src=x", "onerror=alert(1)>&")
         .contains("cid:shopflow-banner", "alt=\"ShopFlow\"");
     UUID reset = UUID.randomUUID();
-    client.sendResetCode("buyer@example.com", "654321", reset);
+    client.sendResetCode("buyer@example.com", "Buyer", "654321", reset);
     request = requests.remove();
     assertThat(request.idempotency()).isEqualTo(reset.toString());
     assertThat(request.body().get("subject").asText()).contains("Reset password");
@@ -137,7 +191,7 @@ class ResendEmailClientTests {
   void sendsPasswordChangedNoticeWithoutCredentials() {
     UUID generation = UUID.randomUUID();
     client("fake-key", "ShopFlow <shopflow@hoangtuan.dev>")
-        .sendPasswordChanged("buyer@example.com", generation);
+        .sendPasswordChanged("buyer@example.com", "Buyer", generation);
     Request request = requests.remove();
     assertThat(request.idempotency()).isEqualTo("password-changed/" + generation);
     assertThat(request.body().get("subject").asText()).contains("Password changed");
@@ -156,15 +210,15 @@ class ResendEmailClientTests {
     Request registration = requests.remove();
     assertThat(registration.body().get("subject").asText()).isEqualTo("ShopFlow — Xác minh email");
     assertThat(registration.body().get("text").asText())
-        .contains("Xin chào Khách", "Mã xác minh: 012345", "10 phút", "60 giây")
+        .contains("Xin chào Khách", "Mã xác minh: 012345", "10 phút")
         .doesNotContain("Hello", "Verification code", "This code");
     assertThat(registration.body().get("html").asText())
         .contains("background-color:#ffffff", "cid:shopflow-banner", "alt=\"ShopFlow\"");
-    client.sendResetCode("buyer@example.com", "654321", UUID.randomUUID());
+    client.sendResetCode("buyer@example.com", "Buyer", "654321", UUID.randomUUID());
     Request reset = requests.remove();
     assertThat(reset.body().get("subject").asText()).isEqualTo("ShopFlow — Đặt lại mật khẩu");
     assertThat(reset.body().get("text").asText()).contains("654321").doesNotContain("Verification");
-    client.sendPasswordChanged("buyer@example.com", UUID.randomUUID());
+    client.sendPasswordChanged("buyer@example.com", "Buyer", UUID.randomUUID());
     Request changed = requests.remove();
     assertThat(changed.body().get("subject").asText()).isEqualTo("ShopFlow — Mật khẩu đã thay đổi");
     assertThat(changed.body().get("text").asText())
@@ -175,7 +229,7 @@ class ResendEmailClientTests {
   @Test
   void embedsAnOpaqueWhiteBannerWithMatchingContentId() throws Exception {
     client("fake-key", "ShopFlow <shopflow@hoangtuan.dev>")
-        .sendResetCode("buyer@example.com", "123456", UUID.randomUUID());
+        .sendResetCode("buyer@example.com", "Buyer", "123456", UUID.randomUUID());
     Request request = requests.remove();
     JsonNode attachment = request.body().get("attachments").get(0);
     assertThat(attachment.get("content_id").asText()).isEqualTo("shopflow-banner");
@@ -198,7 +252,7 @@ class ResendEmailClientTests {
       var client = client(config[0], config[1]);
       assertThatThrownBy(client::requireConfigured).isInstanceOf(EmailUnavailableException.class);
       assertThatThrownBy(
-              () -> client.sendResetCode("buyer@example.com", "012345", UUID.randomUUID()))
+              () -> client.sendResetCode("buyer@example.com", "Buyer", "012345", UUID.randomUUID()))
           .isInstanceOf(EmailUnavailableException.class);
     }
     assertThat(requests).isEmpty();
@@ -214,7 +268,7 @@ class ResendEmailClientTests {
           catchThrowable(
               () ->
                   client("fake-resend-key", "sender@example.com")
-                      .sendResetCode("buyer@example.com", "012345", UUID.randomUUID()));
+                      .sendResetCode("buyer@example.com", "Buyer", "012345", UUID.randomUUID()));
       assertThat(error)
           .isInstanceOf(EmailUnavailableException.class)
           .hasMessage("Authentication service unavailable")
@@ -234,7 +288,7 @@ class ResendEmailClientTests {
       assertThatThrownBy(
               () ->
                   client("fake-key", "sender@example.com")
-                      .sendResetCode("buyer@example.com", "012345", UUID.randomUUID()))
+                      .sendResetCode("buyer@example.com", "Buyer", "012345", UUID.randomUUID()))
           .isInstanceOf(EmailUnavailableException.class)
           .hasNoCause();
     }
@@ -248,7 +302,7 @@ class ResendEmailClientTests {
       var client = client("fake-key", "sender@example.com");
       long start = System.nanoTime();
       assertThatThrownBy(
-              () -> client.sendResetCode("buyer@example.com", "012345", UUID.randomUUID()))
+              () -> client.sendResetCode("buyer@example.com", "Buyer", "012345", UUID.randomUUID()))
           .isInstanceOf(EmailUnavailableException.class)
           .hasNoCause();
       assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(4));
@@ -261,7 +315,7 @@ class ResendEmailClientTests {
       assertThatThrownBy(
               () ->
                   client("key", "sender@example.com")
-                      .sendResetCode("buyer@example.com", code, UUID.randomUUID()))
+                      .sendResetCode("buyer@example.com", "Buyer", code, UUID.randomUUID()))
           .isInstanceOf(IllegalArgumentException.class);
     }
     assertThat(requests).isEmpty();

@@ -13,7 +13,7 @@ import {
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { validNewPassword } from '@/lib/passwordPolicy'
+import { passwordTooLong, validNewPassword } from '@/lib/passwordPolicy'
 import { authRedirect } from '@/router/authRedirect'
 
 const { t } = useI18n()
@@ -93,7 +93,8 @@ async function submitReset() {
   errors.value = {}
   errorKey.value = ''
   if (!/^[0-9]{6}$/.test(otp.value)) errors.value.otp = 'invalidOtp'
-  if (!validNewPassword(password.value)) errors.value.password = 'invalidPassword'
+  if (!validNewPassword(password.value))
+    errors.value.password = passwordTooLong(password.value) ? 'passwordTooLong' : 'invalidPassword'
   if (password.value !== confirmPassword.value) errors.value.confirm = 'mismatch'
   if (Object.keys(errors.value).length) {
     await focusError()

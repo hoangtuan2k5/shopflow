@@ -22,8 +22,7 @@ export const en = {
     newPassword: 'New password',
     confirmPassword: 'Confirm new password',
     savePassword: 'Save password and sign out',
-    passwordPolicy:
-      'At least 8 characters, including uppercase, lowercase, a number and a symbol. Maximum 72 UTF-8 bytes.',
+    passwordPolicy: 'At least 8 characters, including uppercase, lowercase, a number and a symbol.',
     passwordMismatch: 'Passwords do not match.',
     passwordError:
       'The request could not be completed. Check your code and password, or request a new code.',
@@ -143,8 +142,7 @@ export const en = {
     name: 'Display name',
     password: 'Password',
     confirm: 'Confirm password',
-    policy:
-      'At least 8 characters, with uppercase, lowercase, a number and a symbol. Maximum 72 UTF-8 bytes.',
+    policy: 'At least 8 characters, with uppercase, lowercase, a number and a symbol.',
     submit: 'Send verification code',
     busy: 'Please wait…',
     verifyTitle: 'Verify your email',
@@ -162,6 +160,7 @@ export const en = {
     invalid: 'Check this field.',
     invalidEmail: 'Enter a valid email address.',
     invalidName: 'Enter a display name of 1 to 255 characters.',
+    passwordTooLong: 'This password is too long. Please use a shorter password.',
     invalidPassword: 'Use the password requirements shown below.',
     mismatch: 'Passwords do not match.',
     invalidOtp: 'Enter all 6 digits.',
