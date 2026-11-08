@@ -273,3 +273,7 @@ và commit khi mã/password sai theo contract; không rollback counter vì API l
 Kiểm thử đích phải có guest/other-user/own-user theo cả ba role, legacy order,
 counter và DB không đổi khi bị từ chối; cookie roundtrip thật, không chỉ mock
 `.with(csrf())`. Xem CI-08–CI-15 trong contract SF-141.
+
+## Account self-service (SF-150–SF-156)
+
+Xem [contract được owner duyệt](api-account-self-service-spec.md) cho API/capability, một địa chỉ mặc định và SET_PASSWORD. V8 bổ sung SET_PASSWORD + issued_auth_version; V9 lưu một địa chỉ riêng theo user_id, không backfill đơn cũ. Bằng chứng triển khai/migration tại [QA SF-156](qa-account-self-service.md); chưa triển khai production.

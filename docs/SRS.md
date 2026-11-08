@@ -839,3 +839,21 @@ trong task này. Dùng FR-12–FR-14 riêng để các tham chiếu mới không
 Chỉ các hành vi mới trên thay baseline sau triển khai. Các quyền chưa có API,
 session persistence SF-104, refactor/N+1 SF-130/SF-136/SF-139 và backup automation
 không tự trở thành Done. Live key probe không thay kiểm thử Inbox/OIDC đầy đủ.
+
+## Account self-service follow-up (SF-150–SF-156)
+
+Contract target được owner duyệt: [account self-service](api-account-self-service-spec.md).
+
+| Issue | Yêu cầu |
+| --- | --- |
+| SF-150 | Contract self-service và ma trận quyền |
+| SF-151 | Menu tài khoản và logout thật, giữ giỏ |
+| SF-155 | Thiết lập password Google-only bằng OTP riêng khi đã đăng nhập |
+| SF-154 | Current-password re-auth, đổi password và revoke sessions |
+| SF-152 | Một địa chỉ giao hàng mặc định/account thật |
+| SF-153 | Prefill checkout, giữ nguyên snapshots và tách PII giữa account |
+| SF-156 | Kiểm thử/migration/rollout evidence mới |
+
+Tài khoản demo dùng chung giữ credential, không lưu profile giao hàng cá nhân. Kết quả và giới hạn kiểm chứng của bản triển khai ở QA SF-156 bên dưới.
+
+Bằng chứng account self-service: [QA SF-156](qa-account-self-service.md). V8 bổ sung SET_PASSWORD + issued_auth_version; V9 lưu một địa chỉ riêng theo user_id, không backfill đơn cũ.

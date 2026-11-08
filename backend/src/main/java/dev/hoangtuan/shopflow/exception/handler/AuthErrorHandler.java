@@ -1,9 +1,11 @@
 package dev.hoangtuan.shopflow.exception.handler;
 
+import dev.hoangtuan.shopflow.controller.AccountController;
 import dev.hoangtuan.shopflow.controller.AuthController;
 import dev.hoangtuan.shopflow.controller.GoogleLinkController;
 import dev.hoangtuan.shopflow.controller.PasswordRecoveryController;
 import dev.hoangtuan.shopflow.controller.RegistrationController;
+import dev.hoangtuan.shopflow.exception.access.AccountActionException;
 import dev.hoangtuan.shopflow.exception.access.CredentialsValidationException;
 import dev.hoangtuan.shopflow.exception.access.EmailUnavailableException;
 import dev.hoangtuan.shopflow.exception.access.InvalidCodeException;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice(
     assignableTypes = {
       AuthController.class,
+      AccountController.class,
       GoogleLinkController.class,
       RegistrationController.class,
       PasswordRecoveryController.class
@@ -33,6 +36,11 @@ public class AuthErrorHandler {
    * hổng dò tài khoản (NFR-10).
    */
   private static final String REJECTED = "Invalid username or password";
+
+  @ExceptionHandler(AccountActionException.class)
+  ResponseEntity<ErrorResponse> handleAccountAction(AccountActionException exception) {
+    return response(exception.status(), exception.getMessage(), Map.of());
+  }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
   ResponseEntity<ErrorResponse> handleBeanValidation(MethodArgumentNotValidException exception) {

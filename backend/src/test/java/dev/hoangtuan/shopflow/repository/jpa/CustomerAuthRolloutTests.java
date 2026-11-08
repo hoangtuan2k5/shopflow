@@ -152,6 +152,75 @@ class CustomerAuthRolloutTests {
             + " ms; V6/V7 pg_dump+pg_restore and all application-table digests matched");
   }
 
+  @Test
+  void upgradesV7AndRestoresAccountDataOnPostgres17() throws Exception {
+    command("createdb", "-U", POSTGRES.getUsername(), "account_v7");
+    flyway("account_v7", "7").migrate();
+    JdbcTemplate db = jdbc("account_v7");
+    long google =
+        db.queryForObject(
+            """
+        INSERT INTO shopflow.users (username,email,email_verified_at,google_issuer,google_sub,display_name,role)
+        VALUES ('account-google','google@example.invalid',now(),'https://accounts.google.com','account-sub','Google','CUSTOMER') RETURNING id
+        """,
+            Long.class);
+    db.update(
+        """
+        INSERT INTO shopflow.auth_email_challenges
+        (email,purpose,challenge_id,session_binding,otp_verifier,synthetic,status,issued_at,expires_at,resend_at,pending_password_hash,pending_display_name)
+        VALUES ('pending@example.invalid','REGISTER',gen_random_uuid(),decode(repeat('01',32),'hex'),decode(repeat('02',32),'hex'),false,'ISSUED',now(),now()+interval '10 minute',now()+interval '60 second','test-only-hash','Pending')
+        """);
+    Map<String, String> before = snapshot(db, false);
+    backupAndRestore("account_v7", "account_restore_v7", "/tmp/account-v7.dump");
+    flyway("account_v7", null).migrate();
+    flyway("account_v7", null).validate();
+    flyway("account_restore_v7", null).migrate();
+    flyway("account_restore_v7", null).validate();
+    var after = snapshot(db, false);
+    before.forEach(
+        (table, digest) ->
+            assertThat(after.get(table)).as("V7 rows in " + table).isEqualTo(digest));
+    before.forEach(
+        (table, digest) -> {
+          try {
+            assertThat(snapshot(jdbc("account_restore_v7"), false).get(table)).isEqualTo(digest);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        });
+    assertThat(
+            db.queryForObject(
+                "SELECT count(*) FROM shopflow.account_delivery_details", Integer.class))
+        .isZero();
+    assertThat(
+            db.queryForObject(
+                "SELECT issued_auth_version FROM shopflow.auth_email_challenges WHERE email='pending@example.invalid'",
+                Long.class))
+        .isNull();
+    db.update(
+        "INSERT INTO shopflow.account_delivery_details VALUES (?,'Receiver','0900000000','Private address',NULL,'Hanoi',now(),now())",
+        google);
+    db.update(
+        """
+        INSERT INTO shopflow.auth_email_challenges
+        (email,purpose,challenge_id,user_id,session_binding,otp_verifier,synthetic,status,issued_at,expires_at,resend_at,issued_auth_version)
+        VALUES ('google@example.invalid','SET_PASSWORD',gen_random_uuid(),?,decode(repeat('01',32),'hex'),decode(repeat('02',32),'hex'),false,'ISSUED',now(),now()+interval '10 minute',now()+interval '60 second',0)
+        """,
+        google);
+    Map<String, String> upgraded = snapshot(db, false);
+    backupAndRestore("account_v7", "account_restore_v9", "/tmp/account-v9.dump");
+    flyway("account_restore_v9", null).validate();
+    assertThat(snapshot(jdbc("account_restore_v9"), false)).isEqualTo(upgraded);
+    assertThat(
+            jdbc("account_restore_v9")
+                .queryForObject(
+                    "SELECT issued_auth_version FROM shopflow.auth_email_challenges WHERE purpose='SET_PASSWORD'",
+                    Long.class))
+        .isZero();
+    System.out.println(
+        "SF-156 PostgreSQL17: V7/V9 backup, restore, migrations and application row digests passed");
+  }
+
   private void backupAndRestore(String source, String destination, String path) throws Exception {
     command("pg_dump", "-U", POSTGRES.getUsername(), "-d", source, "-Fc", "-f", path);
     command("createdb", "-U", POSTGRES.getUsername(), destination);
@@ -198,10 +267,12 @@ class CustomerAuthRolloutTests {
             "SELECT table_name FROM information_schema.tables WHERE table_schema='shopflow' AND table_type='BASE TABLE' AND table_name <> 'flyway_schema_history' ORDER BY table_name",
             String.class)) {
       assertThat(table).matches("[a-z][a-z0-9_]*");
-      if (legacy && table.startsWith("auth_")) continue;
+      if (legacy && (table.startsWith("auth_") || table.equals("account_delivery_details")))
+        continue;
       String row = "to_jsonb(t)";
       if (legacy && table.equals("users"))
         row += " - ARRAY['email','email_verified_at','google_issuer','google_sub','auth_version']";
+      if (table.equals("auth_email_challenges")) row += " - 'issued_auth_version'";
       if (legacy && table.equals("orders")) row += " - 'account_user_id'";
       String data =
           jdbc.queryForObject(

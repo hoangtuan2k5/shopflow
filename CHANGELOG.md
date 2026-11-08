@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0]
+
+### Added
+
+- **Account settings**: keyboard-accessible account menu, sign-out, and server-derived capabilities; retain shared demo credentials and staff workspace access (SF-150, SF-151).
+- **Private delivery details**: save, edit or remove one default address per verified-email account; prefill checkout while keeping per-order edits and historical shipping snapshots separate (SF-152, SF-153).
+- **Password management**: change a local password with current-password proof, or set a first password for an authenticated Google-only account using a separate, session-bound email OTP purpose (SF-154, SF-155).
+- **Rollout evidence**: security, OTP concurrency, browser and PostgreSQL17 V7/V9 backup/restore checks; no production deployment included (SF-156).
+
+### Changed
+
+- **Credential changes**: atomically increment the account credential version, consume/invalidate credential challenges and require all existing sessions to sign in again; preserve cart product IDs and quantities while clearing private client state (SF-154, SF-155).
+
+
 ## [0.13.0]
 
 ### Added

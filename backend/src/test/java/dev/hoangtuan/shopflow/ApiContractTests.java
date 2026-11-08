@@ -41,6 +41,10 @@ class ApiContractTests {
     var expected =
         json.readTree(
             new ClassPathResource("api-contract.json").getContentAsString(StandardCharsets.UTF_8));
+    if (!contract.equals(expected))
+      java.nio.file.Files.writeString(
+          java.nio.file.Path.of("target/api-contract.actual.json"),
+          json.writerWithDefaultPrettyPrinter().writeValueAsString(contract));
     assertThat(contract).isEqualTo(expected);
   }
 }

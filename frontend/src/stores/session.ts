@@ -66,18 +66,15 @@ export const useSessionStore = defineStore('session', () => {
 
   /** Xoá phiên phía client khi server đã coi nó không còn hợp lệ; không gọi lại API. */
   function forget() {
+    queryClient.clear()
     user.value = null
     resolved.value = true
   }
 
   async function signOut() {
-    try {
-      await logoutRequest()
-      await getSession()
-    } finally {
-      user.value = null
-      resolved.value = true
-    }
+    await logoutRequest()
+    forget()
+    await getSession().catch(() => undefined)
   }
 
   return {

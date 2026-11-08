@@ -1,6 +1,48 @@
 import type { en } from './en'
 
 export const vi: typeof en = {
+  account: {
+    prefillHint: 'Đã điền địa chỉ đã lưu. Chỉnh sửa bên dưới chỉ áp dụng cho đơn này.',
+    prefillError:
+      'Chưa tải được địa chỉ đã lưu. Anh/chị vẫn có thể nhập thông tin giao hàng thủ công.',
+
+    deliveryHint:
+      'Lưu một địa chỉ giao hàng mặc định. Thay đổi tại đây không ảnh hưởng đơn đã đặt.',
+    saveDelivery: 'Lưu thông tin giao hàng',
+    deleteDelivery: 'Xóa địa chỉ đã lưu',
+    deliverySaved: 'Đã cập nhật thông tin giao hàng.',
+    deliveryError: 'Chưa lưu được thông tin giao hàng. Vui lòng kiểm tra và thử lại.',
+
+    currentPassword: 'Mật khẩu hiện tại',
+    changeHint:
+      'Nhập mật khẩu hiện tại để chọn mật khẩu mới. Tất cả phiên đăng nhập sẽ được đăng xuất.',
+
+    setupHint:
+      'Xác minh mã gửi đến email tài khoản để thêm mật khẩu. Anh/chị cần đăng nhập lại sau khi lưu.',
+    sendCode: 'Gửi mã xác minh',
+    resendCode: 'Gửi lại mã',
+    otp: 'Mã xác minh',
+    newPassword: 'Mật khẩu mới',
+    confirmPassword: 'Nhập lại mật khẩu mới',
+    savePassword: 'Lưu mật khẩu và đăng xuất',
+    passwordPolicy:
+      'Tối thiểu 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt. Tối đa 72 byte UTF-8.',
+    passwordMismatch: 'Mật khẩu nhập lại không khớp.',
+    passwordError: 'Không thể hoàn tất. Kiểm tra mã và mật khẩu hoặc yêu cầu mã mới.',
+    rateLimited: 'Quá nhiều lần thử. Vui lòng chờ trước khi thử lại.',
+    mailUnavailable: 'Chưa gửi được email. Vui lòng thử lại sau.',
+
+    title: 'Quản lý tài khoản',
+    delivery: 'Thông tin giao hàng',
+    changePassword: 'Đổi mật khẩu',
+    setupPassword: 'Thiết lập mật khẩu',
+    loading: 'Đang xử lý…',
+    loadError: 'Chưa tải được thông tin tài khoản.',
+    retry: 'Thử lại',
+    demoHint: 'Tài khoản demo dùng chung không lưu địa chỉ cá nhân hoặc đổi mật khẩu.',
+    logoutError: 'Chưa xác nhận được đăng xuất. Vui lòng thử lại.',
+    back: 'Về cửa hàng',
+  },
   chat: {
     open: 'Tư vấn sản phẩm',
     kicker: 'SHOPFLOW / TƯ VẤN SẢN PHẨM',

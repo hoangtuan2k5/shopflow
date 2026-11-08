@@ -37,6 +37,59 @@
         }
       }
     },
+    "/auth/account/delivery" : {
+      "get" : {
+        "tags" : [ "Account" ],
+        "operationId" : "delivery",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeliveryProfile"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Account" ],
+        "operationId" : "saveDelivery",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeliveryDetails"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeliveryProfile"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Account" ],
+        "operationId" : "deleteDelivery",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/returns" : {
       "get" : {
         "tags" : [ "Returns" ],
@@ -490,6 +543,104 @@
         }
       }
     },
+    "/auth/account/password/setup" : {
+      "post" : {
+        "tags" : [ "Account" ],
+        "operationId" : "setup",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "additionalProperties" : { }
+              }
+            }
+          }
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChallengeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/account/password/setup/resend" : {
+      "post" : {
+        "tags" : [ "Account" ],
+        "operationId" : "resend_1",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ResendOtpRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChallengeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/account/password/setup/confirm" : {
+      "post" : {
+        "tags" : [ "Account" ],
+        "operationId" : "confirm",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/auth/account/password/change" : {
+      "post" : {
+        "tags" : [ "Account" ],
+        "operationId" : "changePassword",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/returns/{returnId}" : {
       "patch" : {
         "tags" : [ "Returns" ],
@@ -802,6 +953,24 @@
           }
         }
       }
+    },
+    "/auth/account" : {
+      "get" : {
+        "tags" : [ "Account" ],
+        "operationId" : "profile",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AccountProfile"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "schemas" : {
@@ -842,6 +1011,45 @@
         },
         "lowStock" : {
           "type" : "boolean"
+        }
+      }
+    },
+    "DeliveryDetails" : {
+      "type" : "object",
+      "properties" : {
+        "receiverName" : {
+          "type" : "string",
+          "maxLength" : 255,
+          "minLength" : 0
+        },
+        "phone" : {
+          "type" : "string",
+          "maxLength" : 20,
+          "minLength" : 0
+        },
+        "addressLine" : {
+          "type" : "string",
+          "maxLength" : 500,
+          "minLength" : 0
+        },
+        "district" : {
+          "type" : "string",
+          "maxLength" : 100,
+          "minLength" : 0
+        },
+        "city" : {
+          "type" : "string",
+          "maxLength" : 100,
+          "minLength" : 0
+        }
+      },
+      "required" : [ "addressLine", "city", "phone", "receiverName" ]
+    },
+    "DeliveryProfile" : {
+      "type" : "object",
+      "properties" : {
+        "delivery" : {
+          "$ref" : "#/components/schemas/DeliveryDetails"
         }
       }
     },
@@ -1429,6 +1637,18 @@
       },
       "required" : [ "password" ]
     },
+    "ChangePasswordRequest" : {
+      "type" : "object",
+      "properties" : {
+        "currentPassword" : {
+          "type" : "string"
+        },
+        "newPassword" : {
+          "type" : "string"
+        }
+      },
+      "required" : [ "currentPassword", "newPassword" ]
+    },
     "UpdateReturnRequest" : {
       "type" : "object",
       "properties" : {
@@ -1747,6 +1967,34 @@
         },
         "user" : {
           "$ref" : "#/components/schemas/AuthenticatedUser"
+        }
+      }
+    },
+    "AccountProfile" : {
+      "type" : "object",
+      "properties" : {
+        "displayName" : {
+          "type" : "string"
+        },
+        "email" : {
+          "type" : "string"
+        },
+        "capabilities" : {
+          "$ref" : "#/components/schemas/Capabilities"
+        }
+      }
+    },
+    "Capabilities" : {
+      "type" : "object",
+      "properties" : {
+        "manageDelivery" : {
+          "type" : "boolean"
+        },
+        "changePassword" : {
+          "type" : "boolean"
+        },
+        "setPassword" : {
+          "type" : "boolean"
         }
       }
     }

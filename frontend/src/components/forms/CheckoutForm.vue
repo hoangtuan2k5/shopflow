@@ -22,6 +22,7 @@ import type {
   SimulatedPaymentResult,
 } from '@/api'
 import { Button } from '@/components/ui/button'
+import type { DeliveryDetails } from '@/api/account'
 import { Input } from '@/components/ui/input'
 
 interface CheckoutLine {
@@ -35,6 +36,8 @@ interface CheckoutLine {
 }
 
 const props = defineProps<{
+  prefill?: DeliveryDetails | null
+  prefillError?: boolean
   lines: CheckoutLine[]
   submitting: boolean
   error: OrderErrorDetails | null
@@ -80,7 +83,7 @@ type CheckoutValues = {
   city: string
 }
 
-const { defineField, errors, handleSubmit } = useForm<CheckoutValues>({
+const { defineField, errors, handleSubmit, setValues, meta } = useForm<CheckoutValues>({
   validationSchema: formSchema,
   initialValues: {
     fullName: '',
@@ -93,6 +96,26 @@ const { defineField, errors, handleSubmit } = useForm<CheckoutValues>({
     city: '',
   },
 })
+
+const prefillApplied = ref(false)
+watch(
+  () => props.prefill,
+  (value) => {
+    if (!value || prefillApplied.value || meta.value.dirty) return
+    prefillApplied.value = true
+    setValues(
+      {
+        receiverName: value.receiverName,
+        receiverPhone: value.phone,
+        addressLine: value.addressLine,
+        district: value.district ?? '',
+        city: value.city,
+      },
+      false,
+    )
+  },
+  { immediate: true },
+)
 
 const [fullName, fullNameAttrs] = defineField('fullName')
 const [email, emailAttrs] = defineField('email')
@@ -194,6 +217,12 @@ const submit = handleSubmit((values) => emit('submit', values))
       </div>
     </header>
 
+    <p v-if="prefillError" role="status" class="mx-5 mt-4 text-sm text-muted-foreground sm:mx-7">
+      {{ t('account.prefillError') }}
+    </p>
+    <p v-else-if="prefillApplied" class="mx-5 mt-4 text-sm text-muted-foreground sm:mx-7">
+      {{ t('account.prefillHint') }}
+    </p>
     <div
       v-if="props.error"
       class="mx-5 mt-5 flex gap-3 border-l-4 border-destructive bg-destructive-muted p-4 sm:mx-7"
