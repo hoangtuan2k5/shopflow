@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { setupPassword, confirmPasswordSetup, changePassword } from '@/api/account'
+import { passwordTooLong, validNewPassword } from '@/lib/passwordPolicy'
 import { useSessionStore } from '@/stores/session'
 const props = defineProps<{ setup: boolean }>()
 const currentPassword = ref('')
@@ -63,6 +64,14 @@ async function send() {
 }
 async function submit() {
   error.value = ''
+  if (!validNewPassword(password.value)) {
+    error.value = t(
+      passwordTooLong(password.value)
+        ? 'registration.passwordTooLong'
+        : 'registration.invalidPassword',
+    )
+    return
+  }
   if (password.value !== confirmation.value) {
     error.value = t('account.passwordMismatch')
     return

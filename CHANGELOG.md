@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Authentication guidance**: replace technical password-size wording with clear bilingual guidance and a specific message for passwords that are too long (SF-156).
+- **Verification emails**: emphasize a large centered code, simplify instructions and prefer Be Vietnam Pro with email-safe font fallbacks while preserving the white ShopFlow banner (SF-156).
 - **Deployment validation**: bundle SQL and Java migrations in the preflight image so applied V8 remains resolvable on subsequent deploys; retain missing-migration and checksum validation (SF-156).
 
 ## [0.13.0]

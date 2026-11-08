@@ -75,18 +75,18 @@ class PasswordRecoveryTests {
         """,
         LOCAL,
         encoder.encode(OLD));
-    when(mail.sendResetCode(anyString(), anyString(), any(UUID.class)))
+    when(mail.sendResetCode(anyString(), anyString(), anyString(), any(UUID.class)))
         .thenAnswer(
             inv -> {
               assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
-              UUID id = inv.getArgument(2);
+              UUID id = inv.getArgument(3);
               assertThat(
                       jdbc.queryForObject(
                           "SELECT status FROM shopflow.auth_email_challenges WHERE challenge_id = ?",
                           String.class,
                           id))
                   .isEqualTo("PENDING_SEND");
-              codes.put(id, inv.getArgument(1));
+              codes.put(id, inv.getArgument(2));
               return UUID.randomUUID().toString();
             });
     when(mail.sendRegistrationCode(anyString(), anyString(), anyString(), any(UUID.class)))
@@ -95,7 +95,7 @@ class PasswordRecoveryTests {
               codes.put(inv.getArgument(3), inv.getArgument(2));
               return UUID.randomUUID().toString();
             });
-    when(mail.sendPasswordChanged(anyString(), any(UUID.class)))
+    when(mail.sendPasswordChanged(anyString(), anyString(), any(UUID.class)))
         .thenAnswer(
             inv -> {
               assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
@@ -114,6 +114,7 @@ class PasswordRecoveryTests {
     MockHttpSession first = session(login(LOCAL, OLD).andExpect(status().isOk()).andReturn());
     MockHttpSession second = session(login(LOCAL, OLD).andExpect(status().isOk()).andReturn());
     MvcResult issued = forgot(" RECOVERY@EXAMPLE.COM ");
+    verify(mail).sendResetCode(eq(LOCAL), eq("Recovery"), anyString(), eq(id(issued)));
     mvc.perform(get("/auth/session").session(first))
         .andExpect(jsonPath("$.authenticated").value(true));
     mvc.perform(get("/auth/session").session(second))
@@ -145,7 +146,7 @@ class PasswordRecoveryTests {
     login(LOCAL.toUpperCase(), NEW).andExpect(status().isOk());
     reset(id(issued), codes.get(id(issued)), "Otherpass3!", session(issued))
         .andExpect(status().isBadRequest());
-    verify(mail, times(1)).sendPasswordChanged(eq(LOCAL), eq(id(issued)));
+    verify(mail, times(1)).sendPasswordChanged(eq(LOCAL), eq("Recovery"), eq(id(issued)));
     assertThat(
             jdbc.queryForObject(
                 "SELECT otp_verifier FROM shopflow.auth_email_challenges WHERE challenge_id = ?",
@@ -181,7 +182,7 @@ class PasswordRecoveryTests {
           .isGreaterThanOrEqualTo(java.time.Duration.ofMillis(3900));
       reset(id(issued), "012345", NEW, session(issued)).andExpect(status().isBadRequest());
     }
-    verify(mail, never()).sendResetCode(anyString(), anyString(), any());
+    verify(mail, never()).sendResetCode(anyString(), anyString(), anyString(), any());
     assertThat(
             jdbc.queryForObject(
                 "SELECT password_hash FROM shopflow.users WHERE email = 'google@example.com'",
@@ -285,12 +286,12 @@ class PasswordRecoveryTests {
       assertThat(encoder.matches(a == 204 ? NEW : "Otherpass3!", hash())).isTrue();
     }
     assertThat(version()).isEqualTo(1L);
-    verify(mail, times(1)).sendPasswordChanged(eq(LOCAL), eq(id));
+    verify(mail, times(1)).sendPasswordChanged(eq(LOCAL), eq("Recovery"), eq(id));
   }
 
   @Test
   void deliveryOrNotificationFailureCannotCreateUsableProofOrUndoReset() throws Exception {
-    when(mail.sendResetCode(anyString(), anyString(), any()))
+    when(mail.sendResetCode(anyString(), anyString(), anyString(), any()))
         .thenThrow(new EmailUnavailableException());
     MvcResult failed = forgot(LOCAL);
     for (int attempt = 0; attempt < 4; attempt++)
@@ -301,12 +302,14 @@ class PasswordRecoveryTests {
     jdbc.update("DELETE FROM shopflow.auth_rate_buckets");
     doAnswer(
             inv -> {
-              codes.put(inv.getArgument(2), inv.getArgument(1));
+              codes.put(inv.getArgument(3), inv.getArgument(2));
               return UUID.randomUUID().toString();
             })
         .when(mail)
-        .sendResetCode(anyString(), anyString(), any());
-    doThrow(new EmailUnavailableException()).when(mail).sendPasswordChanged(anyString(), any());
+        .sendResetCode(anyString(), anyString(), anyString(), any());
+    doThrow(new EmailUnavailableException())
+        .when(mail)
+        .sendPasswordChanged(anyString(), anyString(), any());
     MvcResult issued = forgot(LOCAL);
     reset(id(issued), codes.get(id(issued)), NEW, session(issued))
         .andExpect(status().isNoContent());

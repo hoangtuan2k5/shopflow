@@ -1,8 +1,12 @@
+export function passwordTooLong(value: string): boolean {
+  return new TextEncoder().encode(value).length > 72
+}
+
 export function validNewPassword(value: string): boolean {
   const points = [...value]
   return (
     points.length >= 8 &&
-    new TextEncoder().encode(value).length <= 72 &&
+    !passwordTooLong(value) &&
     !points.some((point) => {
       const code = point.codePointAt(0)!
       return code >= 0xd800 && code <= 0xdfff
