@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.1]
+
+### Fixed
+
+- **Checkout layout**: constrain long product names and delivery fields to their grid columns, keep the order action reachable on mobile, and separate the dialog close button from the header total (SF-157).
+
 ## [0.14.0]
 
 ### Added

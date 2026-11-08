@@ -193,7 +193,7 @@ const submit = handleSubmit((values) => emit('submit', values))
     aria-labelledby="checkout-title"
   >
     <header
-      class="flex flex-wrap items-start justify-between gap-4 border-b border-border bg-gradient-to-br from-primary/[0.07] via-card to-accent/[0.45] px-5 py-5 sm:px-7"
+      class="flex flex-wrap items-start justify-between gap-4 border-b border-border bg-gradient-to-br from-primary/[0.07] via-card to-accent/[0.45] px-5 py-5 pr-16 sm:px-7 sm:pr-20"
     >
       <div>
         <p
@@ -400,10 +400,10 @@ const submit = handleSubmit((values) => emit('submit', values))
 
     <form
       v-else
-      class="grid gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"
+      class="grid grid-cols-1 gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"
       @submit.prevent="submit"
     >
-      <div class="grid content-start gap-4">
+      <div class="grid grid-cols-1 content-start gap-4">
         <div>
           <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {{ t('checkout.review.step') }}
@@ -411,7 +411,7 @@ const submit = handleSubmit((values) => emit('submit', values))
           <h3 class="mt-1 text-lg font-bold">{{ t('checkout.review.title') }}</h3>
         </div>
 
-        <div class="grid gap-3">
+        <div class="grid grid-cols-1 gap-3">
           <article
             v-for="line in props.lines"
             :key="line.product.id"
@@ -478,7 +478,7 @@ const submit = handleSubmit((values) => emit('submit', values))
         </div>
       </div>
 
-      <div class="grid content-start gap-5 lg:border-l lg:border-border lg:pl-7">
+      <div class="grid grid-cols-1 content-start gap-5 lg:border-l lg:border-border lg:pl-7">
         <div>
           <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {{ t('checkout.delivery.step') }}
@@ -486,7 +486,7 @@ const submit = handleSubmit((values) => emit('submit', values))
           <h3 class="mt-1 text-lg font-bold">{{ t('checkout.delivery.title') }}</h3>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label class="grid gap-1.5 sm:col-span-2">
             <span class="text-sm font-semibold"
               >{{ t('checkout.fields.fullName') }} <span class="text-destructive">*</span></span
