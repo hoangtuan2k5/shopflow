@@ -38,6 +38,20 @@ for (const locale of ['en', 'vi'] as const) {
     )
     await page.route('**/api/products/1', (route) => route.fulfill({ json: product }))
     await page.goto('/customer')
+    await expect(
+      page.getByRole('heading', {
+        name: locale === 'vi' ? 'Sản phẩm dành cho bạn' : 'Products for you',
+        level: 1,
+      }),
+    ).toBeVisible()
+    await expect(page.locator('main > section').first()).toHaveAttribute('id', 'products')
+    await expect(
+      page.getByRole('button', {
+        name: locale === 'vi' ? 'Khám phá sản phẩm' : 'Browse products',
+        exact: true,
+      }),
+    ).toHaveCount(0)
+    await page.screenshot({ path: testInfo.outputPath('storefront.png'), fullPage: true })
     await page
       .getByRole('button', { name: locale === 'vi' ? 'Thêm vào giỏ' : 'Add to cart', exact: true })
       .click()

@@ -31,3 +31,7 @@ git diff --cached --check
 ```
 
 Visual inspection covered local payment success/failure/network states, checkout/delivery and EN/VI auth screenshots at desktop/mobile. Initial command attempts from the wrong SSR working directory were corrected before recording a pass. Commit/push/PR, release/main merge, bypass, deployment and owner tag/release publication have not been performed for this bundle.
+
+## SF-158 follow-up: remove the whole introduction
+
+Owner additionally requested removal of the entire storefront introduction and all three benefit tiles, not just revised wording. CatalogView now starts with the product section. Its heading becomes the page h1; removed section imports, scroll action and unused EN/VI strings are removed as well. Existing copy browser cases assert the first section is products and the heading remains accessible; frontend build/lint and21 focused browser cases passed. EN/VI desktop/mobile screenshots were captured and inspected. Release PR168 stays draft until this follow-up is reviewed and included in develop.

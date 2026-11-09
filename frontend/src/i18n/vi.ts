@@ -244,22 +244,6 @@ export const vi: typeof en = {
     searchPlaceholder: 'Tìm sản phẩm bạn cần...',
     openCart: 'Mở giỏ hàng',
     cart: 'Giỏ hàng',
-    hero: {
-      kicker: 'Cửa hàng ShopFlow',
-      line1: 'Chọn nhanh.',
-      line2: 'Đặt hàng gọn.',
-      text: 'Tìm màng lọc thay thế và phụ kiện cho thiết bị gia dụng của bạn.',
-      cta: 'Khám phá sản phẩm',
-    },
-    benefits: {
-      label: 'Lợi ích mua hàng',
-      pricingTitle: 'Giá sản phẩm',
-      pricingHint: 'Xem giá trên từng sản phẩm',
-      stockTitle: 'Tình trạng hàng',
-      stockHint: 'Tìm sản phẩm còn hàng',
-      orderingTitle: 'Giỏ hàng của bạn',
-      orderingHint: 'Kiểm tra sản phẩm trước khi đặt',
-    },
     section: {
       kicker: 'Gợi ý hôm nay',
       title: 'Sản phẩm dành cho bạn',
