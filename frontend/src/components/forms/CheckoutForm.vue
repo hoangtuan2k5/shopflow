@@ -126,6 +126,9 @@ const [addressLine, addressLineAttrs] = defineField('addressLine')
 const [district, districtAttrs] = defineField('district')
 const [city, cityAttrs] = defineField('city')
 const paymentSimulation = ref<HTMLElement | null>(null)
+const confirmedPayment = computed(() =>
+  props.paymentResult?.orderId === props.successOrder?.id ? props.paymentResult : null,
+)
 
 const displayedErrors = computed(() => ({
   fullName: errors.value.fullName ?? props.error?.fieldErrors?.['customer.fullName'],
@@ -205,9 +208,6 @@ const submit = handleSubmit((values) => emit('submit', values))
         <h2 id="checkout-title" class="mt-2 text-2xl font-bold tracking-tight">
           {{ t('checkout.title') }}
         </h2>
-        <p class="mt-1 max-w-xl text-sm text-muted-foreground">
-          {{ t('checkout.hint') }}
-        </p>
       </div>
       <div class="rounded-md border border-border bg-card/80 px-3 py-2 text-right">
         <p class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -219,9 +219,6 @@ const submit = handleSubmit((values) => emit('submit', values))
 
     <p v-if="prefillError" role="status" class="mx-5 mt-4 text-sm text-muted-foreground sm:mx-7">
       {{ t('account.prefillError') }}
-    </p>
-    <p v-else-if="prefillApplied" class="mx-5 mt-4 text-sm text-muted-foreground sm:mx-7">
-      {{ t('account.prefillHint') }}
     </p>
     <div
       v-if="props.error"
@@ -264,9 +261,6 @@ const submit = handleSubmit((values) => emit('submit', values))
           <h3 id="payment-simulation-title" class="mt-1 text-xl font-bold">
             {{ t('checkout.payment.title') }}
           </h3>
-          <p class="mt-1 text-sm text-muted-foreground">
-            {{ t('checkout.payment.created', { id: props.successOrder.id }) }}
-          </p>
         </div>
       </div>
       <dl class="grid gap-3 rounded-lg border border-border bg-background/70 p-4 sm:grid-cols-3">
@@ -280,7 +274,11 @@ const submit = handleSubmit((values) => emit('submit', values))
           <dt class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {{ t('checkout.payment.status') }}
           </dt>
-          <dd class="mt-1 font-bold">{{ props.successOrder.status }}</dd>
+          <dd class="mt-1 font-bold">
+            {{
+              t('dashboard.status.' + (confirmedPayment?.orderStatus ?? props.successOrder.status))
+            }}
+          </dd>
         </div>
         <div>
           <dt class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -292,17 +290,17 @@ const submit = handleSubmit((values) => emit('submit', values))
         </div>
       </dl>
       <div
-        v-if="props.paymentResult"
+        v-if="confirmedPayment"
         class="flex items-start gap-4 rounded-lg border p-5"
         :class="
-          props.paymentResult.status === 'SUCCESS'
+          confirmedPayment.status === 'SUCCESS'
             ? 'border-success/25 bg-success-muted'
             : 'border-destructive/25 bg-destructive-muted'
         "
         role="status"
       >
         <IconCircleCheck
-          v-if="props.paymentResult.status === 'SUCCESS'"
+          v-if="confirmedPayment.status === 'SUCCESS'"
           class="mt-0.5 shrink-0 text-success"
           :size="24"
           :stroke-width="1.8"
@@ -318,18 +316,12 @@ const submit = handleSubmit((values) => emit('submit', values))
         <div>
           <p class="font-bold">
             {{
-              props.paymentResult.status === 'SUCCESS'
+              confirmedPayment.status === 'SUCCESS'
                 ? t('checkout.payment.resultSuccess')
-                : props.paymentResult.status === 'EXPIRED'
+                : confirmedPayment.status === 'EXPIRED'
                   ? t('checkout.payment.resultExpired')
                   : t('checkout.payment.resultFailed')
             }}
-          </p>
-          <p class="mt-1 text-sm text-muted-foreground">
-            Payment {{ props.paymentResult.status }} · Order {{ props.paymentResult.orderStatus }}
-          </p>
-          <p v-if="props.paymentResult.failedReason" class="mt-1 text-sm text-muted-foreground">
-            {{ props.paymentResult.failedReason }}
           </p>
         </div>
       </div>
@@ -347,38 +339,13 @@ const submit = handleSubmit((values) => emit('submit', values))
           />
           <div>
             <p class="font-semibold">
-              {{ props.paymentError.message || t('checkout.payment.errorFallback') }}
-            </p>
-            <p class="mt-1 text-sm text-muted-foreground">
-              {{ t('checkout.payment.errorHint') }}
+              {{ t('checkout.payment.errorFallback') }}
             </p>
           </div>
         </div>
-        <div>
-          <p class="font-semibold">{{ t('checkout.payment.choose') }}</p>
-          <p class="mt-1 text-sm text-muted-foreground">
-            {{ t('checkout.payment.demoHint') }}
-          </p>
-        </div>
-        <div class="grid gap-2 sm:grid-cols-3">
+        <div class="flex justify-end">
           <Button type="button" :disabled="props.paymentSubmitting" @click="emit('pay', 'SUCCESS')">
             {{ t('checkout.payment.paySuccess') }}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            :disabled="props.paymentSubmitting"
-            @click="emit('pay', 'FAILED')"
-          >
-            {{ t('checkout.payment.simulateFailure') }}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            :disabled="props.paymentSubmitting"
-            @click="emit('pay', 'EXPIRED')"
-          >
-            {{ t('checkout.payment.simulateExpiry') }}
           </Button>
         </div>
         <p v-if="props.paymentSubmitting" class="text-sm font-semibold text-primary" role="status">
@@ -386,11 +353,6 @@ const submit = handleSubmit((values) => emit('submit', values))
         </p>
       </div>
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <p class="text-sm text-muted-foreground">
-          {{
-            props.paymentResult ? t('checkout.payment.recorded') : t('checkout.payment.reserved')
-          }}
-        </p>
         <Button type="button" variant="outline" @click="emit('start-over')">
           {{ t('checkout.payment.continueShopping') }}
           <IconArrowUpRight :size="17" :stroke-width="1.8" aria-hidden="true" />
@@ -636,10 +598,7 @@ const submit = handleSubmit((values) => emit('submit', values))
           </label>
         </div>
 
-        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
-          <p class="max-w-xs text-xs leading-relaxed text-muted-foreground">
-            {{ t('checkout.footNote') }}
-          </p>
+        <div class="flex justify-end border-t border-border pt-5">
           <Button
             type="submit"
             size="lg"

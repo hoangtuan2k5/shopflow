@@ -91,7 +91,6 @@ async function save(remove = false) {
 <template>
   <section class="mt-6 border-t pt-6">
     <h2 class="text-xl font-semibold">{{ t('account.delivery') }}</h2>
-    <p class="mt-2 text-sm text-muted-foreground">{{ t('account.deliveryHint') }}</p>
     <p v-if="profile.isPending.value" role="status" class="mt-4">{{ t('account.loading') }}</p>
     <div v-else-if="profile.isError.value" class="mt-4">
       <p role="alert">{{ t('account.loadError') }}</p>

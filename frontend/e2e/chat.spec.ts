@@ -153,7 +153,7 @@ test('Quota Retry-After blocks repeat requests while storefront stays usable', a
   await expect(page.getByRole('button', { name: product.name, exact: true })).toBeVisible()
 })
 
-test('403 explains token refresh, invalid payload is rejected and text is never rendered as HTML', async ({
+test('403 asks for a reload, invalid payload is rejected and text is never rendered as HTML', async ({
   page,
 }) => {
   await setup(page)
@@ -167,7 +167,7 @@ test('403 explains token refresh, invalid payload is rejected and text is never 
   })
   await open(page)
   await ask(page, 'First')
-  await expect(page.getByRole('alert')).toContainText('session token')
+  await expect(page.getByRole('alert')).toContainText('Reload the page and try again.')
   await ask(page, 'Second')
   await expect(page.getByRole('alert')).toContainText('could not answer')
   await page.getByRole('button', { name: 'Try the same question again' }).click()
