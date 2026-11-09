@@ -18,7 +18,7 @@ test('Storefront starts while external font services are unresponsive', async ({
   try {
     await page.goto('/customer', { waitUntil: 'commit' })
     await expect(page.getByTestId('chat-open')).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Pick fast. Order simply.' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Products for you', level: 1 })).toBeVisible()
   } finally {
     release()
     await page.unrouteAll({ behavior: 'wait' })

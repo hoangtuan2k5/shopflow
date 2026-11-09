@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.2]
+
+### Changed
+
+- **Storefront**: remove the introduction banner and benefit tiles so customers reach the product list directly (SF-158).
+- **Customer copy**: simplify bilingual storefront, checkout, account and authentication messages; replace customer-facing payment debug controls with one payment action (SF-158).
+
+### Fixed
+
+- **Payment status**: update the checkout summary from the confirmed result for the current order, translate order states and keep unresolved payments pending instead of displaying raw status codes (SF-159).
+
 ## [0.14.1]
 
 ### Fixed

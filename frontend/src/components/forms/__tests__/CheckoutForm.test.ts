@@ -53,13 +53,14 @@ test('renders payment handoff and field-specific server errors', async (context)
   })
 
   assert.match(paymentHtml, /id="payment-simulation"/)
-  assert.match(paymentHtml, /Mô phỏng thanh toán/)
-  assert.match(paymentHtml, /Đơn hàng #501/)
-  assert.match(paymentHtml, /PENDING_PAYMENT/)
+  assert.doesNotMatch(paymentHtml, /Mô phỏng|demo|backend/)
+  assert.match(paymentHtml, /#501/)
+  assert.match(paymentHtml, /Chờ thanh toán/)
+  assert.doesNotMatch(paymentHtml, /PENDING_PAYMENT/)
   assert.match(paymentHtml, /46\.970\.000/)
-  assert.match(paymentHtml, /Thanh toán thành công/)
-  assert.match(paymentHtml, /Mô phỏng thất bại/)
-  assert.match(paymentHtml, /Mô phỏng hết hạn/)
+  assert.match(paymentHtml, />Thanh toán</)
+  assert.doesNotMatch(paymentHtml, /Mô phỏng thất bại/)
+  assert.doesNotMatch(paymentHtml, /Mô phỏng hết hạn/)
 
   const paymentResultHtml = await renderForm({
     lines: [],
@@ -81,7 +82,8 @@ test('renders payment handoff and field-specific server errors', async (context)
     },
   })
 
-  assert.match(paymentResultHtml, /Payment SUCCESS · Order PAID/)
+  assert.match(paymentResultHtml, /Đã thanh toán/)
+  assert.doesNotMatch(paymentResultHtml, /PENDING_PAYMENT|Payment SUCCESS|Order PAID/)
   assert.doesNotMatch(paymentResultHtml, /Mô phỏng thất bại/)
 
   for (const [status, title, reason] of [
@@ -109,8 +111,9 @@ test('renders payment handoff and field-specific server errors', async (context)
     })
 
     assert.match(terminalHtml, new RegExp(title))
-    assert.match(terminalHtml, new RegExp(`Payment ${status} · Order PAYMENT_FAILED`))
-    assert.match(terminalHtml, new RegExp(reason))
+    assert.match(terminalHtml, /Thanh toán lỗi/)
+    assert.doesNotMatch(terminalHtml, /PENDING_PAYMENT|PAYMENT_FAILED|Payment /)
+    assert.doesNotMatch(terminalHtml, new RegExp(reason))
   }
 
   const paymentLoadingHtml = await renderForm({
@@ -123,7 +126,7 @@ test('renders payment handoff and field-specific server errors', async (context)
     paymentResult: null,
   })
 
-  assert.match(paymentLoadingHtml, /Đang xử lý kết quả thanh toán…/)
+  assert.match(paymentLoadingHtml, /Đang thanh toán…/)
   assert.match(paymentLoadingHtml, /disabled/)
 
   const paymentErrorHtml = await renderForm({
@@ -136,9 +139,49 @@ test('renders payment handoff and field-specific server errors', async (context)
     paymentResult: null,
   })
 
-  assert.match(paymentErrorHtml, /Order is not eligible for payment/)
-  assert.match(paymentErrorHtml, /Đơn hàng #501/)
-  assert.match(paymentErrorHtml, /Thanh toán thành công/)
+  assert.match(paymentErrorHtml, /Chưa thể hoàn tất thanh toán/)
+  assert.match(paymentErrorHtml, /Chờ thanh toán/)
+  assert.doesNotMatch(paymentErrorHtml, /Order is not eligible for payment/)
+  assert.match(paymentErrorHtml, /#501/)
+  assert.match(paymentErrorHtml, />Thanh toán</)
+
+  for (const [locale, pending, paid, failed] of [
+    ['vi', 'Chờ thanh toán', 'Đã thanh toán', 'Thanh toán lỗi'],
+    ['en', 'Pending payment', 'Paid', 'Payment failed'],
+  ]) {
+    i18n.global.locale.value = locale
+    for (const [status, orderStatus, orderId, expected] of [
+      ['SUCCESS', 'PAID', 501, paid],
+      ['FAILED', 'PAYMENT_FAILED', 501, failed],
+      ['EXPIRED', 'PAYMENT_FAILED', 501, failed],
+      ['SUCCESS', 'PAID', 999, pending],
+    ]) {
+      const html = await renderForm({
+        lines: [],
+        submitting: false,
+        error: null,
+        successOrder,
+        paymentSubmitting: false,
+        paymentError: null,
+        paymentResult: {
+          id: 91,
+          orderId,
+          method: 'CARD',
+          status,
+          amount: 46970000,
+          paidAt: null,
+          failedReason: null,
+          createdAt: '2026-07-21T09:00:00Z',
+          orderStatus,
+        },
+      })
+      const summary = html.match(/<dl[\s\S]*?<\/dl>/)?.[0] ?? ''
+      assert.ok(summary.includes(expected))
+      assert.doesNotMatch(html, /PENDING_PAYMENT|PAYMENT_FAILED|Payment SUCCESS|Order PAID/)
+      if (orderId === 999) assert.match(html, /type="button"[^>]*>[\s\S]*?(?:Thanh toán|Pay)/)
+    }
+  }
+  i18n.global.locale.value = 'vi'
 
   const errorHtml = await renderForm({
     lines: [
