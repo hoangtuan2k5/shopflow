@@ -323,7 +323,7 @@ export const vi: typeof en = {
       resultSuccess: 'Thanh toán thành công',
       resultExpired: 'Thanh toán đã hết hạn',
       resultFailed: 'Thanh toán thất bại',
-      errorFallback: 'Không thể thanh toán.',
+      errorFallback: 'Chưa thể hoàn tất thanh toán.',
       paySuccess: 'Thanh toán',
       processing: 'Đang thanh toán…',
       continueShopping: 'Tiếp tục mua sắm',

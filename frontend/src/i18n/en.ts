@@ -323,7 +323,7 @@ export const en = {
       resultSuccess: 'Payment succeeded',
       resultExpired: 'Payment expired',
       resultFailed: 'Payment failed',
-      errorFallback: 'The payment failed.',
+      errorFallback: 'The payment could not be completed.',
       paySuccess: 'Pay',
       processing: 'Processing payment…',
       continueShopping: 'Continue shopping',

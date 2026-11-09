@@ -153,7 +153,7 @@ test('A generic payment 404 stays on the current order without creating another 
   await fill(page)
   await page.getByRole('button', { name: 'Place order', exact: true }).click()
   await page.getByRole('button', { name: 'Pay', exact: true }).click()
-  await expect(page.getByText('Order not found', { exact: true })).toBeVisible()
+  await expect(page.getByText('The payment could not be completed.', { exact: true })).toBeVisible()
   expect(orders).toBe(1)
 })
 
@@ -227,9 +227,7 @@ test('delivery load failure permits manual checkout', async ({ page }) => {
   )
   await checkout(page)
   await expect(
-    page.getByText(
-      'Could not load your saved address. Enter your delivery details below.',
-    ),
+    page.getByText('Could not load your saved address. Enter your delivery details below.'),
   ).toBeVisible()
   await fill(page)
   await expect(page.getByLabel('Address')).toHaveValue('1 Test Street')
