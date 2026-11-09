@@ -53,13 +53,13 @@ test('renders payment handoff and field-specific server errors', async (context)
   })
 
   assert.match(paymentHtml, /id="payment-simulation"/)
-  assert.match(paymentHtml, /Mô phỏng thanh toán/)
-  assert.match(paymentHtml, /Đơn hàng #501/)
+  assert.doesNotMatch(paymentHtml, /Mô phỏng|demo|backend/)
+  assert.match(paymentHtml, /#501/)
   assert.match(paymentHtml, /PENDING_PAYMENT/)
   assert.match(paymentHtml, /46\.970\.000/)
-  assert.match(paymentHtml, /Thanh toán thành công/)
-  assert.match(paymentHtml, /Mô phỏng thất bại/)
-  assert.match(paymentHtml, /Mô phỏng hết hạn/)
+  assert.match(paymentHtml, />Thanh toán</)
+  assert.doesNotMatch(paymentHtml, /Mô phỏng thất bại/)
+  assert.doesNotMatch(paymentHtml, /Mô phỏng hết hạn/)
 
   const paymentResultHtml = await renderForm({
     lines: [],
@@ -110,7 +110,7 @@ test('renders payment handoff and field-specific server errors', async (context)
 
     assert.match(terminalHtml, new RegExp(title))
     assert.match(terminalHtml, new RegExp(`Payment ${status} · Order PAYMENT_FAILED`))
-    assert.match(terminalHtml, new RegExp(reason))
+    assert.doesNotMatch(terminalHtml, new RegExp(reason))
   }
 
   const paymentLoadingHtml = await renderForm({
@@ -123,7 +123,7 @@ test('renders payment handoff and field-specific server errors', async (context)
     paymentResult: null,
   })
 
-  assert.match(paymentLoadingHtml, /Đang xử lý kết quả thanh toán…/)
+  assert.match(paymentLoadingHtml, /Đang thanh toán…/)
   assert.match(paymentLoadingHtml, /disabled/)
 
   const paymentErrorHtml = await renderForm({
@@ -137,8 +137,8 @@ test('renders payment handoff and field-specific server errors', async (context)
   })
 
   assert.match(paymentErrorHtml, /Order is not eligible for payment/)
-  assert.match(paymentErrorHtml, /Đơn hàng #501/)
-  assert.match(paymentErrorHtml, /Thanh toán thành công/)
+  assert.match(paymentErrorHtml, /#501/)
+  assert.match(paymentErrorHtml, />Thanh toán</)
 
   const errorHtml = await renderForm({
     lines: [

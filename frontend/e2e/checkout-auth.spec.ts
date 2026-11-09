@@ -103,8 +103,8 @@ test('Guest keeps the cart and signs in before manually placing and paying an or
   expect(orders).toBe(0)
   await fill(page)
   await page.getByRole('button', { name: 'Place order', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Pay successfully' })).toBeVisible()
-  await page.getByRole('button', { name: 'Pay successfully' }).click()
+  await expect(page.getByRole('button', { name: 'Pay', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Pay', exact: true }).click()
   await expect(page.getByText('Payment succeeded', { exact: true })).toBeVisible()
   expect(orders).toBe(1)
 })
@@ -152,7 +152,7 @@ test('A generic payment 404 stays on the current order without creating another 
   await checkout(page)
   await fill(page)
   await page.getByRole('button', { name: 'Place order', exact: true }).click()
-  await page.getByRole('button', { name: 'Pay successfully' }).click()
+  await page.getByRole('button', { name: 'Pay', exact: true }).click()
   await expect(page.getByText('Order not found', { exact: true })).toBeVisible()
   expect(orders).toBe(1)
 })
@@ -194,7 +194,7 @@ test('checkout prefills a saved address and keeps order edits separate', async (
   await page.getByLabel('Customer name').fill('Buyer')
   await page.getByLabel('Address').fill('Only this order')
   await page.getByRole('button', { name: 'Place order', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Pay successfully' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Pay', exact: true })).toBeVisible()
   expect(writes).toBe(0)
   expect(
     await page.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage })),
@@ -228,7 +228,7 @@ test('delivery load failure permits manual checkout', async ({ page }) => {
   await checkout(page)
   await expect(
     page.getByText(
-      'Your saved address could not be loaded. You can enter delivery information manually.',
+      'Could not load your saved address. Enter your delivery details below.',
     ),
   ).toBeVisible()
   await fill(page)
