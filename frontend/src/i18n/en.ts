@@ -244,22 +244,6 @@ export const en = {
     searchPlaceholder: 'Search for products...',
     openCart: 'Open cart',
     cart: 'Cart',
-    hero: {
-      kicker: 'ShopFlow store',
-      line1: 'Pick fast.',
-      line2: 'Order simply.',
-      text: 'Find replacement filters and accessories for your appliances.',
-      cta: 'Browse products',
-    },
-    benefits: {
-      label: 'Shopping benefits',
-      pricingTitle: 'Prices in VND',
-      pricingHint: 'See prices on each product',
-      stockTitle: 'Product availability',
-      stockHint: 'Find items in stock',
-      orderingTitle: 'Your cart',
-      orderingHint: 'Review your items before ordering',
-    },
     section: {
       kicker: "Today's picks",
       title: 'Products for you',

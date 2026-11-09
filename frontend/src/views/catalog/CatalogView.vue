@@ -12,10 +12,8 @@ import {
   IconMinus,
   IconPackage,
   IconPlus,
-  IconReceipt,
   IconRefresh,
   IconSearch,
-  IconShieldCheck,
   IconShoppingCart,
   IconUserCircle,
   IconTrash,
@@ -218,10 +216,6 @@ function isPaymentErrorDetails(value: unknown): value is PaymentErrorDetails {
 
 function visualClass(productId: number) {
   return productVisuals[Math.abs(productId) % productVisuals.length]
-}
-
-function scrollToProducts() {
-  document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })
 }
 
 function addToCart(product: ProductListItem) {
@@ -431,93 +425,15 @@ function closeProduct() {
       >
         {{ t('cartPersistence.quantityWarning') }}
       </p>
-      <section
-        class="relative min-h-56 overflow-hidden rounded-xl bg-[radial-gradient(circle_at_82%_20%,rgba(30,245,184,0.28),transparent_23%),linear-gradient(120deg,#11204a_0%,#1b3778_58%,#087861_130%)] text-white shadow-[0_18px_50px_rgba(20,37,83,0.18)] sm:min-h-72 sm:rounded-2xl"
-      >
-        <div class="relative z-10 max-w-2xl px-5 py-7 sm:px-12 sm:py-11">
-          <p class="text-xs font-black uppercase tracking-[0.16em] text-[#7ff0cf]">
-            {{ t('catalog.hero.kicker') }}
-          </p>
-          <h1
-            class="mt-3 max-w-lg text-[2rem] font-black leading-[1.02] tracking-[-0.04em] sm:text-5xl"
-          >
-            {{ t('catalog.hero.line1') }}<br />{{ t('catalog.hero.line2') }}
-          </h1>
-          <p class="mt-3 max-w-xl text-sm leading-relaxed text-[#e3eaff] sm:text-base">
-            {{ t('catalog.hero.text') }}
-          </p>
-          <Button
-            class="mt-5 bg-[#6ff0cb] font-black text-[#073a32] hover:bg-[#8bf4d7]"
-            type="button"
-            @click="scrollToProducts"
-          >
-            {{ t('catalog.hero.cta') }}
-            <IconArrowRight :size="18" :stroke-width="1.9" aria-hidden="true" />
-          </Button>
-        </div>
-        <div class="absolute -bottom-12 right-5 hidden size-72 sm:block" aria-hidden="true">
-          <span class="absolute inset-3 rounded-full bg-white/[0.08]" />
-          <span class="absolute bottom-10 left-8 size-32 rounded-full bg-brand/40" />
-          <div
-            class="absolute bottom-5 right-5 grid h-48 w-44 rotate-6 place-items-center rounded-[2rem] border-[3px] border-white/90 bg-white/10 shadow-2xl"
-          >
-            <img class="w-24 brightness-0 invert" src="/brand/shopflow-mark.png" alt="" />
-          </div>
-        </div>
-      </section>
-
-      <section
-        class="flex snap-x overflow-x-auto rounded-xl border border-border bg-card sm:grid sm:grid-cols-3"
-        :aria-label="t('catalog.benefits.label')"
-      >
-        <div class="flex min-w-[82%] snap-start items-center gap-3 p-4 sm:min-w-0">
-          <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-success">
-            ₫
-          </span>
-          <span
-            ><strong class="block text-sm">{{ t('catalog.benefits.pricingTitle') }}</strong
-            ><small class="text-muted-foreground">{{
-              t('catalog.benefits.pricingHint')
-            }}</small></span
-          >
-        </div>
-        <div
-          class="flex min-w-[82%] snap-start items-center gap-3 border-l border-border p-4 sm:min-w-0"
-        >
-          <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-success">
-            <IconShieldCheck :size="20" :stroke-width="1.8" aria-hidden="true" />
-          </span>
-          <span
-            ><strong class="block text-sm">{{ t('catalog.benefits.stockTitle') }}</strong
-            ><small class="text-muted-foreground">{{
-              t('catalog.benefits.stockHint')
-            }}</small></span
-          >
-        </div>
-        <div
-          class="flex min-w-[82%] snap-start items-center gap-3 border-l border-border p-4 sm:min-w-0"
-        >
-          <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-success">
-            <IconReceipt :size="20" :stroke-width="1.8" aria-hidden="true" />
-          </span>
-          <span
-            ><strong class="block text-sm">{{ t('catalog.benefits.orderingTitle') }}</strong
-            ><small class="text-muted-foreground">{{
-              t('catalog.benefits.orderingHint')
-            }}</small></span
-          >
-        </div>
-      </section>
-
       <section id="products" class="scroll-mt-36 pt-3">
         <header class="mb-4 flex items-end justify-between gap-4">
           <div>
             <p class="text-xs font-black uppercase tracking-[0.16em] text-success">
               {{ t('catalog.section.kicker') }}
             </p>
-            <h2 class="mt-1 text-2xl font-black tracking-tight text-primary sm:text-3xl">
+            <h1 class="mt-1 text-2xl font-black tracking-tight text-primary sm:text-3xl">
               {{ t('catalog.section.title') }}
-            </h2>
+            </h1>
             <p v-if="productsQuery.data.value" class="mt-2 text-sm text-muted-foreground">
               {{ t('catalog.loadedCount', products.length) }} ·
               {{ t('catalog.loadedInStockCount', loadedInStockCount) }}
