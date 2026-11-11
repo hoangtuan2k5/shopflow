@@ -1,5 +1,75 @@
 # Customer authentication integration and rollout — SF-149
 
+## Acceptance update — 2026-11-10 (SF-149)
+
+This section supersedes the pre-rollout status below. Evidence dates are retained;
+this documentation update does not claim a fresh production test run.
+
+- Released: [v0.14.2](https://github.com/hoangtuan2k5/shopflow/releases/tag/v0.14.2),
+  main `3858a67f3057ef26b3aeae9117a38bc263faf0b7`. Release publication,
+  successful main CI and the deployed checkout SHA were rechecked on 2026-11-10.
+- [Release CI](https://github.com/hoangtuan2k5/shopflow/actions/runs/42609245671)
+  completed successfully: 260 backend and 141 browser cases. These are release
+  results, not tests rerun for this documentation-only change.
+- Owner-confirmed manual acceptance: Google login and OTP-based initial password
+  setup both work. SF-146 and SF-155 are Done. The owner did not provide a
+  per-domain or new/returning/collision/link scenario breakdown; those details
+  must not be inferred from the confirmation.
+
+| Area | Result and evidence boundary |
+| --- | --- |
+| Live email registration | PASS on both public domains, EN/VI, using two dedicated QA accounts and actual application/API/DB requests on 2026-11-09 |
+| OTP and email transport | PASS using actual application messages and Resend official test recipients; provider API supplied the OTP in memory. This does not establish personal Inbox placement |
+| Recovery and password change | PASS live: incorrect proof rejected; correct proof changes credentials, rejects the old password, revokes old sessions on both domains and does not auto-login |
+| Session and CSRF | PASS live: Secure/HttpOnly/SameSite=Lax session cookie, actual CSRF cookie/header on writes; private endpoints return401 after revocation/logout |
+| Account privacy and cart | PASS live: account A/B separation, private cache cleared, cart retained; storage contains only product IDs/quantities |
+| Demo roles and menus | PASS live: customer/warehouse/owner on each domain at320/1280px, role capabilities, Escape/focus and logout; demo credentials unchanged |
+| Google public redirects | PASS agent browser: both-domain HTTPS callbacks, PKCE S256, state/nonce, openid/email/profile scopes and cancellation preserving the cart |
+| Google login and initial password | PASS owner manual confirmation; agent did not perform Google sign-in/consent. Initial-password UI/backend security additionally passed controlled tests |
+| Google rejection/link/race cases | PASS automated fake-provider suite with the real Spring token decoder; detailed public-provider collision/link scenarios were not separately observed |
+| Checkout and historical orders | Live checkout prefill and isolated form edits passed. No production order/payment was submitted; ownership and order snapshots rely on existing integration/release CI |
+| Backup and cleanup | Restricted pre-QA V9 dump restored to isolated PostgreSQL17 with matching table digests. Two QA users/challenges removed; all pre-existing application-table digests unchanged; rate limits preserved |
+| Rollout and schema | Production is v0.14.2 with V9, rather than the historical V6/not-deployed baseline. The SQL/Java migration-validator correction shipped before this release |
+
+### Focused review evidence — 2026-11-09
+
+- `bash backend/mvnw -f backend/pom.xml -B -Dtest=GoogleLoginTests,GoogleDisabledTests,AccountSelfServiceTests,PasswordRecoveryTests,ApiContractTests test`
+  —36 passed, no failures/errors/skips; disposable PostgreSQL and fake OIDC/email.
+- `npm --prefix frontend run lint:ci` —PASS.
+- `CI=1 npm --prefix frontend run test:e2e -- e2e/google-login.spec.ts e2e/account-menu.spec.ts e2e/password-guidance.spec.ts --retries=0 --reporter=list --workers=2`
+  —24 passed without retries. UI APIs are mocked. A fixture product lookup logged
+  a refused localhost backend connection; this is not live API evidence.
+- Local evidence: `/tmp/shopflow-auth-acceptance/acceptance-summary.md`,
+  `review-follow-up.md`, `review-backend.log`, `review-browser.log`,
+  `run-bad270c819/report.json`, `google-report.json`, `menu-report.json`.
+  Temporary artifacts are local working evidence, not durable public attachments;
+  Jira acceptance comments retain the results and provenance.
+
+### Remaining boundaries and rollback
+
+Public Google consent was owner-accepted, not agent-run. Personal Inbox placement,
+Gmail/Outlook font rendering, a new production order/payment and full application
+rollback were not rechecked. WNC health was not part of the latest auth QA; its
+older timeout below is historical, not a fresh incident report. Runtime OpenAPI
+is disabled under the staging profile; contract verification used source,
+ApiContractTests and real account API responses.
+
+No env values, Google tokens, OTPs, passwords or customer PII belong in this
+report. Keep Resend, current scopes and configuration unchanged. Before a future
+rollout, take a new restricted backup and verify restore; never restore an old
+backup over newer orders. Application rollback does not undo credential changes.
+In-memory sessions still end on backend restart; persistence remains SF-104.
+SF-102/SF-103 and architecture issues remain outside this closeout.
+
+See [account self-service acceptance](qa-account-self-service.md) for SF-156.
+Documentation closeout must be reviewed and merged before SF-149 is marked Done.
+
+## Historical candidate evidence — 2026-11-06
+
+Everything below records the original candidate and its then-current production
+baseline. Statements such as NOT READY, NOT DEPLOYED, V6 and NOT RUN are historical
+and are superseded by the dated acceptance update above.
+
 **Checked:** 2026-11-06 UTC. Candidate base `e062d18` on develop after PR #151.
 Branch `feature/SF-149-customer-auth-integration-readiness`.
 
