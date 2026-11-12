@@ -1,5 +1,57 @@
 # Account self-service QA — SF-156
 
+## Acceptance update — 2026-11-10 (SF-156)
+
+The implementation and follow-ups shipped through v0.14.2, main
+`3858a67f3057ef26b3aeae9117a38bc263faf0b7`. This update records existing evidence;
+it does not turn earlier candidate tests into new production runs.
+See the [shared production evidence matrix](qa-customer-authentication.md) for
+release CI, exact focused commands, evidence provenance and rollback boundaries.
+
+| Scope | Accepted evidence |
+| --- | --- |
+| SF-150 contract | Approved contract, source/release CI and actual account API behavior; public Swagger is disabled, not a failed contract acceptance |
+| SF-151 account menu/logout | Both public domains, all three demo roles at320/1280px; keyboard dismissal/focus, capabilities, server logout, cart retention and A/B private-state clearing passed |
+| SF-152 delivery details | Real save/reload/delete; same account reads the same address on the other domain, another account cannot read it; private responses are no-store |
+| SF-153 checkout prefill | Real checkout prefill and order-form edits leave the saved profile unchanged; no PII in cart storage. Snapshot/ownership mutations covered in integration/release CI, not a new production order |
+| SF-154 local password | Wrong current password rejected; successful change rejects old credentials and revokes old sessions across both domains. Live recovery OTP also passed |
+| SF-155 Google-only setup | Owner confirmed OTP-based initial password creation works; SF-155 is Done. Agent UI tests mock APIs; backend fixtures check purpose/session/version/generation, expiry, attempts, failed/delayed delivery, concurrency and revocation |
+| Data and migration safety | V9 pre-QA restricted backup/isolated PostgreSQL17 restore passed with matching digests; QA cleanup preserved pre-existing users/orders/payments/inventory and rate-limit buckets |
+| Release follow-ups | SQL/Java migration preflight fix, email/password guidance, checkout containment and copy changes are included in released v0.14.2; the older release holds/plans below are historical |
+
+SF-150–155 and SF-157–159 are Done. SF-149/SF-156 documentation closeout awaits
+review/merge; do not use a local documentation draft as proof of merged delivery.
+No new application, schema, configuration, API or provider change is needed here.
+
+### Manual acceptance provenance
+
+The owner confirmed in chat that Google login and initial password creation by
+OTP work. This is owner manual evidence, not agent Playwright Google consent.
+The confirmation did not enumerate domains, identity-link cases or email-client
+rendering; the report does not invent those details. Actual Resend test-recipient
+messages proved the app/provider OTP path but not a personal Inbox delivery claim.
+
+### Evidence and remaining limits
+
+The focused 2026-11-09 review passed36 backend tests,24 API-mocked Playwright
+cases and frontend lint. Release CI passed260 backend/141 browser cases.
+The earlier live Playwright run passed10 auth/account groups plus six role/domain
+menu contexts; two temporary QA accounts and their challenges were removed.
+Synthetic fixture timeout/parser corrections were resolved in the harness, not
+reported as product fixes. No production order/payment was submitted.
+
+Personal Inbox placement/font rendering, detailed public Google collision/link
+cases and a full old-application rollback were not rechecked. Password changes
+remain effective after application rollback. Backups must not overwrite newer
+orders; retain the additive V9 schema and validate SQL plus Java migrations.
+Backend restart still logs users out until SF-104 is implemented.
+
+## Historical candidate and rollout evidence
+
+The following sections retain the original candidate results, intermediate
+failures and promotion plans. Their not-deployed/not-run/held-release statements
+are dated historical evidence, superseded by the acceptance update above.
+
 Candidate branch: `feature/SF-140-account-self-service`, based on develop `7cd1f31`.
 Scope: SF-150–SF-156; contract: [account self-service](api-account-self-service-spec.md).
 This is local candidate evidence, not production or real Google/Inbox acceptance.

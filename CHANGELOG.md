@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.3]
+
+### Changed
+
+- **Authentication QA**: reconcile customer authentication and account self-service acceptance with the released behavior, owner-confirmed Google/OTP flows, and dated automated/live evidence; preserve historical rollout records and remaining verification limits (SF-149, SF-156).
+
 ## [0.14.2]
 
 ### Changed
