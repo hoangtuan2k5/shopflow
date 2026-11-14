@@ -95,7 +95,6 @@ contract phải đọc được từ repository mà không cần truy cập wiki
 - Spring Boot 4.0.x
 - Maven
 - Spring Web, Spring Data JPA, Validation
-- Lombok, MapStruct
 - PostgreSQL (dev/staging), H2 (test)
 - Flyway Migration
 - Spring Boot Actuator
