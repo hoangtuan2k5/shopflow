@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Backend build**: remove unused Lombok/MapStruct dependencies and annotation processors while retaining Spring Boot configuration metadata processing (SF-132).
+
 ## [0.14.3]
 
 ### Changed
