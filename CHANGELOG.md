@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.5]
+
 ### Changed
 
 - **Delivery and returns**: batch child reads to avoid per-order queries while preserving response ordering (SF-136).
