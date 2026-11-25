@@ -8,7 +8,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -108,6 +111,78 @@ public class ReturnRepository {
                 resultSet.getString("product_name"),
                 resultSet.getInt("quantity")),
         returnId);
+  }
+
+  public Map<Long, List<ReturnItemResponse>> itemsForReturns(List<Long> ids) {
+    Map<Long, List<ReturnItemResponse>> result = new LinkedHashMap<>();
+    if (ids.isEmpty()) return result;
+    jdbcTemplate.query(
+        connection -> {
+          var statement =
+              connection.prepareStatement(
+                  """
+          SELECT ri.return_request_id, ri.order_item_id, oi.product_id, oi.product_name, ri.quantity
+          FROM shopflow.return_request_items ri JOIN shopflow.order_items oi ON oi.id = ri.order_item_id
+          WHERE ri.return_request_id = ANY (?) ORDER BY ri.return_request_id, ri.id
+          """);
+          statement.setArray(1, connection.createArrayOf("bigint", ids.toArray()));
+          return statement;
+        },
+        (org.springframework.jdbc.core.RowCallbackHandler)
+            rs ->
+                result
+                    .computeIfAbsent(rs.getLong("return_request_id"), ignored -> new ArrayList<>())
+                    .add(
+                        new ReturnItemResponse(
+                            rs.getLong("order_item_id"),
+                            rs.getLong("product_id"),
+                            rs.getString("product_name"),
+                            rs.getInt("quantity"))));
+    return result;
+  }
+
+  public Map<Long, List<ReturnableItemResponse>> returnableItemsForOrders(List<Long> ids) {
+    Map<Long, List<ReturnableItemResponse>> result = new LinkedHashMap<>();
+    if (ids.isEmpty()) return result;
+    jdbcTemplate.query(
+        connection -> {
+          var statement =
+              connection.prepareStatement(
+                  """
+          SELECT oi.order_id, oi.id AS order_item_id, oi.product_id, oi.product_name, oi.quantity,
+                 COALESCE(r.returned_quantity, 0) AS returned_quantity
+          FROM shopflow.order_items oi
+          LEFT JOIN (
+              SELECT ri.order_item_id, SUM(ri.quantity) AS returned_quantity
+              FROM shopflow.return_request_items ri
+              JOIN shopflow.return_requests rr ON rr.id = ri.return_request_id
+              JOIN shopflow.order_items rio ON rio.id = ri.order_item_id
+              WHERE rio.order_id = ANY (?) AND rr.status IN ('REQUESTED', 'APPROVED', 'RESTOCKED')
+              GROUP BY ri.order_item_id
+          ) r ON r.order_item_id = oi.id
+          WHERE oi.order_id = ANY (?) ORDER BY oi.order_id, oi.id
+          """);
+          var array = connection.createArrayOf("bigint", ids.toArray());
+          statement.setArray(1, array);
+          statement.setArray(2, array);
+          return statement;
+        },
+        (org.springframework.jdbc.core.RowCallbackHandler)
+            rs -> {
+              int quantity = rs.getInt("quantity");
+              int returned = rs.getInt("returned_quantity");
+              result
+                  .computeIfAbsent(rs.getLong("order_id"), ignored -> new ArrayList<>())
+                  .add(
+                      new ReturnableItemResponse(
+                          rs.getLong("order_item_id"),
+                          rs.getLong("product_id"),
+                          rs.getString("product_name"),
+                          quantity,
+                          returned,
+                          quantity - returned));
+            });
+    return result;
   }
 
   public OrderStateRow findOrderForUpdate(Long orderId) {
