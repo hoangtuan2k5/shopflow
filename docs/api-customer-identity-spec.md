@@ -53,7 +53,7 @@ Username kỹ thuật của account mới không được dùng làm alias login
 
 ## 3. Session, CSRF và hợp đồng lỗi chung
 
-Giữ HttpOnly session, idle timeout 8 giờ, session store in-memory (SF-104 riêng).
+Giữ HttpOnly session và idle timeout 8 giờ; SF-104 dùng session JDBC trên PostgreSQL.
 Đổi cookie phiên sang **SameSite=Lax** cho callback Google GET; Secure ở
 production, Path `/`, không đặt Domain dùng chung. Hai root domain không chia
 sẻ cookie. Luôn rotate session sau login/link thành công; không đặt token Google

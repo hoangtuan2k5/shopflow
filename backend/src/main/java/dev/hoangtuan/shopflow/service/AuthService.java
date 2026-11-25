@@ -77,9 +77,18 @@ public class AuthService {
       AccountPrincipal principal,
       HttpServletRequest httpRequest,
       HttpServletResponse httpResponse) {
+    var user = principal.toAuthenticatedUser();
+    var sessionPrincipal =
+        new AccountPrincipal(
+            user.userId(),
+            user.username(),
+            null,
+            user.displayName(),
+            user.role(),
+            principal.getAuthVersion());
     Authentication authentication =
         UsernamePasswordAuthenticationToken.authenticated(
-            principal, null, principal.getAuthorities());
+            sessionPrincipal, null, sessionPrincipal.getAuthorities());
 
     // Đổi session id sau khi xác thực để chặn session fixation.
     HttpSession existingSession = httpRequest.getSession(false);

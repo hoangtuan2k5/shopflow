@@ -119,8 +119,8 @@ class CustomerIdentityMigrationTests {
             .load();
     h2.migrate();
     h2.validate();
-    assertThat(pg.info().current().getVersion().toString()).isEqualTo("9");
-    assertThat(h2.info().current().getVersion().toString()).isEqualTo("9");
+    assertThat(pg.info().current().getVersion().toString()).isEqualTo("10");
+    assertThat(h2.info().current().getVersion().toString()).isEqualTo("10");
   }
 
   @Test

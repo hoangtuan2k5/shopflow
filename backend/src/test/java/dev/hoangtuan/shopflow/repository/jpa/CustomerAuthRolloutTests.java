@@ -267,8 +267,10 @@ class CustomerAuthRolloutTests {
             "SELECT table_name FROM information_schema.tables WHERE table_schema='shopflow' AND table_type='BASE TABLE' AND table_name <> 'flyway_schema_history' ORDER BY table_name",
             String.class)) {
       assertThat(table).matches("[a-z][a-z0-9_]*");
-      if (legacy && (table.startsWith("auth_") || table.equals("account_delivery_details")))
-        continue;
+      if (legacy
+          && (table.startsWith("auth_")
+              || table.startsWith("spring_session")
+              || table.equals("account_delivery_details"))) continue;
       String row = "to_jsonb(t)";
       if (legacy && table.equals("users"))
         row += " - ARRAY['email','email_verified_at','google_issuer','google_sub','auth_version']";

@@ -55,13 +55,11 @@ trên cùng domain), nên lợi thế duy nhất của JWT không áp dụng, c�
 
 ### 2.2 Nơi lưu session và giới hạn đã biết
 
-MVP dùng **session in-memory của servlet container**. Chỉ có một container
-backend nên không cần session store dùng chung.
-
-Giới hạn phải nói rõ: **mọi phiên mất khi backend khởi động lại**, mà deploy lại
-chạy trên mỗi lần push vào `main`. Người dùng phải đăng nhập lại sau deploy.
-MVP chấp nhận điều này. Khi cần khắc phục, đường nâng cấp là Spring Session JDBC
-lưu vào chính PostgreSQL đang có, không cần thêm hạ tầng.
+SF-104 chuyển session sang Spring Session JDBC trong PostgreSQL, với schema do
+Flyway quản lý. Phiên còn hạn vẫn được đọc lại sau khi backend restart; logout,
+khóa tài khoản hoặc thay đổi credential version tiếp tục vô hiệu phiên.
+Lần đầu chuyển từ session in-memory sang JDBC, các phiên cũ phải đăng nhập lại.
+Nếu database không khả dụng thì không thể xác thực hoặc duy trì session.
 
 ### 2.3 Thuộc tính cookie và CSRF
 
@@ -301,7 +299,7 @@ chủ đích so với baseline:
   CSRF SPA và 8 giờ idle timeout. GET session phải bootstrap token ngay; các
   auth write mới không được blanket-exempt CSRF.
 - Principal chung theo userId/auth_version cho cả password và Google; reset
-  vô hiệu tất cả phiên cũ. Session vẫn mất khi restart, SF-104 là task riêng.
+  vô hiệu tất cả phiên cũ. SF-104 lưu session JDBC để sống qua restart.
 - Bộ kiểm thử CI-01–CI-15 trong contract là kế hoạch nghiệm thu tương lai,
   không thay bằng chứng PASS của login legacy hoặc thử credential sơ bộ.
 
