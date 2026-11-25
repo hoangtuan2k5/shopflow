@@ -35,11 +35,15 @@ public class ReturnService {
 
   public List<ReturnResponse> list() {
     List<ReturnRow> returns = repository.findAll();
-    return returns.stream().map(row -> response(row, repository.items(row.id()))).toList();
+    var items = repository.itemsForReturns(returns.stream().map(ReturnRow::id).toList());
+    return returns.stream()
+        .map(row -> response(row, items.getOrDefault(row.id(), List.of())))
+        .toList();
   }
 
   public List<ReturnableOrderResponse> returnableOrders() {
     List<OrderRow> orders = repository.findDeliveredOrders();
+    var items = repository.returnableItemsForOrders(orders.stream().map(OrderRow::id).toList());
     return orders.stream()
         .map(
             order ->
@@ -49,7 +53,7 @@ public class ReturnService {
                     order.city(),
                     order.totalAmount(),
                     order.createdAt(),
-                    repository.returnableItems(order.id())))
+                    items.getOrDefault(order.id(), List.of())))
         .toList();
   }
 

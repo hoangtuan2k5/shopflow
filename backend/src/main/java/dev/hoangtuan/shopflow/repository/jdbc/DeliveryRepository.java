@@ -6,7 +6,10 @@ import dev.hoangtuan.shopflow.model.order.DeliveryStatus;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -93,6 +96,63 @@ public class DeliveryRepository {
               resultSet.getString("changed_by"));
         },
         orderId);
+  }
+
+  public Map<Long, List<DeliveryItemResponse>> itemsForOrders(List<Long> ids) {
+    Map<Long, List<DeliveryItemResponse>> result = new LinkedHashMap<>();
+    if (ids.isEmpty()) return result;
+    jdbcTemplate.query(
+        connection -> {
+          var statement =
+              connection.prepareStatement(
+                  """
+          SELECT order_id, product_id, product_name, SUM(quantity) AS quantity
+          FROM shopflow.order_items WHERE order_id = ANY (?)
+          GROUP BY order_id, product_id, product_name ORDER BY order_id, product_id
+          """);
+          statement.setArray(1, connection.createArrayOf("bigint", ids.toArray()));
+          return statement;
+        },
+        (org.springframework.jdbc.core.RowCallbackHandler)
+            rs ->
+                result
+                    .computeIfAbsent(rs.getLong("order_id"), ignored -> new ArrayList<>())
+                    .add(
+                        new DeliveryItemResponse(
+                            rs.getLong("product_id"),
+                            rs.getString("product_name"),
+                            rs.getInt("quantity"))));
+    return result;
+  }
+
+  public Map<Long, List<DeliveryHistoryResponse>> historyForOrders(List<Long> ids) {
+    Map<Long, List<DeliveryHistoryResponse>> result = new LinkedHashMap<>();
+    if (ids.isEmpty()) return result;
+    jdbcTemplate.query(
+        connection -> {
+          var statement =
+              connection.prepareStatement(
+                  """
+          SELECT order_id, from_status, to_status, changed_at, changed_by
+          FROM shopflow.delivery_status_history WHERE order_id = ANY (?)
+          ORDER BY order_id, changed_at, id
+          """);
+          statement.setArray(1, connection.createArrayOf("bigint", ids.toArray()));
+          return statement;
+        },
+        (org.springframework.jdbc.core.RowCallbackHandler)
+            rs -> {
+              String from = rs.getString("from_status");
+              result
+                  .computeIfAbsent(rs.getLong("order_id"), ignored -> new ArrayList<>())
+                  .add(
+                      new DeliveryHistoryResponse(
+                          from == null ? null : DeliveryStatus.valueOf(from),
+                          DeliveryStatus.valueOf(rs.getString("to_status")),
+                          instant(rs.getTimestamp("changed_at")),
+                          rs.getString("changed_by")));
+            });
+    return result;
   }
 
   private Instant instant(Timestamp timestamp) {
