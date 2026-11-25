@@ -17,6 +17,8 @@ import org.springframework.security.core.userdetails.UserDetails;
  */
 public final class AccountPrincipal implements UserDetails {
 
+  @java.io.Serial private static final long serialVersionUID = 1L;
+
   private final long userId;
   private final String username;
   private final String passwordHash;

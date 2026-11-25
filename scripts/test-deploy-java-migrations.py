@@ -68,7 +68,7 @@ class JavaMigrationPreflightTests(unittest.TestCase):
             self.require_success(validator(bundle, 'migrate'))
             version = self.require_success(['docker', 'exec', name, 'psql', '-U', 'postgres',
                                             '-Atc', "SELECT max(version::int) FROM shopflow.flyway_schema_history WHERE success"])
-            self.assertEqual(version.strip(), '9')
+            self.assertEqual(version.strip(), '10')
             self.require_success(validator(bundle, 'validate'))
             old = self.run_command(common + ['-v', str(ROOT / 'backend/src/main/resources/db/migration')
                                              + ':/flyway/sql:ro', cli, 'validate',

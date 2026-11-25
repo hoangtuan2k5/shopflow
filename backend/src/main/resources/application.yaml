@@ -18,6 +18,10 @@ spring:
     properties:
       hibernate:
         default_schema: shopflow
+  session:
+    jdbc:
+      initialize-schema: never
+      table-name: shopflow.SPRING_SESSION
   flyway:
     enabled: true
     schemas: shopflow

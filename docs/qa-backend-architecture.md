@@ -8,6 +8,30 @@ Mục tiêu là tách tầng và nơi truy cập dữ liệu, giữ hành vi HTT
 transaction. [Kiến trúc](architecture/backend.md) và
 [bảng chuyển file](architecture/backend-refactor-map.md) mô tả source sau thay đổi.
 
+## Đối chiếu SF-139 sau v0.14.5 — 2026-11-25
+
+Bản đối chiếu này dùng `develop` `31011901de54ec3006ce02cfaaca5f9081e41408`,
+cùng tree mã ứng dụng với merge `main` `a640e41efb25c08e8d57d572847ff94bca3e8e4e`.
+Các mục bên dưới phần này ghi nhận đợt refactor ngày 2026-10-19, không phải
+trạng thái hiện tại.
+
+| Điều kiện | Bằng chứng và giới hạn |
+|---|---|
+| Phân tầng, scan và advice | `ShopflowApplication` ở root; `ArchitectureTests` kiểm tra package, import và chặn JdbcTemplate/EntityManager/Connection trong service/security. CI hiện tại qua; đây là guard source cơ bản, không chứng minh mọi dependency hoặc I/O. Các advice delivery/payment giữ scope controller cụ thể. Spring context và JPA được khởi tạo trong `ApiContractTests`. |
+| Contract, role/CSRF và nghiệp vụ | `ApiContractTests` so paths/schemas với fixture hiện tại; các controller/security/concurrency tests chạy trong CI. Fixture đã được cập nhật cho các tính năng account sau refactor, nên không xem nó là so sánh nguyên trạng với baseline 2026-10-19. So sánh 21 path/39 schema ở phần lịch sử chỉ áp dụng cho đợt refactor đó. |
+| N+1 và dữ liệu con | [QA SF-136](qa-sf-136.md) ghi test PostgreSQL 1/20 parent và baseline 20 parent 41/21/21 SELECT, sau sửa 3/2/2. Kiểm tra cả thứ tự, trạng thái hoàn hàng và dữ liệu con; endpoint test dùng standalone MockMvc, authorization được kiểm tra riêng. Chưa benchmark latency; danh sách chưa phân trang. |
+| Transaction, rollback và tích hợp | CI chạy suite hiện có cho order/payment/inventory/receiving/delivery/return concurrency, auth, hình ảnh, search/chat và data model. Test chứng minh các trường hợp được kiểm tra, không chứng minh mọi lịch chạy đồng thời hoặc provider thật. |
+| Backend và frontend | [Main CI v0.14.5](https://github.com/hoangtuan2k5/shopflow/actions/runs/45628631804) qua Spotless, backend clean verify **263 test**, frontend lint/build và **141 browser test**. Log xác nhận `ArchitectureTests`, `ApiContractTests` và `BatchReadTests` cùng pass. Đây là CI của commit main nêu trên, không phải lượt chạy local mới. |
+| Migration và production | Riêng SF-136 không thêm migration hoặc thay dữ liệu production; các tính năng phát hành sau refactor đã bổ sung migration V7/V8/V9, nên không khẳng định toàn bộ dự án giữ schema V6. Job deploy v0.14.5 thành công; chưa thực hiện browser smoke trực tiếp sau deploy. |
+| Tài liệu và phụ thuộc | Kiến trúc/mapping và kết quả gốc được giữ ở repo. SF-132 đã phát hành v0.14.4, SF-136 đã phát hành [v0.14.5](https://github.com/hoangtuan2k5/shopflow/releases/tag/v0.14.5). Tài liệu này cần được review/merge trước khi đóng SF-139 và epic SF-130. |
+
+Không chạy load test hoặc gọi AI/R2 thật trong lượt đối chiếu này. Lỗi E2E từng
+flaky và các giới hạn test lịch sử phía dưới được giữ nguyên, không suy ra đã
+sửa từ kết quả CI mới. Các PR refactor và SF-136 đã được owner duyệt merge; PR
+#140 ghi nhận admin bypass review, không có review approval trên GitHub.
+
+## Bằng chứng lịch sử của đợt refactor — 2026-10-19
+
 ## Môi trường và phạm vi
 
 - Ubuntu, OpenJDK 21.0.12.1, Maven wrapper của repo, Node 22.22.3, npm 10.9.8.

@@ -153,9 +153,9 @@ npm --prefix frontend run test:e2e
 
 ## Việc theo dõi riêng
 
-SF-132 xử lý dependency Lombok/MapStruct chưa sử dụng. SF-136 xử lý N+1 ở danh sách
-giao hàng và đổi trả. Đợt refactor SF-130 giữ hành vi truy vấn hiện tại; tách tầng
-không tự chứng minh đã giải quyết hiệu năng hoặc giới hạn kích thước danh sách.
+SF-132 đã loại dependency Lombok/MapStruct chưa sử dụng trong v0.14.4. SF-136
+đã batch các danh sách giao hàng và đổi trả trong v0.14.5; xem
+[query-count và giới hạn](../qa-sf-136.md). Các danh sách vẫn chưa phân trang.
 
 ## Tham khảo
 
