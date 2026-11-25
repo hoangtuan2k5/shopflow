@@ -22,9 +22,23 @@ public class DeliveryService {
   }
 
   public List<DeliveryResponse> getDeliveries() {
-    return repository.findAll().stream()
-        // ponytail: MVP-sized queue; batch child reads when delivery volume needs pagination.
-        .map(this::response)
+    var orders = repository.findAll();
+    var ids = orders.stream().map(OrderRow::orderId).toList();
+    var items = repository.itemsForOrders(ids);
+    var history = repository.historyForOrders(ids);
+    return orders.stream()
+        .map(
+            order ->
+                new DeliveryResponse(
+                    order.orderId(),
+                    order.orderStatus(),
+                    order.deliveryStatus(),
+                    order.receiverName(),
+                    order.city(),
+                    order.totalAmount(),
+                    order.createdAt(),
+                    items.getOrDefault(order.orderId(), List.of()),
+                    history.getOrDefault(order.orderId(), List.of())))
         .toList();
   }
 
