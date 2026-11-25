@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Authentication**: persist HTTP sessions in PostgreSQL across backend restarts (SF-104).
+
 ## [0.14.5]
 
 ### Changed

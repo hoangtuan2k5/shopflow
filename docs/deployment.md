@@ -127,6 +127,25 @@ migrations or repair the database to work around packaging errors.
 Run `python3 scripts/test-deploy-java-migrations.py` after backend Maven verify
 to exercise the production locations on a disposable PostgreSQL17 database.
 
+### Persistent HTTP sessions (SF-104)
+
+Spring Session JDBC stores sessions in the `shopflow` PostgreSQL schema; V10
+creates its tables and indexes through Flyway. Keep the database and session
+attribute data private. Expired sessions are cleaned up by Spring Session.
+Session cookies remain host-only and use the existing eight-hour idle timeout,
+HttpOnly, SameSite=Lax and production Secure settings. Session state depends on
+PostgreSQL availability; its use by multiple instances does not make other
+in-memory application state shared.
+
+Spring Session uses the `SESSION` cookie; the old servlet `JSESSIONID` is not
+migrated. The first rollout cannot migrate in-memory sessions, so users must sign
+in again once. Take and verify a database backup before rollout, validate V10 with
+the migration preflight, and test login, restart, authenticated write and logout
+on an isolated environment. Retain the previous application image for a reviewed
+rollback. An older in-memory backend cannot use JDBC sessions; if JDBC is later
+re-enabled, unexpired rows may become valid again. Review session revocation
+separately; do not drop tables or restore an old backup over new business data.
+
 ### SSH script stdin (SF-128)
 
 The workflow sends its remote script to `bash -s` through SSH stdin. Flyway's
